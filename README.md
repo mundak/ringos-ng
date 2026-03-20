@@ -15,6 +15,7 @@ The current approved target is milestone one only:
 ## Milestone One Plan
 
 The detailed implementation plan is documented in [docs/milestone-one-execution-plan.md](docs/milestone-one-execution-plan.md).
+The recommended CI and local testing structure is documented in [docs/ci-and-testing.md](docs/ci-and-testing.md).
 
 That document is the current source of truth for:
 
