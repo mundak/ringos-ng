@@ -1,0 +1,106 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 27,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "RINGOS_ENABLE_TESTING": "ON"
+      }
+    },
+    {
+      "name": "x64-debug",
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/x64.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "RINGOS_TARGET_ARCH": "x64"
+      }
+    },
+    {
+      "name": "arm64-debug",
+      "inherits": "base",
+      "toolchainFile": "${sourceDir}/cmake/toolchains/arm64.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "RINGOS_TARGET_ARCH": "arm64"
+      }
+    },
+    {
+      "name": "x64-ci",
+      "inherits": "x64-debug",
+      "cacheVariables": {
+        "RINGOS_CI": "ON"
+      }
+    },
+    {
+      "name": "arm64-ci",
+      "inherits": "arm64-debug",
+      "cacheVariables": {
+        "RINGOS_CI": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-x64-debug",
+      "configurePreset": "x64-debug"
+    },
+    {
+      "name": "build-arm64-debug",
+      "configurePreset": "arm64-debug"
+    },
+    {
+      "name": "build-x64-ci",
+      "configurePreset": "x64-ci"
+    },
+    {
+      "name": "build-arm64-ci",
+      "configurePreset": "arm64-ci"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "test-x64-debug",
+      "configurePreset": "x64-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "test-arm64-debug",
+      "configurePreset": "arm64-debug",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "test-x64-ci",
+      "configurePreset": "x64-ci",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      }
+    },
+    {
+      "name": "test-arm64-ci",
+      "configurePreset": "arm64-ci",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      }
+    }
+  ]
+}
