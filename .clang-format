@@ -1,0 +1,65 @@
+BasedOnStyle: WebKit
+
+TabWidth: 2
+IndentWidth: 2
+UseTab: Never
+ColumnLimit: 120
+
+AccessModifierOffset: -2
+AlignEscapedNewlines: DontAlign
+AlignAfterOpenBracket: AlwaysBreak
+AlignTrailingComments: false
+AllowShortFunctionsOnASingleLine: Inline
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: true
+BinPackArguments: false
+BinPackParameters: false
+
+BraceWrapping:
+  AfterCaseLabel: true
+  AfterClass: true
+  AfterControlStatement: true
+  AfterEnum: true
+  AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: true
+  AfterStruct: true
+  AfterUnion: true
+  BeforeCatch: true
+  BeforeLambdaBody: true
+  BeforeElse: true
+  IndentBraces: false
+
+BreakBeforeBraces: Custom
+BreakConstructorInitializers: BeforeComma
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
+FixNamespaceComments: false
+IncludeBlocks: Regroup
+IncludeCategories:
+  # 1. Project headers (quoted includes) — highest priority after main header
+  - Regex: '^"'
+    Priority: 1
+  # 2. Third-party headers (imgui, GLFW, spdlog, fmt, gtest, gmock)
+  - Regex: '^<(imgui|GLFW|backends|spdlog|fmt|gtest|gmock).*>'
+    Priority: 2
+  # 3. Standard library headers (everything else in angle brackets)
+  - Regex: '^<'
+    Priority: 3
+IncludeIsMainRegex: '([-_](test|unittest))?$'
+IndentPPDirectives: None
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: All
+
+PenaltyReturnTypeOnItsOwnLine: 1000000
+
+PointerAlignment: Left
+SeparateDefinitionBlocks: Always
+SortIncludes: true
+
+SpaceAfterCStyleCast: true
+SpaceAfterTemplateKeyword: false
+SpaceBeforeParens: ControlStatements
+SpacesInContainerLiterals: false
+SpaceBeforeCpp11BracedList: true
