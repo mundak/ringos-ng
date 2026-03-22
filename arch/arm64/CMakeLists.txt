@@ -7,7 +7,6 @@ add_executable(ringos_arm64
 target_link_options(ringos_arm64
   PRIVATE
     -T ${LINKER_SCRIPT}
-    -Wl,--no-warn-rwx-segments
 )
 
 target_link_libraries(ringos_arm64

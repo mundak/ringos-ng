@@ -13,8 +13,6 @@ target_compile_options(ringos_x64
 target_link_options(ringos_x64
   PRIVATE
     -T ${LINKER_SCRIPT}
-    -m64
-    -Wl,--no-warn-rwx-segments
 )
 
 target_link_libraries(ringos_x64

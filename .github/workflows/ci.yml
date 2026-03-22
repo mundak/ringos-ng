@@ -22,14 +22,9 @@ jobs:
           sudo apt-get install -y \
             cmake \
             ninja-build \
-            gcc \
-            g++ \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu \
-            binutils-aarch64-linux-gnu \
-            gcc-x86-64-linux-gnu \
-            g++-x86-64-linux-gnu \
-            binutils-x86-64-linux-gnu \
+            clang \
+            lld \
+            llvm \
             qemu-system-arm \
             qemu-system-misc \
             qemu-system-x86
