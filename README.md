@@ -47,6 +47,113 @@ These are explicitly out of scope for the first milestone:
 - Expected early-bootstrap language: assembly
 - Initial emulation targets: QEMU x64 and QEMU arm64 virt
 
+## Repository Structure
+
+```text
+.
+├── CMakeLists.txt          # Top-level CMake project
+├── CMakePresets.json       # Configure, build, and test presets for both targets
+├── cmake/
+│   ├── toolchains/
+│   │   ├── x64.cmake       # x64 bare-metal toolchain (x86_64-linux-gnu)
+│   │   └── arm64.cmake     # arm64 bare-metal toolchain (aarch64-linux-gnu)
+│   └── tests/
+│       └── smoke_tests.cmake
+├── kernel/                 # Shared kernel code (populated from Phase 2)
+├── arch/
+│   ├── x64/                # x64-specific boot and hardware code
+│   └── arm64/              # arm64-specific boot and hardware code
+├── scripts/
+│   ├── run-x64.sh          # Launch x64 QEMU with serial on stdout
+│   ├── run-arm64.sh        # Launch arm64 QEMU virt with serial on stdout
+│   ├── debug-x64.sh        # Launch x64 QEMU with GDB stub, paused at startup
+│   ├── debug-arm64.sh      # Launch arm64 QEMU virt with GDB stub, paused
+│   ├── test-smoke-x64.sh   # x64 smoke test (asserts expected serial output)
+│   └── test-smoke-arm64.sh # arm64 smoke test (asserts expected serial output)
+└── docs/
+    ├── milestone-one-execution-plan.md
+    └── ci-and-testing.md
+```
+
+## Prerequisites
+
+Install the following tools in WSL2 (Ubuntu):
+
+```bash
+sudo apt-get update
+sudo apt-get install -y \
+  cmake \
+  ninja-build \
+  gcc \
+  g++ \
+  gcc-aarch64-linux-gnu \
+  g++-aarch64-linux-gnu \
+  binutils-aarch64-linux-gnu \
+  gcc-x86-64-linux-gnu \
+  g++-x86-64-linux-gnu \
+  binutils-x86-64-linux-gnu \
+  qemu-system-arm \
+  qemu-system-misc \
+  qemu-system-x86 \
+  gdb-multiarch
+```
+
+## Build Commands
+
+### x64
+
+```bash
+cmake --preset x64-debug
+cmake --build --preset build-x64-debug
+```
+
+### arm64
+
+```bash
+cmake --preset arm64-debug
+cmake --build --preset build-arm64-debug
+```
+
+## Run Commands
+
+```bash
+# x64
+scripts/run-x64.sh build/x64-debug/arch/x64/ringos_x64
+
+# arm64
+scripts/run-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
+```
+
+## Debug Commands
+
+```bash
+# x64 — launches QEMU with GDB stub, paused at startup
+scripts/debug-x64.sh build/x64-debug/arch/x64/ringos_x64
+
+# In a separate terminal:
+gdb-multiarch -ex "target remote :1234" build/x64-debug/arch/x64/ringos_x64
+
+# arm64 — same pattern
+scripts/debug-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
+gdb-multiarch -ex "target remote :1234" build/arm64-debug/arch/arm64/ringos_arm64
+```
+
+## Smoke Tests
+
+```bash
+ctest --preset test-x64-debug
+ctest --preset test-arm64-debug
+```
+
 ## Status
 
-Implementation has not started yet. The next step is to create the initial repository skeleton and begin phase 1 from the milestone-one execution plan.
+Phase 1 (Host Workflow And Build Skeleton) is complete. The repository skeleton,
+CMake build system, toolchain files, run and debug scripts, smoke test scaffolding,
+and CI workflow are all in place.
+
+Both placeholder targets (`ringos_x64`, `ringos_arm64`) configure and build
+successfully. Smoke tests are registered but will only pass once Phase 3 (x64
+bring-up) and Phase 4 (arm64 bring-up) are complete and real serial output is
+produced.
+
+The next step is Phase 2: Shared Kernel Contract.
