@@ -9,11 +9,11 @@ namespace ringos
 
   [[noreturn]] void kernel_main(const boot_info& info)
   {
-    if (info.arch_id == ARCH_X64)
+    if (info.m_arch_id == ARCH_X64)
     {
       console_write("ringos x64\n");
     }
-    else if (info.arch_id == ARCH_ARM64)
+    else if (info.m_arch_id == ARCH_ARM64)
     {
       console_write("ringos arm64\n");
     }

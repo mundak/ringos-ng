@@ -27,12 +27,12 @@ namespace ringos
   //   - No reliance on implicit global constructors.
   struct boot_info
   {
-    uint32_t arch_id; // One of the ARCH_* constants defined above.
-    uint32_t reserved0; // Reserved. Must be zero.
-    uint64_t reserved1; // Reserved. Must be zero.
-    uint64_t reserved2; // Reserved. Must be zero.
-    uint64_t reserved3; // Reserved. Must be zero.
-    uint64_t reserved4; // Reserved. Must be zero.
+    uint32_t m_arch_id; // One of the ARCH_* constants defined above.
+    uint32_t m_reserved0; // Reserved. Must be zero.
+    uint64_t m_reserved1; // Reserved. Must be zero.
+    uint64_t m_reserved2; // Reserved. Must be zero.
+    uint64_t m_reserved3; // Reserved. Must be zero.
+    uint64_t m_reserved4; // Reserved. Must be zero.
   };
 
 }
