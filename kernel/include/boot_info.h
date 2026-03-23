@@ -25,12 +25,4 @@ static constexpr uint32_t ARCH_ARM64 = 1;
 struct boot_info
 {
   uint32_t m_arch_id; // One of the ARCH_* constants defined above.
-  // Reserved for future per-arch extensions (e.g. memory map base, framebuffer
-  // address, ACPI/DTB pointer). Must be zeroed by the arch boot path until a
-  // field is officially assigned a meaning.
-  uint32_t m_reserved0;
-  uint64_t m_reserved1;
-  uint64_t m_reserved2;
-  uint64_t m_reserved3;
-  uint64_t m_reserved4;
 };
