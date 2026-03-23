@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdint.h>
-
 // Initialize the PL011 UART at the QEMU virt base address.
 void pl011_init();
 

@@ -1,6 +1,9 @@
 #include "pl011.h"
 
-namespace {
+#include <stdint.h>
+
+namespace
+{
 
   // QEMU virt PL011 UART base address.
   constexpr uintptr_t PL011_BASE = 0x09000000;
