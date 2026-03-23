@@ -25,13 +25,13 @@ namespace
 
 void serial_init()
 {
-  outb(COM1_PORT + 1, 0x00); // Disable interrupts
+  outb(COM1_PORT + 1, 0x00); // Disable all UART interrupt sources
   outb(COM1_PORT + 3, 0x80); // Enable DLAB
   outb(COM1_PORT + 0, 0x03); // Baud rate divisor low byte (38400 baud)
   outb(COM1_PORT + 1, 0x00); // Baud rate divisor high byte
   outb(COM1_PORT + 3, 0x03); // 8 bits, no parity, one stop bit
   outb(COM1_PORT + 2, 0xC7); // Enable FIFO, clear, 14-byte threshold
-  outb(COM1_PORT + 4, 0x0B); // IRQs enabled, RTS/DSR set
+  outb(COM1_PORT + 4, 0x03); // Set DTR and RTS
 }
 
 void console_write(const char* str)
