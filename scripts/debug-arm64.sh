@@ -21,9 +21,8 @@ exec qemu-system-aarch64 \
   -machine virt \
   -cpu cortex-a57 \
   -kernel "${KERNEL_IMAGE}" \
-  -nographic \
   -serial stdio \
-  -no-reboot \
   -display none \
+  -no-reboot \
   -s \
   -S

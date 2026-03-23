@@ -19,14 +19,19 @@ fi
 
 KERNEL_IMAGE="$1"
 TIMEOUT_SECONDS=15
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 SERIAL_LOG="$(mktemp)"
 trap 'rm -f "${SERIAL_LOG}"' EXIT
 
 timeout "${TIMEOUT_SECONDS}" \
-  "${SCRIPT_DIR}/run-arm64.sh" "${KERNEL_IMAGE}" \
-  > "${SERIAL_LOG}" 2>&1 || true
+  qemu-system-aarch64 \
+    -machine virt \
+    -cpu cortex-a57 \
+    -kernel "${KERNEL_IMAGE}" \
+    -serial file:"${SERIAL_LOG}" \
+    -display none \
+    -no-reboot \
+  || true
 
 if ! grep -q "ringos arm64" "${SERIAL_LOG}"; then
   echo "FAIL: expected 'ringos arm64' banner not found in serial output" >&2
