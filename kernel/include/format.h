@@ -15,4 +15,4 @@ namespace ringos
   // console, prefixed with "0x" and zero-padded to 16 digits.
   void kprint_hex(uint64_t value);
 
-} // namespace ringos
+}

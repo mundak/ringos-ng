@@ -1,18 +1,19 @@
+#include "kernel.h"
+
 #include "boot_info.h"
 #include "console.h"
-#include "kernel.h"
 #include "panic.h"
 
 namespace ringos
 {
 
-  [[noreturn]] void kernel_main(const BootInfo& boot_info)
+  [[noreturn]] void kernel_main(const boot_info& info)
   {
-    if (boot_info.arch_id == k_arch_x64)
+    if (info.arch_id == ARCH_X64)
     {
       console_write("ringos x64\n");
     }
-    else if (boot_info.arch_id == k_arch_arm64)
+    else if (info.arch_id == ARCH_ARM64)
     {
       console_write("ringos arm64\n");
     }
@@ -28,4 +29,4 @@ namespace ringos
     }
   }
 
-} // namespace ringos
+}

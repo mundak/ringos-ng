@@ -1,5 +1,6 @@
-#include "console.h"
 #include "format.h"
+
+#include "console.h"
 
 namespace ringos
 {
@@ -19,7 +20,7 @@ namespace ringos
 
     char buf[21]; // 20 digits max for uint64 + null terminator
     buf[20] = '\0';
-    int i = 19;
+    int32_t i = 19;
 
     while (value > 0)
     {
@@ -38,7 +39,7 @@ namespace ringos
     buf[0] = '0';
     buf[1] = 'x';
 
-    for (int i = 0; i < 16; ++i)
+    for (int32_t i = 0; i < 16; ++i)
     {
       buf[2 + i] = hex_digits[(value >> (60 - i * 4)) & 0xf];
     }
@@ -47,4 +48,4 @@ namespace ringos
     console_write(buf);
   }
 
-} // namespace ringos
+}

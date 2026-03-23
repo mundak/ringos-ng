@@ -5,8 +5,8 @@
 namespace ringos
 {
 
-  static constexpr uint32_t k_arch_x64 = 0;
-  static constexpr uint32_t k_arch_arm64 = 1;
+  static constexpr uint32_t ARCH_X64 = 0;
+  static constexpr uint32_t ARCH_ARM64 = 1;
 
   // Boot handoff structure populated by each architecture's startup code
   // before calling kernel_main. This structure is the stable ABI boundary
@@ -25,9 +25,9 @@ namespace ringos
   //   - No libc dependency.
   //   - No dynamic memory allocation.
   //   - No reliance on implicit global constructors.
-  struct BootInfo
+  struct boot_info
   {
-    uint32_t arch_id;   // One of the k_arch_* constants defined above.
+    uint32_t arch_id; // One of the ARCH_* constants defined above.
     uint32_t reserved0; // Reserved. Must be zero.
     uint64_t reserved1; // Reserved. Must be zero.
     uint64_t reserved2; // Reserved. Must be zero.
@@ -35,4 +35,4 @@ namespace ringos
     uint64_t reserved4; // Reserved. Must be zero.
   };
 
-} // namespace ringos
+}

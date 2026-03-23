@@ -9,4 +9,4 @@ namespace ringos
   // architecture-specific console initialization has completed.
   void console_write(const char* str);
 
-} // namespace ringos
+}

@@ -7,4 +7,4 @@ namespace ringos
   // console and then spins indefinitely. Never returns.
   [[noreturn]] void panic(const char* message);
 
-} // namespace ringos
+}

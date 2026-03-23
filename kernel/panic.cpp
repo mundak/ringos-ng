@@ -1,5 +1,6 @@
-#include "console.h"
 #include "panic.h"
+
+#include "console.h"
 
 namespace ringos
 {
@@ -14,4 +15,4 @@ namespace ringos
     }
   }
 
-} // namespace ringos
+}
