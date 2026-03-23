@@ -4,29 +4,24 @@
 #include "console.h"
 #include "panic.h"
 
-namespace ringos
+[[noreturn]] void kernel_main(const boot_info& info)
 {
-
-  [[noreturn]] void kernel_main(const boot_info& info)
+  if (info.m_arch_id == ARCH_X64)
   {
-    if (info.m_arch_id == ARCH_X64)
-    {
-      console_write("ringos x64\n");
-    }
-    else if (info.m_arch_id == ARCH_ARM64)
-    {
-      console_write("ringos arm64\n");
-    }
-    else
-    {
-      panic("unknown architecture id");
-    }
-
-    console_write("hello world\n");
-
-    while (true)
-    {
-    }
+    console_write("ringos x64\n");
+  }
+  else if (info.m_arch_id == ARCH_ARM64)
+  {
+    console_write("ringos arm64\n");
+  }
+  else
+  {
+    panic("unknown architecture id");
   }
 
+  console_write("hello world\n");
+
+  while (true)
+  {
+  }
 }

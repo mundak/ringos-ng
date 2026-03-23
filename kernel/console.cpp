@@ -4,12 +4,7 @@
 
 #include "console.h"
 
-namespace ringos
+[[gnu::weak]] void console_write(const char* str)
 {
-
-  [[gnu::weak]] void console_write(const char* str)
-  {
-    (void) str;
-  }
-
+  (void) str;
 }

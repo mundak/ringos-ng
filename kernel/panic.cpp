@@ -2,17 +2,12 @@
 
 #include "console.h"
 
-namespace ringos
+[[noreturn]] void panic(const char* message)
 {
-
-  [[noreturn]] void panic(const char* message)
+  console_write("PANIC: ");
+  console_write(message);
+  console_write("\n");
+  while (true)
   {
-    console_write("PANIC: ");
-    console_write(message);
-    console_write("\n");
-    while (true)
-    {
-    }
   }
-
 }
