@@ -147,13 +147,27 @@ ctest --preset test-arm64-debug
 
 ## Status
 
-Phase 1 (Host Workflow And Build Skeleton) is complete. The repository skeleton,
-CMake build system, toolchain files, run and debug scripts, smoke test scaffolding,
-and CI workflow are all in place.
+Phase 2 (Shared Kernel Contract) is complete. The ABI boundary and startup
+contract between the architecture-specific boot path and the shared kernel are
+now frozen.
 
-Both placeholder targets (`ringos_x64`, `ringos_arm64`) configure and build
-successfully. Smoke tests are registered but will only pass once Phase 3 (x64
-bring-up) and Phase 4 (arm64 bring-up) are complete and real serial output is
-produced.
+The following shared services are implemented in `kernel/`:
 
-The next step is Phase 2: Shared Kernel Contract.
+- `BootInfo` — boot handoff structure populated by each architecture before
+  calling `kernel_main`; carries the architecture ID and reserved expansion
+  fields.
+- `kernel_main` — the shared C++ entry point that both architectures must call
+  after completing their startup sequence.
+- `console_write` — serial console write service; a weak no-op stub in the
+  kernel that each architecture replaces with its real driver (Phase 3 for x64,
+  Phase 4 for arm64).
+- `panic` — halts the system with an error message written to the console.
+- `kprint` / `kprint_uint` / `kprint_hex` — tiny fixed-text formatting
+  utilities that build on `console_write`.
+
+Both targets (`ringos_x64`, `ringos_arm64`) continue to configure and build
+successfully. Smoke tests remain registered but will only pass once Phase 3
+(x64 bring-up) and Phase 4 (arm64 bring-up) provide real serial output.
+
+x64 and arm64 architecture bring-up can now proceed in parallel (Phase 3 and
+Phase 4).
