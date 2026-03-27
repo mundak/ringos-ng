@@ -147,6 +147,28 @@ ctest --preset test-arm64-debug
 
 ## Status
 
+Phase 4 (arm64 Bring-Up) is complete. The arm64 target boots in QEMU virt,
+initializes the PL011 UART, reaches the shared C++ kernel entry, and prints
+the expected banner and hello world over serial.
+
+### arm64 bring-up (Phase 4 — done)
+
+- `boot.S` — minimal assembly startup: sets up the stack, clears BSS, and
+  branches to `arm64_entry`.
+- `pl011.cpp` / `pl011.h` — PL011 UART driver for QEMU virt (MMIO at
+  `0x09000000`). Initializes the UART and provides `pl011_putc` /
+  `pl011_puts`.
+- `console.cpp` — overrides the weak `console_write` stub with PL011 output.
+- `entry.cpp` — C++ entry point that initializes the UART, populates
+  `boot_info` with `ARCH_ARM64`, and calls `kernel_main`.
+- `linker.ld` — loads at `0x40000000` (QEMU virt default), page-aligned
+  sections, 16 KiB boot stack.
+
+### Shared services (Phase 2 — frozen)
+
+- `boot_info` — boot handoff structure populated by each architecture before
+  calling `kernel_main`; carries the architecture ID and reserved expansion
+  fields.
 Phase 3 (x64 Bring-Up) is complete. The x64 target boots in QEMU, prints its
 banner and hello world over COM1 serial, and the smoke test passes.
 
@@ -160,6 +182,8 @@ The following shared services are implemented in `kernel/`:
   kernel that each architecture replaces with its real driver.
 - `panic` — halts the system with an error message written to the console.
 - `kprint` — tiny fixed-text formatting utility that builds on `console_write`.
+
+Phase 3 (x64 bring-up) is ready to proceed.
 
 x64-specific components in `arch/x64/`:
 
