@@ -1,201 +1,251 @@
 # ringos-ng
 
-This repository is planned as a bare-metal operating system project targeting multiple CPU architectures.
+ringos-ng is a bare-metal operating system project targeting x64 and arm64. The
+current repository boots both targets in QEMU, converges into shared C++ kernel
+code, and verifies the bring-up path with smoke tests for each architecture.
 
-## Current Scope
+## Current State
 
-The current approved target is milestone one only:
+- x64 boots in QEMU, initializes COM1 serial, reaches the shared C++ kernel
+  entry point, and prints the expected banner and hello-world output.
+- arm64 boots in QEMU virt, initializes the PL011 UART, reaches the same shared
+  C++ kernel entry point, and prints the expected banner and hello-world output.
+- Shared kernel code owns the boot handoff contract, common output path, and
+  panic handling.
+- CI builds and smoke-tests both supported targets.
 
-- Boot a minimal kernel in QEMU on x64.
-- Boot a minimal kernel in QEMU virt on arm64.
-- Reach a shared C++ kernel entry path on both targets.
-- Print hello world over serial on both targets.
-- Build and run from WSL2 on Windows.
+## Supported Targets
 
-## Milestone One Plan
+- x64 in QEMU
+- arm64 in QEMU virt
 
-The detailed implementation plan is documented in [docs/milestone-one-execution-plan.md](docs/milestone-one-execution-plan.md).
-The recommended CI and local testing structure is documented in [docs/ci-and-testing.md](docs/ci-and-testing.md).
-
-That document is the current source of truth for:
-
-- scope and non-goals
-- execution phases
-- architecture boundaries
-- verification gates
-- handoff expectations for the next implementation agent
-
-## Milestone One Non-Goals
-
-These are explicitly out of scope for the first milestone:
+## Not Implemented Yet
 
 - SMP
-- interrupts
-- timers
-- scheduler
-- userspace
+- interrupts and timers
+- scheduler and process model
+- userspace services and drivers
 - filesystem or storage
 - framebuffer output
 - real hardware support
-- advanced MMU work beyond what is strictly needed for x64 kernel entry
+- advanced MMU work beyond what is currently required for boot and shared entry
 
-## Development Environment
+## Development Workflow
 
-- Host OS: Windows
-- Primary build and debug environment: WSL2
-- Language after early bootstrap: C++
-- Expected early-bootstrap language: assembly
-- Initial emulation targets: QEMU x64 and QEMU arm64 virt
+### Recommended on Windows: Docker
 
-## Repository Structure
+The repository includes Windows batch wrappers that build the shared toolchain
+image from [docker/Dockerfile](docker/Dockerfile) and run the full build inside
+that container.
 
-```text
-.
-├── CMakeLists.txt          # Top-level CMake project
-├── CMakePresets.json       # Configure, build, and test presets for both targets
-├── cmake/
-│   ├── toolchains/
-│   │   ├── x64.cmake       # x64 bare-metal toolchain (x86_64-linux-gnu)
-│   │   └── arm64.cmake     # arm64 bare-metal toolchain (aarch64-linux-gnu)
-│   └── tests/
-│       └── smoke_tests.cmake
-├── kernel/                 # Shared kernel code (populated from Phase 2)
-├── arch/
-│   ├── x64/                # x64-specific boot and hardware code
-│   └── arm64/              # arm64-specific boot and hardware code
-├── scripts/
-│   ├── run-x64.sh          # Launch x64 QEMU with serial on stdout
-│   ├── run-arm64.sh        # Launch arm64 QEMU virt with serial on stdout
-│   ├── debug-x64.sh        # Launch x64 QEMU with GDB stub, paused at startup
-│   ├── debug-arm64.sh      # Launch arm64 QEMU virt with GDB stub, paused
-│   ├── test-smoke-x64.sh   # x64 smoke test (asserts expected serial output)
-│   └── test-smoke-arm64.sh # arm64 smoke test (asserts expected serial output)
-└── docs/
-    ├── milestone-one-execution-plan.md
-    └── ci-and-testing.md
+Requirements:
+
+- Docker Desktop or an equivalent Docker engine
+
+Run a target in QEMU from Windows:
+
+```bat
+scripts\docker-run-os-x64.bat
+scripts\docker-run-os-arm64.bat
 ```
 
-## Prerequisites
+Build and smoke-test a target from Windows:
 
-Install the following tools in WSL2 (Ubuntu):
+```bat
+scripts\docker-test-x64.bat
+scripts\docker-test-arm64.bat
+```
+
+If you want to invoke the container manually instead of using the wrappers:
+
+```powershell
+docker build -f docker/Dockerfile -t ringos-ci .
+docker run --rm ringos-ci bash -lc "cmake --preset x64-ci && cmake --build --preset build-x64-ci && ctest --preset test-x64-ci"
+docker run --rm ringos-ci bash -lc "cmake --preset arm64-ci && cmake --build --preset build-arm64-ci && ctest --preset test-arm64-ci"
+```
+
+### Native Linux Workflow
+
+Native Linux remains useful for direct shell iteration and GDB-based debugging.
+Install the same core dependencies used by the shared container image, plus
+`gdb-multiarch` for debugging:
 
 ```bash
 sudo apt-get update
 sudo apt-get install -y \
   cmake \
   ninja-build \
-  gcc \
-  g++ \
-  gcc-aarch64-linux-gnu \
-  g++-aarch64-linux-gnu \
-  binutils-aarch64-linux-gnu \
-  gcc-x86-64-linux-gnu \
-  g++-x86-64-linux-gnu \
-  binutils-x86-64-linux-gnu \
+  clang \
+  lld \
+  llvm \
   qemu-system-arm \
   qemu-system-misc \
   qemu-system-x86 \
   gdb-multiarch
 ```
 
-## Build Commands
-
-### x64
+Configure and build:
 
 ```bash
 cmake --preset x64-debug
 cmake --build --preset build-x64-debug
-```
 
-### arm64
-
-```bash
 cmake --preset arm64-debug
 cmake --build --preset build-arm64-debug
 ```
 
-## Run Commands
+Run the kernels directly:
 
 ```bash
-# x64
 scripts/run-x64.sh build/x64-debug/arch/x64/ringos_x64
-
-# arm64
 scripts/run-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
 ```
 
-## Debug Commands
+Debug with QEMU's GDB stub:
 
 ```bash
-# x64 — launches QEMU with GDB stub, paused at startup
 scripts/debug-x64.sh build/x64-debug/arch/x64/ringos_x64
-
-# In a separate terminal:
 gdb-multiarch -ex "target remote :1234" build/x64-debug/arch/x64/ringos_x64
 
-# arm64 — same pattern
 scripts/debug-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
 gdb-multiarch -ex "target remote :1234" build/arm64-debug/arch/arm64/ringos_arm64
 ```
 
-## Smoke Tests
+Run smoke tests with CTest:
 
 ```bash
 ctest --preset test-x64-debug
 ctest --preset test-arm64-debug
 ```
 
-## Status
+More detail on the local and CI verification contract lives in
+[docs/ci-and-testing.md](docs/ci-and-testing.md).
 
-Phase 4 (arm64 Bring-Up) is complete. The arm64 target boots in QEMU virt,
-initializes the PL011 UART, reaches the shared C++ kernel entry, and prints
-the expected banner and hello world over serial.
+## Repository Layout
 
-### arm64 bring-up (Phase 4 — done)
+```text
+.
+├── CMakeLists.txt          # Top-level CMake project
+├── CMakePresets.json       # Configure, build, and test presets for both targets
+├── arch/
+│   ├── arm64/              # arm64-specific boot, UART, linker, and entry code
+│   └── x64/                # x64-specific boot, serial, linker, and entry code
+├── cmake/
+│   ├── tests/
+│   │   └── smoke_tests.cmake
+│   └── toolchains/
+│       ├── arm64.cmake
+│       └── x64.cmake
+├── docker/
+│   └── Dockerfile          # Shared Linux toolchain image for local container runs
+├── kernel/                 # Architecture-neutral kernel code and public headers
+├── scripts/
+│   ├── debug-arm64.sh
+│   ├── debug-x64.sh
+│   ├── docker-run-os-arm64.bat
+│   ├── docker-run-os-x64.bat
+│   ├── docker-test-arm64.bat
+│   ├── docker-test-x64.bat
+│   ├── run-arm64.sh
+│   ├── run-x64.sh
+│   ├── test-smoke-arm64.sh
+│   └── test-smoke-x64.sh
+└── docs/
+    ├── ci-and-testing.md
+    └── contributing.md
+```
 
-- `boot.S` — minimal assembly startup: sets up the stack, clears BSS, and
-  branches to `arm64_entry`.
-- `pl011.cpp` / `pl011.h` — PL011 UART driver for QEMU virt (MMIO at
-  `0x09000000`). Initializes the UART and provides `pl011_putc` /
-  `pl011_puts`.
-- `console.cpp` — overrides the weak `console_write` stub with PL011 output.
-- `entry.cpp` — C++ entry point that initializes the UART, populates
-  `boot_info` with `ARCH_ARM64`, and calls `kernel_main`.
-- `linker.ld` — loads at `0x40000000` (QEMU virt default), page-aligned
-  sections, 16 KiB boot stack.
+## Architecture Overview
 
-### Shared services (Phase 2 — frozen)
+The current codebase implements the earliest boot, console, and shared kernel
+boundary. The long-term design direction is still a microkernel: keep the
+privileged kernel as small as possible and push drivers and higher-level
+services into isolated user-space components.
 
-- `boot_info` — boot handoff structure populated by each architecture before
-  calling `kernel_main`; carries the architecture ID and reserved expansion
-  fields.
-Phase 3 (x64 Bring-Up) is complete. The x64 target boots in QEMU, prints its
-banner and hello world over COM1 serial, and the smoke test passes.
+### Design Direction
 
-The following shared services are implemented in `kernel/`:
+- Isolation between kernel, drivers, and services
+- Minimal privileged surface area
+- Thin architecture-specific layers under `arch/`
+- Shared policy-neutral mechanisms in `kernel/`
 
-- `boot_info` — boot handoff structure populated by each architecture before
-  calling `kernel_main`; carries the architecture ID.
-- `kernel_main` — the shared C++ entry point that both architectures must call
-  after completing their startup sequence.
-- `console_write` — serial console write service; a weak no-op stub in the
-  kernel that each architecture replaces with its real driver.
-- `panic` — halts the system with an error message written to the console.
-- `kprint` — tiny fixed-text formatting utility that builds on `console_write`.
+### Shared Kernel Boundary
 
-Phase 3 (x64 bring-up) is ready to proceed.
+The shared code in `kernel/` currently provides:
 
-x64-specific components in `arch/x64/`:
+- `boot_info` as the boot handoff structure populated by each architecture
+  before calling `kernel_main`
+- `kernel_main` as the shared C++ convergence point
+- `console_write` as the common console abstraction with architecture-local
+  serial backends overriding the weak default
+- `panic` as the minimal panic path that writes to the console and halts
+- `kprint` as the current fixed-text formatting helper
 
-- `boot.S` — Multiboot header, 32-bit to 64-bit long mode transition, BSS
-  clear, stack setup, and call to the C++ entry.
-- `serial.cpp` — COM1 serial driver providing the strong `console_write`
-  override via port I/O.
-- `entry.cpp` — C++ entry point that initialises serial, populates `boot_info`,
-  and calls `kernel_main`.
+The boot contract assumes:
 
-The build produces a 64-bit ELF (saved as `ringos_x64.elf64` for GDB) and
-converts it to a 32-bit ELF (`ringos_x64`) that QEMU's Multiboot loader
-accepts.
+- a valid stack
+- cleared BSS
+- the intended CPU mode for the target architecture
+- a serial console that is ready to accept writes
 
-arm64 bring-up (Phase 4) can proceed independently.
+### Architecture-Specific Responsibilities
+
+Architecture-dependent code lives under `arch/<target>/` and is responsible
+for:
+
+- early boot entry and CPU-mode setup
+- stack setup and final handoff into `kernel_main`
+- linker layout
+- serial console backend implementation
+- target-specific debug and emulator behavior
+
+In the current tree that means:
+
+- `arch/x64/` contains the Multiboot-friendly startup path, COM1 serial driver,
+  linker script, and x64 entry handoff
+- `arch/arm64/` contains the QEMU virt startup path, PL011 UART driver, linker
+  script, and arm64 entry handoff
+
+### Microkernel Direction
+
+Most kernel subsystems described here are architectural targets rather than
+implemented features. The intended kernel responsibilities remain:
+
+| Responsibility | Description |
+| --- | --- |
+| Address-space management | Create, destroy, and switch page tables for processes. |
+| Process and thread management | Create, schedule, suspend, and terminate execution contexts. |
+| IPC primitives | Deliver messages between isolated components. |
+| Interrupt routing | Receive hardware interrupts and forward them to the correct service. |
+| Capability and access control | Track which processes may access which kernel objects. |
+
+The kernel should not absorb device drivers, filesystem logic, protocol stacks,
+or application-level policy.
+
+### Drivers, Services, and IPC
+
+The intended execution model is:
+
+- drivers run as isolated user-space processes
+- services communicate through kernel-mediated IPC
+- shared memory is granted explicitly rather than assumed implicitly
+- service discovery is handled by a dedicated name-service process
+
+The planned RPC flow is synchronous:
+
+1. A client prepares a request message.
+2. The client traps into the kernel.
+3. The kernel validates the request and routes it to the target service.
+4. The server prepares a reply.
+5. The kernel returns the reply to the client and resumes it.
+
+### Near-Term Priorities
+
+The next major areas of work are:
+
+- expanding boot information passed into the shared kernel
+- MMU and virtual-memory design
+- interrupt and timer support
+- user-space process model and IPC implementation
+- device discovery and hardware abstraction
+- storage, filesystem, and networking services

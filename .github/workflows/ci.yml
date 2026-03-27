@@ -35,8 +35,14 @@ jobs:
       - name: Build x64
         run: cmake --build --preset build-x64-ci
 
+      - name: Run x64 smoke tests
+        run: ctest --preset test-x64-ci
+
       - name: Configure arm64
         run: cmake --preset arm64-ci
 
       - name: Build arm64
         run: cmake --build --preset build-arm64-ci
+
+      - name: Run arm64 smoke tests
+        run: ctest --preset test-arm64-ci

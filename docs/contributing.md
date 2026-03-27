@@ -346,6 +346,7 @@ AI agents picking up tasks should:
 11. **Pull latest changes** from the target branch and resolve any merge
     conflicts. Re-run the full build and test suite to confirm nothing is
     broken after the merge.
-12. Open a PR targeting the milestone integration branch.
+12. Open a PR targeting `main` unless a different integration branch is
+  explicitly requested.
 13. **Add the PR number** to your row in `docs/tasks/progress.md` and push
     the update.
