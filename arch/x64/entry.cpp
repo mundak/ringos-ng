@@ -1,10 +1,13 @@
-// Phase 1 placeholder — real x64 boot entry will be implemented in Phase 3.
-// This file exists to satisfy the build skeleton. It will be replaced with
-// architecture-specific assembly and C++ startup code during bring-up.
+#include "boot_info.h"
+#include "kernel.h"
+#include "serial.h"
 
-extern "C" [[noreturn]] void _start()
+extern "C" [[noreturn]] void x64_entry()
 {
-  while (true)
-  {
-  }
+  serial_init();
+
+  boot_info info;
+  info.m_arch_id = ARCH_X64;
+
+  kernel_main(info);
 }

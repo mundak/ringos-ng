@@ -169,6 +169,13 @@ the expected banner and hello world over serial.
 - `boot_info` — boot handoff structure populated by each architecture before
   calling `kernel_main`; carries the architecture ID and reserved expansion
   fields.
+Phase 3 (x64 Bring-Up) is complete. The x64 target boots in QEMU, prints its
+banner and hello world over COM1 serial, and the smoke test passes.
+
+The following shared services are implemented in `kernel/`:
+
+- `boot_info` — boot handoff structure populated by each architecture before
+  calling `kernel_main`; carries the architecture ID.
 - `kernel_main` — the shared C++ entry point that both architectures must call
   after completing their startup sequence.
 - `console_write` — serial console write service; a weak no-op stub in the
@@ -177,3 +184,18 @@ the expected banner and hello world over serial.
 - `kprint` — tiny fixed-text formatting utility that builds on `console_write`.
 
 Phase 3 (x64 bring-up) is ready to proceed.
+
+x64-specific components in `arch/x64/`:
+
+- `boot.S` — Multiboot header, 32-bit to 64-bit long mode transition, BSS
+  clear, stack setup, and call to the C++ entry.
+- `serial.cpp` — COM1 serial driver providing the strong `console_write`
+  override via port I/O.
+- `entry.cpp` — C++ entry point that initialises serial, populates `boot_info`,
+  and calls `kernel_main`.
+
+The build produces a 64-bit ELF (saved as `ringos_x64.elf64` for GDB) and
+converts it to a 32-bit ELF (`ringos_x64`) that QEMU's Multiboot loader
+accepts.
+
+arm64 bring-up (Phase 4) can proceed independently.

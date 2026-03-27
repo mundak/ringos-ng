@@ -19,9 +19,9 @@ KERNEL_IMAGE="$1"
 
 exec qemu-system-x86_64 \
   -kernel "${KERNEL_IMAGE}" \
-  -nographic \
-  -serial stdio \
-  -no-reboot \
   -display none \
+  -serial stdio \
+  -monitor none \
+  -no-reboot \
   -s \
   -S
