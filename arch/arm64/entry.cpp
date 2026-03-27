@@ -1,10 +1,13 @@
-// Phase 1 placeholder — real arm64 boot entry will be implemented in Phase 4.
-// This file exists to satisfy the build skeleton. It will be replaced with
-// architecture-specific assembly and C++ startup code during bring-up.
+#include "boot_info.h"
+#include "kernel.h"
+#include "pl011.h"
 
-extern "C" [[noreturn]] void _start()
+extern "C" [[noreturn]] void arm64_entry()
 {
-  while (true)
-  {
-  }
+  pl011_init();
+
+  boot_info info {};
+  info.m_arch_id = ARCH_ARM64;
+
+  kernel_main(info);
 }

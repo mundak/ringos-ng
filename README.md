@@ -147,27 +147,55 @@ ctest --preset test-arm64-debug
 
 ## Status
 
-Phase 2 (Shared Kernel Contract) is complete. The ABI boundary and startup
-contract between the architecture-specific boot path and the shared kernel are
-now frozen.
+Phase 4 (arm64 Bring-Up) is complete. The arm64 target boots in QEMU virt,
+initializes the PL011 UART, reaches the shared C++ kernel entry, and prints
+the expected banner and hello world over serial.
+
+### arm64 bring-up (Phase 4 — done)
+
+- `boot.S` — minimal assembly startup: sets up the stack, clears BSS, and
+  branches to `arm64_entry`.
+- `pl011.cpp` / `pl011.h` — PL011 UART driver for QEMU virt (MMIO at
+  `0x09000000`). Initializes the UART and provides `pl011_putc` /
+  `pl011_puts`.
+- `console.cpp` — overrides the weak `console_write` stub with PL011 output.
+- `entry.cpp` — C++ entry point that initializes the UART, populates
+  `boot_info` with `ARCH_ARM64`, and calls `kernel_main`.
+- `linker.ld` — loads at `0x40000000` (QEMU virt default), page-aligned
+  sections, 16 KiB boot stack.
+
+### Shared services (Phase 2 — frozen)
+
+- `boot_info` — boot handoff structure populated by each architecture before
+  calling `kernel_main`; carries the architecture ID and reserved expansion
+  fields.
+Phase 3 (x64 Bring-Up) is complete. The x64 target boots in QEMU, prints its
+banner and hello world over COM1 serial, and the smoke test passes.
 
 The following shared services are implemented in `kernel/`:
 
-- `BootInfo` — boot handoff structure populated by each architecture before
-  calling `kernel_main`; carries the architecture ID and reserved expansion
-  fields.
+- `boot_info` — boot handoff structure populated by each architecture before
+  calling `kernel_main`; carries the architecture ID.
 - `kernel_main` — the shared C++ entry point that both architectures must call
   after completing their startup sequence.
 - `console_write` — serial console write service; a weak no-op stub in the
-  kernel that each architecture replaces with its real driver (Phase 3 for x64,
-  Phase 4 for arm64).
+  kernel that each architecture replaces with its real driver.
 - `panic` — halts the system with an error message written to the console.
-- `kprint` / `kprint_uint` / `kprint_hex` — tiny fixed-text formatting
-  utilities that build on `console_write`.
+- `kprint` — tiny fixed-text formatting utility that builds on `console_write`.
 
-Both targets (`ringos_x64`, `ringos_arm64`) continue to configure and build
-successfully. Smoke tests remain registered but will only pass once Phase 3
-(x64 bring-up) and Phase 4 (arm64 bring-up) provide real serial output.
+Phase 3 (x64 bring-up) is ready to proceed.
 
-x64 and arm64 architecture bring-up can now proceed in parallel (Phase 3 and
-Phase 4).
+x64-specific components in `arch/x64/`:
+
+- `boot.S` — Multiboot header, 32-bit to 64-bit long mode transition, BSS
+  clear, stack setup, and call to the C++ entry.
+- `serial.cpp` — COM1 serial driver providing the strong `console_write`
+  override via port I/O.
+- `entry.cpp` — C++ entry point that initialises serial, populates `boot_info`,
+  and calls `kernel_main`.
+
+The build produces a 64-bit ELF (saved as `ringos_x64.elf64` for GDB) and
+converts it to a 32-bit ELF (`ringos_x64`) that QEMU's Multiboot loader
+accepts.
+
+arm64 bring-up (Phase 4) can proceed independently.

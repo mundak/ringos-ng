@@ -1,9 +1,8 @@
 /*
- * Phase 1 placeholder linker script for x64.
+ * x64 linker script — Multiboot-compliant layout for QEMU.
  *
- * Loads the kernel image at 1 MiB, which is the conventional entry address
- * for a Multiboot2 kernel under QEMU. This will be refined during Phase 3
- * when the full x64 boot path is implemented.
+ * The image is loaded at 1 MiB, the conventional Multiboot entry address.
+ * The Multiboot header must reside within the first 8 KiB of the image.
  */
 
 ENTRY(_start)
@@ -12,22 +11,33 @@ SECTIONS
 {
   . = 0x100000;
 
-  .text : {
+  /* Multiboot header — must be within the first 8 KiB */
+  .multiboot : ALIGN(4) {
+    *(.multiboot)
+  }
+
+  .text : ALIGN(16) {
     *(.text .text.*)
   }
 
-  .rodata : {
+  .rodata : ALIGN(16) {
     *(.rodata .rodata.*)
   }
 
-  .data : {
+  .data : ALIGN(16) {
     *(.data .data.*)
   }
 
-  .bss : {
+  .bss : ALIGN(4096) {
     __bss_start = .;
     *(.bss .bss.*)
     *(COMMON)
     __bss_end = .;
+  }
+
+  /DISCARD/ : {
+    *(.comment)
+    *(.note*)
+    *(.eh_frame*)
   }
 }
