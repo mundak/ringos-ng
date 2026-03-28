@@ -6,9 +6,7 @@
 #include "panic.h"
 
 extern "C" [[noreturn]] void x64_enter_user_thread(
-  uintptr_t instruction_pointer,
-  uintptr_t stack_pointer,
-  uintptr_t flags);
+  uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t flags);
 extern "C" void x64_syscall_entry();
 extern "C" [[noreturn]] void x64_user_thread_exit();
 extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_start[];
@@ -17,16 +15,19 @@ extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_end[];
 namespace
 {
   constexpr size_t PAGE_SIZE = 4096;
-  constexpr size_t LOW_IDENTITY_SIZE = 0x400000;
-  constexpr size_t LOW_PAGE_TABLE_COUNT = LOW_IDENTITY_SIZE / 0x200000;
-  constexpr uintptr_t USER_IMAGE_VIRTUAL_ADDRESS = 0x400000;
-  constexpr size_t USER_IMAGE_PAGE_COUNT = 8;
-  constexpr uintptr_t USER_STACK_VIRTUAL_ADDRESS = USER_IMAGE_VIRTUAL_ADDRESS + (USER_IMAGE_PAGE_COUNT * PAGE_SIZE);
-  constexpr size_t USER_REGION_SIZE = (USER_IMAGE_PAGE_COUNT + 1) * PAGE_SIZE;
+  constexpr size_t LARGE_PAGE_SIZE = 0x200000;
+  constexpr size_t KERNEL_IDENTITY_SIZE = 0x2000000;
+  constexpr uint32_t KERNEL_LARGE_PAGE_COUNT = static_cast<uint32_t>(KERNEL_IDENTITY_SIZE / LARGE_PAGE_SIZE);
+  constexpr uintptr_t USER_REGION_VIRTUAL_ADDRESS = 0x20000000;
+  constexpr uintptr_t USER_IMAGE_VIRTUAL_ADDRESS = USER_REGION_VIRTUAL_ADDRESS;
+  constexpr size_t USER_REGION_SIZE = LARGE_PAGE_SIZE;
+  constexpr uintptr_t USER_STACK_TOP = USER_REGION_VIRTUAL_ADDRESS + USER_REGION_SIZE - sizeof(uint64_t);
+  constexpr uint32_t USER_PAGE_DIRECTORY_INDEX = static_cast<uint32_t>(USER_REGION_VIRTUAL_ADDRESS / LARGE_PAGE_SIZE);
 
   constexpr uint64_t PAGE_PRESENT = 1ULL << 0;
   constexpr uint64_t PAGE_WRITABLE = 1ULL << 1;
   constexpr uint64_t PAGE_USER = 1ULL << 2;
+  constexpr uint64_t PAGE_LARGE = 1ULL << 7;
 
   constexpr uint32_t MSR_EFER = 0xC0000080;
   constexpr uint32_t MSR_STAR = 0xC0000081;
@@ -144,10 +145,7 @@ namespace
     page_table pml4;
     page_table pdpt;
     page_table page_directory;
-    page_table low_page_tables[LOW_PAGE_TABLE_COUNT];
-    page_table user_page_table;
-    alignas(PAGE_SIZE) uint8_t user_image_pages[USER_IMAGE_PAGE_COUNT][PAGE_SIZE];
-    alignas(PAGE_SIZE) uint8_t user_stack_page[PAGE_SIZE];
+    alignas(LARGE_PAGE_SIZE) uint8_t user_region[USER_REGION_SIZE];
   };
 
   struct x64_syscall_frame
@@ -172,7 +170,7 @@ namespace
     [[noreturn]] void enter_user_thread(const process& initial_process, const thread& initial_thread);
 
   private:
-    void initialize_low_identity_mappings(x64_process_storage& storage);
+    void initialize_kernel_mappings(x64_process_storage& storage);
     void initialize_user_region(x64_process_storage& storage);
     uintptr_t initialize_user_image(x64_process_storage& storage);
     void initialize_process_storage(x64_process_storage& storage);
@@ -199,17 +197,18 @@ namespace
 
   x64_initial_user_runtime_platform g_initial_user_runtime_platform {};
 
+  static_assert((KERNEL_IDENTITY_SIZE % LARGE_PAGE_SIZE) == 0);
+  static_assert((USER_REGION_VIRTUAL_ADDRESS % LARGE_PAGE_SIZE) == 0);
+  static_assert(USER_PAGE_DIRECTORY_INDEX < 512);
+  static_assert(USER_PAGE_DIRECTORY_INDEX >= KERNEL_LARGE_PAGE_COUNT);
+
   uint64_t make_table_entry(uintptr_t address, uint64_t flags)
   {
     return (static_cast<uint64_t>(address) & ~0xFFFULL) | flags;
   }
 
   bool copy_embedded_record(
-    void* record,
-    size_t record_size,
-    const uint8_t* image_bytes,
-    size_t image_size,
-    size_t offset)
+    void* record, size_t record_size, const uint8_t* image_bytes, size_t image_size, size_t offset)
   {
     if (offset > image_size || record_size > image_size - offset)
     {
@@ -240,42 +239,24 @@ namespace
     asm volatile("mov %0, %%cr3" : : "r"(value) : "memory");
   }
 
-  void x64_initial_user_runtime_platform::initialize_low_identity_mappings(x64_process_storage& storage)
+  void x64_initial_user_runtime_platform::initialize_kernel_mappings(x64_process_storage& storage)
   {
     storage.pml4.entries[0]
       = make_table_entry(reinterpret_cast<uintptr_t>(&storage.pdpt), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
     storage.pdpt.entries[0] = make_table_entry(
       reinterpret_cast<uintptr_t>(&storage.page_directory), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
 
-    for (uint32_t table_index = 0; table_index < LOW_PAGE_TABLE_COUNT; ++table_index)
+    for (uint32_t table_index = 0; table_index < KERNEL_LARGE_PAGE_COUNT; ++table_index)
     {
-      page_table& current_page_table = storage.low_page_tables[table_index];
-      const uintptr_t table_base_address = static_cast<uintptr_t>(table_index) * 0x200000;
-
-      for (uint32_t entry_index = 0; entry_index < 512; ++entry_index)
-      {
-        const uintptr_t mapped_address = table_base_address + (static_cast<uintptr_t>(entry_index) * PAGE_SIZE);
-        current_page_table.entries[entry_index] = make_table_entry(mapped_address, PAGE_PRESENT | PAGE_WRITABLE);
-      }
-
-      storage.page_directory.entries[table_index]
-        = make_table_entry(reinterpret_cast<uintptr_t>(&current_page_table), PAGE_PRESENT | PAGE_WRITABLE);
+      storage.page_directory.entries[table_index] = make_table_entry(
+        static_cast<uintptr_t>(table_index) * LARGE_PAGE_SIZE, PAGE_PRESENT | PAGE_WRITABLE | PAGE_LARGE);
     }
   }
 
   void x64_initial_user_runtime_platform::initialize_user_region(x64_process_storage& storage)
   {
-    storage.page_directory.entries[2] = make_table_entry(
-      reinterpret_cast<uintptr_t>(&storage.user_page_table), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-
-    for (size_t page_index = 0; page_index < USER_IMAGE_PAGE_COUNT; ++page_index)
-    {
-      storage.user_page_table.entries[page_index] = make_table_entry(
-        reinterpret_cast<uintptr_t>(storage.user_image_pages[page_index]), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-    }
-
-    storage.user_page_table.entries[USER_IMAGE_PAGE_COUNT] = make_table_entry(
-      reinterpret_cast<uintptr_t>(storage.user_stack_page), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
+    storage.page_directory.entries[USER_PAGE_DIRECTORY_INDEX] = make_table_entry(
+      reinterpret_cast<uintptr_t>(storage.user_region), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER | PAGE_LARGE);
   }
 
   uintptr_t x64_initial_user_runtime_platform::initialize_user_image(x64_process_storage& storage)
@@ -340,7 +321,7 @@ namespace
       panic("x64 test app PE image must use 4 KiB section alignment");
     }
 
-    if (optional_header.size_of_image == 0 || optional_header.size_of_image > USER_IMAGE_PAGE_COUNT * PAGE_SIZE)
+    if (optional_header.size_of_image == 0 || optional_header.size_of_image > USER_REGION_SIZE)
     {
       panic("x64 test app PE image does not fit in the initial user region");
     }
@@ -376,7 +357,7 @@ namespace
       }
     }
 
-    uint8_t* const loaded_image = &storage.user_image_pages[0][0];
+    uint8_t* const loaded_image = storage.user_region;
     memcpy(loaded_image, image_bytes, optional_header.size_of_headers);
 
     const size_t section_headers_offset
@@ -389,11 +370,7 @@ namespace
         = section_headers_offset + (static_cast<size_t>(section_index) * sizeof(section_header));
 
       if (!copy_embedded_record(
-            &section_header,
-            sizeof(section_header),
-            image_bytes,
-            image_size,
-            current_section_offset))
+            &section_header, sizeof(section_header), image_bytes, image_size, current_section_offset))
       {
         panic("x64 test app PE image section table is truncated");
       }
@@ -427,14 +404,14 @@ namespace
         section_header.size_of_raw_data);
     }
 
-    *reinterpret_cast<uint64_t*>(storage.user_stack_page + PAGE_SIZE - sizeof(uint64_t)) = 0;
+    *reinterpret_cast<uint64_t*>(storage.user_region + USER_REGION_SIZE - sizeof(uint64_t)) = 0;
     return USER_IMAGE_VIRTUAL_ADDRESS + optional_header.address_of_entry_point;
   }
 
   void x64_initial_user_runtime_platform::initialize_process_storage(x64_process_storage& storage)
   {
     memset(&storage, 0, sizeof(storage));
-    initialize_low_identity_mappings(storage);
+    initialize_kernel_mappings(storage);
     initialize_user_region(storage);
   }
 
@@ -458,18 +435,18 @@ namespace
     const uintptr_t entry_point = initialize_user_image(m_process_storage[0]);
 
     bootstrap.address_space.arch_root_table = reinterpret_cast<uintptr_t>(&m_process_storage[0].pml4);
-    bootstrap.address_space.user_base = USER_IMAGE_VIRTUAL_ADDRESS;
+    bootstrap.address_space.user_base = USER_REGION_VIRTUAL_ADDRESS;
     bootstrap.address_space.user_size = USER_REGION_SIZE;
+    bootstrap.address_space.user_host_base = reinterpret_cast<uintptr_t>(m_process_storage[0].user_region);
     bootstrap.thread_context.instruction_pointer = entry_point;
-    bootstrap.thread_context.stack_pointer = USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
-    bootstrap.thread_context.flags = 0x202;
-    bootstrap.shared_memory_address = USER_IMAGE_VIRTUAL_ADDRESS;
+    bootstrap.thread_context.stack_pointer = USER_STACK_TOP;
+    bootstrap.thread_context.flags = 0x2;
+    bootstrap.shared_memory_address = USER_REGION_VIRTUAL_ADDRESS;
     bootstrap.shared_memory_size = USER_REGION_SIZE;
   }
 
   void x64_initial_user_runtime_platform::prepare_thread_launch(
-    const process& initial_process,
-    const thread& initial_thread)
+    const process& initial_process, const thread& initial_thread)
   {
     (void) initial_process;
 
@@ -479,10 +456,9 @@ namespace
   }
 
   [[noreturn]] void x64_initial_user_runtime_platform::enter_user_thread(
-    const process& initial_process,
-    const thread& initial_thread)
+    const process& initial_process, const thread& initial_thread)
   {
-    write_cr3(initial_process.get_address_space_info().arch_root_table);
+    arch_activate_process_address_space(&initial_process);
 
     debug_log("x64 initial user runtime ready");
 
@@ -491,6 +467,23 @@ namespace
       initial_thread.get_user_context().stack_pointer,
       initial_thread.get_user_context().flags);
   }
+}
+
+void arch_activate_process_address_space(const process* process_context)
+{
+  if (process_context == nullptr)
+  {
+    return;
+  }
+
+  const uintptr_t root_table = process_context->get_address_space_info().arch_root_table;
+
+  if (root_table == 0)
+  {
+    return;
+  }
+
+  write_cr3(root_table);
 }
 
 extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
@@ -517,7 +510,7 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
 
   const int32_t syscall_status = runtime.dispatch_syscall(frame->rax, frame->rdi);
   frame->rax = static_cast<uint64_t>(syscall_status);
-  return runtime.should_resume_current_thread();
+  return runtime.is_current_thread_resumable();
 }
 
 extern "C" [[noreturn]] void x64_user_thread_exit()

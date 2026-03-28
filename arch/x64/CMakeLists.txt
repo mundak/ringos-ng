@@ -30,7 +30,7 @@ add_custom_command(
           /nodefaultlib
           /fixed
           /dynamicbase:no
-          /base:0x400000
+          /base:0x20000000
           /filealign:4096
           /out:${X64_TEST_APP_IMAGE}
           ${X64_TEST_APP_OBJECT}

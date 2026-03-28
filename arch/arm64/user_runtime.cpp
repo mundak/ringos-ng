@@ -6,9 +6,7 @@
 #include "panic.h"
 
 extern "C" [[noreturn]] void arm64_enter_user_thread(
-  uintptr_t instruction_pointer,
-  uintptr_t stack_pointer,
-  uintptr_t saved_program_status);
+  uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t saved_program_status);
 extern "C" const uint8_t arm64_exception_vectors[];
 extern "C" const uint8_t arm64_user_stub_start[];
 extern "C" const uint8_t arm64_user_stub_end[];
@@ -17,13 +15,47 @@ extern "C" [[noreturn]] void arm64_user_thread_exit();
 namespace
 {
   constexpr size_t PAGE_SIZE = 4096;
-  constexpr size_t USER_REGION_SIZE = PAGE_SIZE * 2;
+  constexpr size_t LARGE_PAGE_SIZE = 0x200000;
+  constexpr size_t KERNEL_IDENTITY_SIZE = 0x2000000;
+  constexpr uint32_t KERNEL_BLOCK_COUNT = static_cast<uint32_t>(KERNEL_IDENTITY_SIZE / LARGE_PAGE_SIZE);
+  constexpr uintptr_t USER_REGION_VIRTUAL_ADDRESS = 0x400000;
+  constexpr uintptr_t KERNEL_IDENTITY_BASE = 0x40000000;
+  constexpr size_t USER_REGION_SIZE = LARGE_PAGE_SIZE;
+  constexpr uint32_t USER_BLOCK_INDEX = static_cast<uint32_t>(USER_REGION_VIRTUAL_ADDRESS / LARGE_PAGE_SIZE);
+  constexpr uint32_t KERNEL_ROOT_INDEX = static_cast<uint32_t>(KERNEL_IDENTITY_BASE >> 30);
   constexpr uint32_t SVC64_EXCEPTION_CLASS = 0x15;
+
+  constexpr uint64_t TABLE_DESCRIPTOR = 0x3;
+  constexpr uint64_t BLOCK_DESCRIPTOR = 0x1;
+  constexpr uint64_t ATTRIBUTE_INDEX_NORMAL = 0ULL << 2;
+  constexpr uint64_t ACCESS_PERMISSION_USER_RW = 1ULL << 6;
+  constexpr uint64_t INNER_SHAREABLE = 3ULL << 8;
+  constexpr uint64_t ACCESS_FLAG = 1ULL << 10;
+
+  constexpr uint64_t SCTLR_MMU_ENABLE = 1ULL << 0;
+  constexpr uint64_t SCTLR_DATA_CACHE_ENABLE = 1ULL << 2;
+  constexpr uint64_t SCTLR_INSTRUCTION_CACHE_ENABLE = 1ULL << 12;
+
+  constexpr uint64_t TCR_T0SZ_39_BIT_VA = 25ULL;
+  constexpr uint64_t TCR_IRGN0_WRITE_BACK = 1ULL << 8;
+  constexpr uint64_t TCR_ORGN0_WRITE_BACK = 1ULL << 10;
+  constexpr uint64_t TCR_SH0_INNER_SHAREABLE = 3ULL << 12;
+  constexpr uint64_t TCR_TG0_4KB = 0ULL << 14;
+  constexpr uint64_t TCR_EPD1_DISABLE = 1ULL << 23;
+
+  constexpr uint64_t MAIR_ATTRIBUTE_NORMAL_WRITE_BACK = 0xFFULL;
+
+  struct alignas(PAGE_SIZE) translation_table
+  {
+    uint64_t entries[512];
+  };
 
   struct arm64_process_storage
   {
-    alignas(PAGE_SIZE) uint8_t user_code_page[PAGE_SIZE];
-    alignas(PAGE_SIZE) uint8_t user_stack_page[PAGE_SIZE];
+    translation_table root_table;
+    translation_table lower_block_table;
+    translation_table kernel_block_table;
+    alignas(LARGE_PAGE_SIZE) uint8_t user_region[USER_REGION_SIZE];
   };
 
   struct arm64_syscall_frame
@@ -50,12 +82,22 @@ namespace
     void initialize(initial_user_runtime_bootstrap& bootstrap);
     void prepare_thread_launch(const process& initial_process, const thread& initial_thread);
     [[noreturn]] void enter_user_thread(const process& initial_process, const thread& initial_thread);
+    void activate_process_address_space(const process* process_context);
 
   private:
+    void enable_mmu();
+    void initialize_translation_tables(arm64_process_storage& storage);
     void initialize_user_stub(arm64_process_storage& storage);
+    void invalidate_tlb();
+    uint64_t read_system_control() const;
+    void write_mair(uintptr_t value);
+    void write_system_control(uint64_t value);
+    void write_tcr(uint64_t value);
+    void write_ttbr0(uintptr_t value);
     void write_vector_base(uintptr_t vector_base);
 
     arm64_process_storage m_process_storage[USER_RUNTIME_MAX_PROCESSES] {};
+    bool m_mmu_enabled = false;
   };
 
   void initialize_arm64_platform(void* context, initial_user_runtime_bootstrap& bootstrap)
@@ -75,18 +117,49 @@ namespace
 
   arm64_initial_user_runtime_platform g_initial_user_runtime_platform {};
 
+  static_assert((KERNEL_IDENTITY_SIZE % LARGE_PAGE_SIZE) == 0);
+  static_assert((USER_REGION_VIRTUAL_ADDRESS % LARGE_PAGE_SIZE) == 0);
+  static_assert(USER_BLOCK_INDEX < 512);
+  static_assert(KERNEL_ROOT_INDEX < 512);
+
+  uint64_t make_table_descriptor(uintptr_t address)
+  {
+    return (static_cast<uint64_t>(address) & ~0xFFFULL) | TABLE_DESCRIPTOR;
+  }
+
+  uint64_t make_block_descriptor(uintptr_t address, uint64_t flags)
+  {
+    return (static_cast<uint64_t>(address) & ~0x1FFFFFULL) | flags | BLOCK_DESCRIPTOR;
+  }
+
   void arm64_initial_user_runtime_platform::initialize_user_stub(arm64_process_storage& storage)
   {
     const size_t stub_size = static_cast<size_t>(arm64_user_stub_end - arm64_user_stub_start);
 
-    if (stub_size > sizeof(storage.user_code_page))
+    if (stub_size > sizeof(storage.user_region))
     {
-      panic("arm64 user runtime stub does not fit in one page");
+      panic("arm64 user runtime stub does not fit in the initial user region");
     }
 
-    memset(storage.user_code_page, 0, sizeof(storage.user_code_page));
-    memset(storage.user_stack_page, 0, sizeof(storage.user_stack_page));
-    memcpy(storage.user_code_page, arm64_user_stub_start, stub_size);
+    memset(storage.user_region, 0, sizeof(storage.user_region));
+    memcpy(storage.user_region, arm64_user_stub_start, stub_size);
+  }
+
+  void arm64_initial_user_runtime_platform::initialize_translation_tables(arm64_process_storage& storage)
+  {
+    storage.root_table.entries[0] = make_table_descriptor(reinterpret_cast<uintptr_t>(&storage.lower_block_table));
+    storage.root_table.entries[KERNEL_ROOT_INDEX]
+      = make_table_descriptor(reinterpret_cast<uintptr_t>(&storage.kernel_block_table));
+    storage.lower_block_table.entries[USER_BLOCK_INDEX] = make_block_descriptor(
+      reinterpret_cast<uintptr_t>(storage.user_region),
+      ATTRIBUTE_INDEX_NORMAL | ACCESS_PERMISSION_USER_RW | INNER_SHAREABLE | ACCESS_FLAG);
+
+    for (uint32_t block_index = 0; block_index < KERNEL_BLOCK_COUNT; ++block_index)
+    {
+      storage.kernel_block_table.entries[block_index] = make_block_descriptor(
+        KERNEL_IDENTITY_BASE + (static_cast<uintptr_t>(block_index) * LARGE_PAGE_SIZE),
+        ATTRIBUTE_INDEX_NORMAL | INNER_SHAREABLE | ACCESS_FLAG);
+    }
   }
 
   void arm64_initial_user_runtime_platform::write_vector_base(uintptr_t vector_base)
@@ -94,26 +167,73 @@ namespace
     asm volatile("msr vbar_el1, %0\nisb" : : "r"(vector_base) : "memory");
   }
 
+  void arm64_initial_user_runtime_platform::write_mair(uintptr_t value)
+  {
+    asm volatile("msr mair_el1, %0\nisb" : : "r"(value) : "memory");
+  }
+
+  void arm64_initial_user_runtime_platform::write_tcr(uint64_t value)
+  {
+    asm volatile("msr tcr_el1, %0\nisb" : : "r"(value) : "memory");
+  }
+
+  void arm64_initial_user_runtime_platform::write_ttbr0(uintptr_t value)
+  {
+    asm volatile("msr ttbr0_el1, %0\nisb" : : "r"(value) : "memory");
+  }
+
+  uint64_t arm64_initial_user_runtime_platform::read_system_control() const
+  {
+    uint64_t value = 0;
+    asm volatile("mrs %0, sctlr_el1" : "=r"(value) : : "memory");
+    return value;
+  }
+
+  void arm64_initial_user_runtime_platform::write_system_control(uint64_t value)
+  {
+    asm volatile("msr sctlr_el1, %0\nisb" : : "r"(value) : "memory");
+  }
+
+  void arm64_initial_user_runtime_platform::invalidate_tlb()
+  {
+    asm volatile("dsb ishst\ntlbi vmalle1\ndsb ish\nisb" : : : "memory");
+  }
+
+  void arm64_initial_user_runtime_platform::enable_mmu()
+  {
+    const uint64_t tcr_value = TCR_T0SZ_39_BIT_VA | TCR_IRGN0_WRITE_BACK | TCR_ORGN0_WRITE_BACK
+      | TCR_SH0_INNER_SHAREABLE | TCR_TG0_4KB | TCR_EPD1_DISABLE;
+
+    write_vector_base(reinterpret_cast<uintptr_t>(arm64_exception_vectors));
+    write_mair(MAIR_ATTRIBUTE_NORMAL_WRITE_BACK);
+    write_tcr(tcr_value);
+    invalidate_tlb();
+
+    const uint64_t system_control
+      = read_system_control() | SCTLR_MMU_ENABLE | SCTLR_DATA_CACHE_ENABLE | SCTLR_INSTRUCTION_CACHE_ENABLE;
+    write_system_control(system_control);
+    m_mmu_enabled = true;
+  }
+
   void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootstrap& bootstrap)
   {
+    memset(&m_process_storage[0], 0, sizeof(m_process_storage[0]));
     initialize_user_stub(m_process_storage[0]);
+    initialize_translation_tables(m_process_storage[0]);
 
-    const uintptr_t user_base = reinterpret_cast<uintptr_t>(m_process_storage[0].user_code_page);
-
-    bootstrap.address_space.arch_root_table = 0;
-    bootstrap.address_space.user_base = user_base;
+    bootstrap.address_space.arch_root_table = reinterpret_cast<uintptr_t>(&m_process_storage[0].root_table);
+    bootstrap.address_space.user_base = USER_REGION_VIRTUAL_ADDRESS;
     bootstrap.address_space.user_size = USER_REGION_SIZE;
-    bootstrap.thread_context.instruction_pointer = user_base;
-    bootstrap.thread_context.stack_pointer
-      = reinterpret_cast<uintptr_t>(m_process_storage[0].user_stack_page) + PAGE_SIZE;
-    bootstrap.thread_context.flags = 0;
-    bootstrap.shared_memory_address = user_base;
+    bootstrap.address_space.user_host_base = reinterpret_cast<uintptr_t>(m_process_storage[0].user_region);
+    bootstrap.thread_context.instruction_pointer = USER_REGION_VIRTUAL_ADDRESS;
+    bootstrap.thread_context.stack_pointer = USER_REGION_VIRTUAL_ADDRESS + USER_REGION_SIZE;
+    bootstrap.thread_context.flags = 0x3C0;
+    bootstrap.shared_memory_address = USER_REGION_VIRTUAL_ADDRESS;
     bootstrap.shared_memory_size = USER_REGION_SIZE;
   }
 
   void arm64_initial_user_runtime_platform::prepare_thread_launch(
-    const process& initial_process,
-    const thread& initial_thread)
+    const process& initial_process, const thread& initial_thread)
   {
     (void) initial_process;
     (void) initial_thread;
@@ -121,11 +241,33 @@ namespace
     write_vector_base(reinterpret_cast<uintptr_t>(arm64_exception_vectors));
   }
 
-  [[noreturn]] void arm64_initial_user_runtime_platform::enter_user_thread(
-    const process& initial_process,
-    const thread& initial_thread)
+  void arm64_initial_user_runtime_platform::activate_process_address_space(const process* process_context)
   {
-    (void) initial_process;
+    if (process_context == nullptr)
+    {
+      return;
+    }
+
+    const uintptr_t root_table = process_context->get_address_space_info().arch_root_table;
+
+    if (root_table == 0)
+    {
+      return;
+    }
+
+    write_ttbr0(root_table);
+    invalidate_tlb();
+
+    if (!m_mmu_enabled)
+    {
+      enable_mmu();
+    }
+  }
+
+  [[noreturn]] void arm64_initial_user_runtime_platform::enter_user_thread(
+    const process& initial_process, const thread& initial_thread)
+  {
+    activate_process_address_space(&initial_process);
 
     debug_log("arm64 initial user runtime ready");
 
@@ -134,6 +276,11 @@ namespace
       initial_thread.get_user_context().stack_pointer,
       initial_thread.get_user_context().flags);
   }
+}
+
+void arch_activate_process_address_space(const process* process_context)
+{
+  g_initial_user_runtime_platform.activate_process_address_space(process_context);
 }
 
 extern "C" bool arm64_handle_syscall(arm64_syscall_frame* frame)
@@ -165,7 +312,7 @@ extern "C" bool arm64_handle_syscall(arm64_syscall_frame* frame)
 
   const int32_t syscall_status = runtime.dispatch_syscall(frame->x8, frame->x0);
   frame->x0 = static_cast<uint64_t>(syscall_status);
-  return runtime.should_resume_current_thread();
+  return runtime.is_current_thread_resumable();
 }
 
 extern "C" [[noreturn]] void arm64_unhandled_exception()
