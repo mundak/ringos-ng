@@ -24,7 +24,8 @@ DEBUG_LOG="$(mktemp)"
 trap 'rm -f "${DEBUG_LOG}"' EXIT
 
 timeout "${TIMEOUT_SECONDS}" \
-  "$(dirname "${BASH_SOURCE[0]}")/run-x64.sh" "${KERNEL_IMAGE}" >"${DEBUG_LOG}" 2>&1 \
+  env RINGOS_DEBUGCON="file:${DEBUG_LOG}" \
+  "$(dirname "${BASH_SOURCE[0]}")/run-x64.sh" "${KERNEL_IMAGE}" >/dev/null 2>&1 \
   || true
 
 for expected_line in \

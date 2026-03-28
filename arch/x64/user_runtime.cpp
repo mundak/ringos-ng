@@ -37,6 +37,7 @@ namespace
   constexpr uint32_t MSR_KERNEL_GS_BASE = 0xC0000102;
 
   constexpr uint64_t EFER_SCE = 1ULL << 0;
+  constexpr uintptr_t USER_THREAD_INITIAL_FLAGS = 0x2;
   constexpr uint16_t KERNEL_CODE_SELECTOR = 0x08;
   constexpr uint16_t USER_COMPAT_CODE_SELECTOR = 0x18;
   constexpr uint16_t PE_DOS_SIGNATURE = 0x5A4D;
@@ -532,4 +533,3 @@ extern "C" [[noreturn]] void x64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
-
