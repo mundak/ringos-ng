@@ -38,11 +38,11 @@ jobs:
                 repo: context.repo.repo,
                 title: `CI failure on ${branch} (${shortSha})`,
                 body,
-                assignees: ['github-copilot'],
+                assignees: ['Copilot'],
               });
             } catch (err) {
-              // Retry without the assignee if github-copilot is not yet enabled.
-              console.warn(`Could not assign github-copilot: ${err.message}. Retrying without assignee.`);
+              // Retry without the assignee if Copilot is not yet enabled.
+              console.warn(`Could not assign Copilot: ${err.message}. Retrying without assignee.`);
               issue = await github.rest.issues.create({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
