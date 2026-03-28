@@ -38,8 +38,6 @@ for expected_argument in \
   cortex-a57 \
   -kernel \
   "${KERNEL_IMAGE}" \
-  -serial \
-  stdio \
   -display \
   none \
   -no-reboot \

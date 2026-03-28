@@ -30,7 +30,6 @@ exec "${QEMU_BIN}" \
   -machine virt \
   -cpu cortex-a57 \
   -kernel "${KERNEL_IMAGE}" \
-  -serial stdio \
   -display none \
   -no-reboot \
   -semihosting-config enable=on,target=gdb \

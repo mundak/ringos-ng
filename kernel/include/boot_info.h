@@ -14,7 +14,7 @@ static constexpr uint32_t ARCH_ARM64 = 1;
 //   - BSS has been zeroed.
 //   - CPU is in the intended operating mode (64-bit long mode for x64,
 //     EL1 for arm64).
-//   - The serial console is ready to accept writes.
+//   - The selected launcher has configured the host-side debug log sink.
 //
 // Runtime restrictions in kernel code:
 //   - No C++ exceptions.

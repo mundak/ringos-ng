@@ -1,12 +1,11 @@
 #include "panic.h"
 
-#include "console.h"
+#include "debug.h"
 
 [[noreturn]] void panic(const char* message)
 {
-  console_write("PANIC: ");
-  console_write(message);
-  console_write("\n");
+  debug_semihost_log("PANIC");
+  debug_semihost_log(message);
   while (true)
   {
   }

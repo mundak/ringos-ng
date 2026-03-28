@@ -125,20 +125,18 @@ On x64, set `RINGOS_DEBUGCON` to redirect the port `0xe9` debug console sink
 when you want the debugger-only channel somewhere other than the default host
 stderr stream.
 
-The arm64 debug wrapper enables semihosting with `target=gdb`, which lets
-kernel code send debugger-only messages through `debug_semihost_log()` while
-keeping normal serial logging on `debug_log()`.
-
-The x64 debug wrapper exposes the same shared hook through QEMU's x86 debug
-console on port `0xe9`, so `debug_semihost_log()` stays off the serial console
-there as well.
+The shared debugger-oriented logging hook is `debug_semihost_log()`. The arm64
+debug wrapper enables semihosting with `target=gdb`, while the x64 debug
+wrapper exposes the same hook through QEMU's x86 debug console on port `0xe9`.
+The direct run wrappers also configure host-visible debug sinks so boot-time
+logs no longer depend on a shared serial console abstraction.
 
 ## Smoke Test Contract
 
 Each smoke test script should:
 
 1. Launch the correct QEMU target in headless mode.
-2. Redirect serial output to stdout or a temporary log file.
+2. Capture host-side debug output from the selected launch wrapper.
 3. Apply a hard timeout.
 4. Assert the expected output appears.
 5. Return a non-zero exit code on timeout, early crash, or missing output.
@@ -148,7 +146,7 @@ The debugger launch wrappers should also stay under test. Their contract is to:
 1. launch the correct QEMU binary for the active architecture
 2. expose a GDB stub on the configured port
 3. pause execution at startup with `-S`
-4. preserve the same headless serial settings used by local debugging
+4. preserve the same host-side debug sink configuration used by local debugging
 
 Keep raw QEMU command lines inside scripts so the same execution path is used by
 developers, wrappers, and CTest.

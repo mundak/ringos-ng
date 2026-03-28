@@ -37,10 +37,10 @@ for expected_argument in \
   "${KERNEL_IMAGE}" \
   -display \
   none \
-  -serial \
-  stdio \
   -debugcon \
   file:/tmp/ringos-debugcon.log \
+  -global \
+  isa-debugcon.iobase=0xe9 \
   -monitor \
   none \
   -no-reboot \

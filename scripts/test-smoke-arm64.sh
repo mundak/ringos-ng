@@ -2,8 +2,8 @@
 # Smoke test for the arm64 kernel image.
 #
 # Launches the kernel in QEMU virt, enforces a hard timeout, and asserts that
-# the expected serial output appears. Exits non-zero on timeout, early crash,
-# or missing output.
+# the expected host-side debug output appears. Exits non-zero on timeout, early
+# crash, or missing output.
 #
 # Usage:
 #   scripts/test-smoke-arm64.sh <path-to-ringos_arm64>
@@ -20,38 +20,23 @@ fi
 KERNEL_IMAGE="$1"
 TIMEOUT_SECONDS=15
 
-SERIAL_LOG="$(mktemp)"
-trap 'rm -f "${SERIAL_LOG}"' EXIT
+DEBUG_LOG="$(mktemp)"
+trap 'rm -f "${DEBUG_LOG}"' EXIT
 
 timeout "${TIMEOUT_SECONDS}" \
-  qemu-system-aarch64 \
-    -machine virt \
-    -cpu cortex-a57 \
-    -kernel "${KERNEL_IMAGE}" \
-    -serial file:"${SERIAL_LOG}" \
-    -display none \
-    -no-reboot \
+  "$(dirname "${BASH_SOURCE[0]}")/run-arm64.sh" "${KERNEL_IMAGE}" >"${DEBUG_LOG}" 2>&1 \
   || true
 
-if ! grep -q "ringos arm64" "${SERIAL_LOG}"; then
-  echo "FAIL: expected 'ringos arm64' banner not found in serial output" >&2
-  echo "--- serial output ---" >&2
-  cat "${SERIAL_LOG}" >&2
-  exit 1
-fi
-
-if ! grep -q "\[debug\] gdb hooks ready" "${SERIAL_LOG}"; then
-  echo "FAIL: expected debug hook log not found in serial output" >&2
-  echo "--- serial output ---" >&2
-  cat "${SERIAL_LOG}" >&2
-  exit 1
-fi
-
-if ! grep -q "hello world" "${SERIAL_LOG}"; then
-  echo "FAIL: expected 'hello world' not found in serial output" >&2
-  echo "--- serial output ---" >&2
-  cat "${SERIAL_LOG}" >&2
-  exit 1
-fi
+for expected_line in \
+  "[gdb] ringos arm64" \
+  "[gdb] gdb hooks ready" \
+  "[gdb] hello world"; do
+  if ! grep -Fq -- "${expected_line}" "${DEBUG_LOG}"; then
+    echo "FAIL: expected '${expected_line}' not found in arm64 debug output" >&2
+    echo "--- debug output ---" >&2
+    cat "${DEBUG_LOG}" >&2
+    exit 1
+  fi
+done
 
 echo "PASS: arm64 smoke test"

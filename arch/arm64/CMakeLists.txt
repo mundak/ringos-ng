@@ -4,13 +4,6 @@ add_executable(ringos_arm64
   boot.S
   debug.cpp
   entry.cpp
-  pl011.cpp
-  console.cpp
-)
-
-target_include_directories(ringos_arm64
-  PRIVATE
-    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_options(ringos_arm64

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Launches the arm64 kernel image in QEMU virt with serial output redirected
-# to stdout.
+# Launches the arm64 kernel image in QEMU virt with semihost debug output
+# routed to the host stderr stream.
 #
 # Usage:
 #   scripts/run-arm64.sh <path-to-ringos_arm64>
@@ -20,6 +20,6 @@ exec qemu-system-aarch64 \
   -machine virt \
   -cpu cortex-a57 \
   -kernel "${KERNEL_IMAGE}" \
-  -serial stdio \
   -display none \
+  -semihosting-config enable=on,target=native \
   -no-reboot

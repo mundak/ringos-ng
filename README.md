@@ -6,12 +6,12 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 
 ## Current State
 
-- x64 boots in QEMU, initializes COM1 serial, reaches the shared C++ kernel
-  entry point, and prints the expected banner and hello-world output.
-- arm64 boots in QEMU virt, initializes the PL011 UART, reaches the same shared
-  C++ kernel entry point, and prints the expected banner and hello-world output.
-- Shared kernel code owns the boot handoff contract, common output path, and
-  panic handling.
+- x64 boots in QEMU, reaches the shared C++ kernel entry point, and emits the
+  expected host-side debug trace.
+- arm64 boots in QEMU virt, reaches the same shared C++ kernel entry point,
+  and emits the expected host-side debug trace through semihosting.
+- Shared kernel code owns the boot handoff contract, debug-host logging path,
+  and panic handling.
 - CI builds and smoke-tests both supported targets.
 
 ## Supported Targets
@@ -101,6 +101,9 @@ scripts/run-x64.sh build/x64-debug/arch/x64/ringos_x64
 scripts/run-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
 ```
 
+Both direct run wrappers now route boot-time `debug_semihost_log()` output to
+the host stream instead of relying on a shared serial console abstraction.
+
 Debug with QEMU's GDB stub:
 
 ```bash
@@ -120,16 +123,15 @@ Inside the kernel, include `debug.h` when you want lightweight trace markers or
 an explicit debugger trap:
 
 ```cpp
-debug_log("reached scheduler bring-up");
 debug_semihost_log("visible on the host-side debug channel");
+debug_semihost_log("reached scheduler bring-up");
 debug_break("inspect scheduler state");
 ```
 
 `debug_semihost_log` is meaningful under both debug launchers. On arm64,
 `scripts/debug-arm64.sh` enables semihosting and routes it to the attached GDB
 session. On x64, `scripts/debug-x64.sh` routes port `0xe9` through QEMU's x86
-debug console. `debug_log` continues to write to the serial console on all
-targets.
+debug console.
 
 Run smoke tests with CTest:
 
@@ -177,10 +179,10 @@ More detail on the local and CI verification contract lives in
 
 ## Architecture Overview
 
-The current codebase implements the earliest boot, console, and shared kernel
-boundary. The long-term design direction is still a microkernel: keep the
-privileged kernel as small as possible and push drivers and higher-level
-services into isolated user-space components.
+The current codebase implements the earliest boot, debug-host logging, and
+shared kernel boundary. The long-term design direction is still a microkernel:
+keep the privileged kernel as small as possible and push drivers and
+higher-level services into isolated user-space components.
 
 ### Design Direction
 
@@ -196,19 +198,17 @@ The shared code in `kernel/` currently provides:
 - `boot_info` as the boot handoff structure populated by each architecture
   before calling `kernel_main`
 - `kernel_main` as the shared C++ convergence point
-- `console_write` as the common console abstraction with architecture-local
-  serial backends overriding the weak default
-- `panic` as the minimal panic path that writes to the console and halts
-- `kprint` as the current fixed-text formatting helper
-- `debug_log`, `debug_semihost_log`, and `debug_break` as the shared
-  debugger-oriented trace and trap hooks
+- `panic` as the minimal panic path that reports failure through the debug log
+  and halts
+- `debug_semihost_log` and `debug_break` as the shared debugger-oriented trace
+  and trap hooks
 
 The boot contract assumes:
 
 - a valid stack
 - cleared BSS
 - the intended CPU mode for the target architecture
-- a serial console that is ready to accept writes
+- the selected launcher has configured the host-side debug log sink
 
 ### Architecture-Specific Responsibilities
 
@@ -218,15 +218,14 @@ for:
 - early boot entry and CPU-mode setup
 - stack setup and final handoff into `kernel_main`
 - linker layout
-- serial console backend implementation
 - target-specific debug and emulator behavior
 
 In the current tree that means:
 
-- `arch/x64/` contains the Multiboot-friendly startup path, COM1 serial driver,
-  linker script, and x64 entry handoff
-- `arch/arm64/` contains the QEMU virt startup path, PL011 UART driver, linker
-  script, and arm64 entry handoff
+- `arch/x64/` contains the Multiboot-friendly startup path, debugcon-backed
+  debug transport, linker script, and x64 entry handoff
+- `arch/arm64/` contains the QEMU virt startup path, semihost-backed debug
+  transport, linker script, and arm64 entry handoff
 
 ### Microkernel Direction
 

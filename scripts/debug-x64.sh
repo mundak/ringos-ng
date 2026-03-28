@@ -8,8 +8,8 @@
 # In a separate terminal, connect with:
 #   gdb-multiarch -ex "target remote :1234" <path-to-ringos_x64.elf64>
 #
-# x64 debug-host logging is enabled through QEMU's debug console on port 0xe9
-# so the kernel can emit host-only messages with debug_semihost_log().
+# x64 debug-host logging is enabled through QEMU's x86 debug console on port
+# 0xe9 while the kernel exposes a single debug_semihost_log() API.
 #
 # Optional environment:
 #   RINGOS_GDB_PORT  Override the GDB stub port (default: 1234)
@@ -32,8 +32,8 @@ QEMU_BIN="${RINGOS_QEMU_BIN:-qemu-system-x86_64}"
 exec "${QEMU_BIN}" \
   -kernel "${KERNEL_IMAGE}" \
   -display none \
-  -serial stdio \
   -debugcon "${DEBUGCON_DESTINATION}" \
+  -global isa-debugcon.iobase=0xe9 \
   -monitor none \
   -no-reboot \
   -gdb "tcp::${GDB_PORT}" \

@@ -4,7 +4,6 @@ add_executable(ringos_x64
   boot.S
   debug.cpp
   entry.cpp
-  serial.cpp
 )
 
 target_compile_options(ringos_x64
