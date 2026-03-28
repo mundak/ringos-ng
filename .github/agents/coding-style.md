@@ -21,7 +21,7 @@ commit message format.
 4. Report each violation with:
    - **File:** `path/to/file.cpp`
    - **Line:** 42
-   - **Rule violated:** (e.g., "Naming: member variable missing `m_` prefix")
-   - **Fix:** (e.g., "Rename `count` → `m_count`")
+   - **Rule violated:** (e.g., "Naming: private class member missing `m_` prefix" or "Naming: public struct member should not use `m_` prefix")
+   - **Fix:** (e.g., "Rename `count` → `m_count`" or "Rename `m_arch_id` → `arch_id`")
 5. If no violations are found, state: "No coding style violations found."
 

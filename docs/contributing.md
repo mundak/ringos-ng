@@ -167,8 +167,12 @@ Follow the **C++ Standard Library naming convention** (`snake_case` everywhere).
 | Classes / structs | `snake_case` | `app`, `vulkan_context` |
 | Functions / methods | `snake_case` | `poll_events()`, `render_frame()` |
 | Local variables | `snake_case` | `window_width`, `graphics_family` |
-| Member variables | `m_` prefix | `m_window`, `m_vk_ctx` |
+| Public struct members | `snake_case` | `arch_id`, `user_base` |
+| Private class members | `m_` prefix | `m_window`, `m_vk_ctx` |
 | Constants / macros | `UPPER_SNAKE_CASE` | `VK_NULL_HANDLE`, `MAI_DEBUG` |
+
+Use `m_` only for private class members. Public struct fields, including ABI or
+plain-data carrier types, use unprefixed `snake_case`.
 
 ---
 
