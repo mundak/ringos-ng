@@ -11,12 +11,14 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 - x64 also loads a minimal statically linked PE64 user test image and proves
   the first ring3 entry, syscall, and exit path.
 - arm64 boots in QEMU virt, reaches the same shared C++ kernel entry point,
-  and emits the expected host-side debug trace through semihosting.
+  emits the expected host-side debug trace through semihosting, and now drives
+  the existing x64 PE64 user test image through an interpreter-backed emulator path.
 - Both targets now install a per-process user address space with explicit MMU
   boundaries, while keeping the kernel mapped in every process context.
 - Shared kernel code owns the boot handoff contract, debug-host logging path,
   and panic handling.
-- CI builds and smoke-tests both supported targets.
+- CI builds both supported targets, runs the smoke surface, and also runs host-side
+  x64 emulator instruction tests.
 
 ## Supported Targets
 

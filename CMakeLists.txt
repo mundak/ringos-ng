@@ -17,10 +17,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(RINGOS_ENABLE_TESTING "Enable smoke tests" OFF)
 option(RINGOS_CI "Enable CI mode (disables non-essential developer options)" OFF)
 
+add_subdirectory(emulator)
 add_subdirectory(kernel)
 add_subdirectory(arch/${RINGOS_TARGET_ARCH})
 
 if(RINGOS_ENABLE_TESTING)
   include(CTest)
   include(cmake/tests/smoke_tests.cmake)
+  include(cmake/tests/emulator_tests.cmake)
 endif()

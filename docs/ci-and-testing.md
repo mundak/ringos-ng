@@ -23,9 +23,10 @@ Use these layers:
 
 1. `CMakePresets.json` defines configure, build, and test presets.
 2. `CTest` defines the smoke-test surface.
-3. `scripts/*.sh` contains QEMU launch and output assertion logic.
-4. `scripts/docker-*.bat` wraps the Windows container workflow.
-5. `.github/workflows/ci.yml` installs dependencies and runs the same presets.
+3. `CTest` also runs host-side emulator unit tests for the x64 interpreter backend.
+4. `scripts/*.sh` contains QEMU launch and output assertion logic.
+5. `scripts/docker-*.bat` wraps the Windows container workflow.
+6. `.github/workflows/ci.yml` installs dependencies and runs the same presets.
 
 The workflow file should stay thin. If a command matters for local users, it
 should exist in the repository first.
@@ -147,6 +148,10 @@ The debugger launch wrappers should also stay under test. Their contract is to:
 2. expose a GDB stub on the configured port
 3. pause execution at startup with `-S`
 4. preserve the same host-side debug sink configuration used by local debugging
+
+The x64 emulator unit test binary should stay architecture-independent and run
+as a host executable under every CTest preset. Add new instruction coverage
+there before expanding the interpreter or introducing a JIT backend.
 
 Keep raw QEMU command lines inside scripts so the same execution path is used by
 developers, wrappers, and CTest.
