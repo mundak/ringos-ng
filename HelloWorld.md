@@ -6,9 +6,10 @@ first hosted user-space programs.
 The intended layering is:
 
 1. kernel syscalls and process startup ABI
-2. a thin C SDK that talks to the kernel directly
-3. libc implemented on top of that SDK
-4. Clang plus the target runtime libraries on top of the resulting sysroot
+2. cross-architecture user-mode execution and personality plumbing
+3. a thin C SDK that talks to the kernel directly
+4. libc implemented on top of that SDK
+5. Clang plus the target runtime libraries on top of the resulting sysroot
 
 Building Clang against the target libc is necessary, but it is not sufficient
 for full hosted C++ support by itself. The plan therefore includes the runtime
@@ -64,6 +65,45 @@ Deliverables:
 Exit criteria:
 
 - a trivial user image can start, run, and exit without libc
+
+### Stage 2A: Cross-Architecture Proof Path
+
+Goal:
+
+- prove that the Stage 2 x64 proof image can execute on arm64 through the
+  future emulation path before Windows compatibility work begins
+
+Deliverables:
+
+- a generalized process model that can describe host architecture, guest
+  architecture, process personality, and execution backend
+- a canonical service-request or syscall frame that does not depend on one
+  native trap instruction
+- an x64-on-arm64 proof backend that can execute the existing minimal x64 user
+  image
+
+Exit criteria:
+
+- the same minimal x64 proof image can run on x64 natively and on arm64 through
+  the emulation backend
+
+### Stage 2B: Windows Personality Proof Path
+
+Goal:
+
+- prove the first user-space Windows compatibility path without involving ISA
+  translation yet
+
+Deliverables:
+
+- a user-space Windows-compatible loader for a minimal x64 PE executable
+- the first Windows-compatible process environment and compatibility DLL surface
+- a simple Windows x64 Hello World style program running on x64 host
+
+Exit criteria:
+
+- a small unmodified Windows x64 console program can run on x64 host through
+  the Windows user-space personality
 
 ## Stage 3: C SDK v0
 
@@ -203,6 +243,27 @@ Exit criteria:
 - both architectures can boot the kernel, start a user program, and run a
   hosted C and C++ sample through the same toolchain flow
 
+## Stage 11: Windows Compatibility Through Translation
+
+Goal:
+
+- combine the earlier Windows personality proof with the cross-architecture
+  execution path after the ringos-native SDK, libc, and toolchain milestones
+  are already in place
+
+Deliverables:
+
+- the same Windows x64 proof program from Stage 2B running on arm64 host
+- interoperability between the x64 execution backend and the Windows user-space
+  personality components
+- a repeatable validation path for the Windows-compatible sample on both x64
+  and arm64 hosts
+
+Exit criteria:
+
+- one Windows x64 Hello World style program can run on x64 natively and on
+  arm64 through translation
+
 ## Suggested Constraints for the First Cut
 
 - prefer static linking first; shared libraries can wait
@@ -211,3 +272,30 @@ Exit criteria:
   POSIX compatibility early
 - avoid baking libc assumptions into the syscall ABI
 - keep architecture-specific logic in crt or syscall thunk code, not in libc
+
+## Recommended Next Step From The Current State
+
+The repository has already reached the original Stage 2 proof point for a
+minimal x64 user image. The broader interoperability design is documented in
+[docs/system_interoperability.md](docs/system_interoperability.md).
+
+The next step should still be Stage 2A, not Stage 2B.
+
+The recommended order is:
+
+1. run the same minimal x64 proof image on arm64 through the emulation path
+2. run a small Windows x64 Hello World style executable on x64 host
+3. continue with the existing Stage 3 through Stage 10 ringos-native bring-up
+4. run that same Windows x64 executable on arm64 through translation as the
+  later Stage 11 interoperability milestone
+
+This ordering keeps the two major risks separate:
+
+- cross-architecture execution and emulation
+- Windows-compatible user-space personality
+
+It also keeps the deeper Windows interoperability expansion from delaying the
+core ringos-native SDK, libc, and toolchain path.
+
+If the project tries to solve both at once, failures will be much harder to
+attribute and debug.
