@@ -68,7 +68,7 @@ docker run --rm ringos-ci bash -lc "cmake --preset arm64-ci && cmake --build --p
 
 Native Linux remains useful for direct shell iteration and GDB-based debugging.
 Install the same core dependencies used by the shared container image,
-including `gdb-multiarch` for the arm64 debug and semihosting test surface:
+including `gdb-multiarch` for the debug-launch and debug-host test surface:
 
 ```bash
 sudo apt-get update
@@ -113,21 +113,23 @@ gdb-multiarch -ex "target remote :1234" build/arm64-debug/arch/arm64/ringos_arm6
 
 Both debug launchers also accept `RINGOS_GDB_PORT` when you need a non-default
 stub port. For deterministic testing or custom tooling, they also accept
-`RINGOS_QEMU_BIN` to override the QEMU executable path.
+`RINGOS_QEMU_BIN` to override the QEMU executable path. The x64 launcher also
+accepts `RINGOS_DEBUGCON` to redirect the port `0xe9` debug console sink.
 
 Inside the kernel, include `debug.h` when you want lightweight trace markers or
 an explicit debugger trap:
 
 ```cpp
 debug_log("reached scheduler bring-up");
-debug_semihost_log("visible in the arm64 GDB session via semihosting");
+debug_semihost_log("visible on the host-side debug channel");
 debug_break("inspect scheduler state");
 ```
 
-`debug_semihost_log` is currently meaningful on arm64 when launched through
-`scripts/debug-arm64.sh`, which enables semihosting and routes it to the
-attached GDB session. `debug_log` continues to write to the serial console on
-all targets.
+`debug_semihost_log` is meaningful under both debug launchers. On arm64,
+`scripts/debug-arm64.sh` enables semihosting and routes it to the attached GDB
+session. On x64, `scripts/debug-x64.sh` routes port `0xe9` through QEMU's x86
+debug console. `debug_log` continues to write to the serial console on all
+targets.
 
 Run smoke tests with CTest:
 

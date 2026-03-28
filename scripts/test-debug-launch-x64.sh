@@ -29,6 +29,7 @@ touch "${KERNEL_IMAGE}"
 RINGOS_TEST_ARGUMENT_LOG="${ARGUMENT_LOG}" \
 RINGOS_QEMU_BIN="${FAKE_QEMU}" \
 RINGOS_GDB_PORT=4321 \
+RINGOS_DEBUGCON="file:/tmp/ringos-debugcon.log" \
   "${SCRIPT_DIR}/debug-x64.sh" "${KERNEL_IMAGE}"
 
 for expected_argument in \
@@ -38,6 +39,8 @@ for expected_argument in \
   none \
   -serial \
   stdio \
+  -debugcon \
+  file:/tmp/ringos-debugcon.log \
   -monitor \
   none \
   -no-reboot \

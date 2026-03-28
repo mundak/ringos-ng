@@ -3,9 +3,10 @@
 // Write a debug message to the serial console with a standard prefix.
 void debug_log(const char* message);
 
-// Write a debug message to the semihosting console with a standard prefix.
+// Write a debug message to the host-side debug channel with a standard prefix.
 // On arm64 under scripts/debug-arm64.sh this is routed to the attached GDB
-// session.
+// session via semihosting. On x64 under scripts/debug-x64.sh this is routed to
+// QEMU's debug console.
 void debug_semihost_log(const char* message);
 
 // Trigger an architecture-specific breakpoint trap for an attached debugger.

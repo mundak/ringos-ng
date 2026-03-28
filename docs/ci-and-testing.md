@@ -81,7 +81,7 @@ sequence inside the container.
 ### Native Linux
 
 Install the same core packages used by `docker/Dockerfile`, including
-`gdb-multiarch` for the arm64 debugger-launch and semihosting tests.
+`gdb-multiarch` for the debugger-launch and debug-host test surface.
 
 Configure and build:
 
@@ -121,9 +121,17 @@ Set `RINGOS_GDB_PORT` to move the stub off the default port. Set
 `RINGOS_QEMU_BIN` when tests or local tooling need to intercept the QEMU launch
 without editing the shared scripts.
 
-The arm64 debug wrapper also enables semihosting with `target=gdb`, which lets
+On x64, set `RINGOS_DEBUGCON` to redirect the port `0xe9` debug console sink
+when you want the debugger-only channel somewhere other than the default host
+stderr stream.
+
+The arm64 debug wrapper enables semihosting with `target=gdb`, which lets
 kernel code send debugger-only messages through `debug_semihost_log()` while
 keeping normal serial logging on `debug_log()`.
+
+The x64 debug wrapper exposes the same shared hook through QEMU's x86 debug
+console on port `0xe9`, so `debug_semihost_log()` stays off the serial console
+there as well.
 
 ## Smoke Test Contract
 

@@ -176,7 +176,12 @@ Follow the **C++ Standard Library naming convention** (`snake_case` everywhere).
 
 * **Prefer explicit, fixed-width types** over implicit types: `int32_t` over
   `int`, `uint32_t` over `unsigned int`, `int64_t` over `long long`, etc.
-* Use `<cstdint>` for fixed-width integer types.
+* Use standard fixed-width integer names directly: `uint8_t`, `uint16_t`,
+  `uint32_t`, `uint64_t`, `intptr_t`, `uintptr_t`, etc.
+* Do **not** introduce custom aliases such as `uint16_type`, `u32`, or
+  compiler builtin wrappers for standard fixed-width integers.
+* Use `<cstdint>` for hosted code and `<stdint.h>` for freestanding code when
+  the C++ wrapper is unavailable in the target toolchain.
 * Use `float`, `double`, `bool`, `char`, and `size_t` as-is where semantically
   appropriate.
 
@@ -344,9 +349,9 @@ AI agents picking up tasks should:
 9. **Update `docs/tasks/progress.md`** — mark the task as `done` and add the
    completion date. Commit this change with the task deliverables.
 10. Commit with a descriptive message referencing the task ID.
-11. **Pull latest changes** from the target branch and resolve any merge
-    conflicts. Re-run the full build and test suite to confirm nothing is
-    broken after the merge.
+11. **Rebase onto the latest changes** from the target branch and resolve any
+  conflicts. **Never create merge commits.** Re-run the full build and test
+  suite to confirm nothing is broken after the rebase.
 12. Open a PR targeting `main` unless a different integration branch is
   explicitly requested.
 13. **Add the PR number** to your row in `docs/tasks/progress.md` and push

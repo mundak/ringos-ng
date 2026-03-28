@@ -10,6 +10,12 @@ if(RINGOS_TARGET_ARCH STREQUAL "x64")
     COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-debug-launch-x64.sh
   )
 
+  add_test(
+    NAME semihost_x64
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-semihost-x64.sh
+            $<TARGET_FILE:ringos_x64>
+  )
+
   set_tests_properties(
     smoke_x64
     PROPERTIES
@@ -20,6 +26,12 @@ if(RINGOS_TARGET_ARCH STREQUAL "x64")
     debug_launch_x64
     PROPERTIES
       TIMEOUT 5
+  )
+
+  set_tests_properties(
+    semihost_x64
+    PROPERTIES
+      TIMEOUT 20
   )
 elseif(RINGOS_TARGET_ARCH STREQUAL "arm64")
   add_test(
