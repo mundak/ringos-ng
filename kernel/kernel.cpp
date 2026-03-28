@@ -8,19 +8,19 @@
 {
   if (info.m_arch_id == ARCH_X64)
   {
-    debug_semihost_log("ringos x64");
+    debug_log("ringos x64");
   }
   else if (info.m_arch_id == ARCH_ARM64)
   {
-    debug_semihost_log("ringos arm64");
+    debug_log("ringos arm64");
   }
   else
   {
     panic("unknown architecture id");
   }
 
-  debug_semihost_log("gdb hooks ready");
-  debug_semihost_log("hello world");
+  debug_log("gdb hooks ready");
+  debug_log("hello world");
 
   while (true)
   {
