@@ -12,6 +12,8 @@ code, and verifies the bring-up path with smoke tests for each architecture.
   the first ring3 entry, syscall, and exit path.
 - arm64 boots in QEMU virt, reaches the same shared C++ kernel entry point,
   and emits the expected host-side debug trace through semihosting.
+- Both targets now install a per-process user address space with explicit MMU
+  boundaries, while keeping the kernel mapped in every process context.
 - Shared kernel code owns the boot handoff contract, debug-host logging path,
   and panic handling.
 - CI builds and smoke-tests both supported targets.
@@ -30,7 +32,7 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 - filesystem or storage
 - framebuffer output
 - real hardware support
-- advanced MMU work beyond what is currently required for boot and shared entry
+- user-mode page allocators and paging APIs beyond the initial large-page region
 
 ## Development Workflow
 

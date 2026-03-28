@@ -36,7 +36,7 @@ _start:
   xorl %eax, %eax
   rep stosl
 
-  // ---- Identity-map the first 4 MiB using 2 MiB pages ----
+  // ---- Identity-map the first 32 MiB using 2 MiB pages ----
 
   // PML4[0] -> PDPT (present + writable)
   movl $boot_pdpt, %eax
@@ -48,11 +48,17 @@ _start:
   orl  $0x03, %eax
   movl %eax, (boot_pdpt)
 
-  // PD[0] -> 2 MiB huge page at physical 0 (present + writable + page-size)
-  movl $0x83, (boot_pd)
+  movl $boot_pd, %edi
+  xorl %edx, %edx
+  movl $16, %ecx
 
-  // PD[1] -> 2 MiB huge page at physical 2 MiB
-  movl $0x200083, boot_pd + 8
+.Lmap_kernel_window:
+  movl %edx, %eax
+  orl  $0x83, %eax
+  movl %eax, (%edi)
+  addl $0x200000, %edx
+  addl $8, %edi
+  loop .Lmap_kernel_window
 
   // ---- Load the boot GDT ----
   lgdt (boot_gdt_ptr)

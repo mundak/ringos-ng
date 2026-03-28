@@ -1,9 +1,9 @@
 #pragma once
 
+#include "user_space.h"
+
 #include <stddef.h>
 #include <stdint.h>
-
-#include "user_space.h"
 
 static constexpr uint32_t USER_RUNTIME_MAX_PROCESSES = 4;
 static constexpr uint32_t USER_RUNTIME_MAX_THREADS = 4;
@@ -24,6 +24,7 @@ struct address_space
   uintptr_t arch_root_table;
   uintptr_t user_base;
   size_t user_size;
+  uintptr_t user_host_base;
 };
 
 struct thread_context
@@ -40,3 +41,4 @@ struct initial_user_runtime_bootstrap
   uintptr_t shared_memory_address;
   size_t shared_memory_size;
 };
+

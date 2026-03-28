@@ -33,7 +33,7 @@ public:
   thread* get_current_thread();
   void set_current_thread(thread* current_thread);
   int32_t dispatch_syscall(uint64_t syscall_number, uint64_t argument0);
-  bool should_resume_current_thread() const;
+  bool is_current_thread_resumable() const;
 
 private:
   process* find_process_by_handle(handle_t handle_value);
@@ -42,6 +42,8 @@ private:
   shared_memory_object* find_shared_memory_object_by_handle(handle_t handle_value);
   kernel_object* find_object_by_handle(handle_t handle_value);
   void grant_process_access(kernel_object& object);
+  bool try_translate_user_address(
+    const process& owner_process, uintptr_t user_address, size_t length, uintptr_t* out_host_address) const;
 
   kernel_object_pool<process, USER_RUNTIME_MAX_PROCESSES> m_processes;
   kernel_object_pool<thread, USER_RUNTIME_MAX_THREADS> m_threads;
@@ -53,3 +55,4 @@ private:
 
 user_runtime& get_kernel_user_runtime();
 [[noreturn]] void run_initial_user_runtime(initial_user_runtime_platform& platform);
+

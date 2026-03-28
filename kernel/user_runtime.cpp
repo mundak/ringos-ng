@@ -1,5 +1,6 @@
 #include "user_runtime.h"
 
+#include "arch_user_runtime.h"
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
@@ -33,9 +34,7 @@ process* user_runtime::create_process(const address_space& address_space_info)
 }
 
 thread* user_runtime::create_thread(
-  process& process_context,
-  const thread_context& initial_context,
-  handle_t* out_thread_handle)
+  process& process_context, const thread_context& initial_context, handle_t* out_thread_handle)
 {
   if (out_thread_handle == nullptr)
   {
@@ -90,9 +89,7 @@ bool user_runtime::create_channel_pair(handle_t* out_first_handle, handle_t* out
 }
 
 shared_memory_object* user_runtime::create_shared_memory_object(
-  uintptr_t user_address,
-  size_t size,
-  handle_t* out_handle)
+  uintptr_t user_address, size_t size, handle_t* out_handle)
 {
   if (out_handle == nullptr)
   {
@@ -187,11 +184,34 @@ bool user_runtime::validate_user_range(const process& owner_process, uintptr_t u
   return true;
 }
 
+bool user_runtime::try_translate_user_address(
+  const process& owner_process, uintptr_t user_address, size_t length, uintptr_t* out_host_address) const
+{
+  if (out_host_address == nullptr)
+  {
+    return false;
+  }
+
+  if (!validate_user_range(owner_process, user_address, length))
+  {
+    return false;
+  }
+
+  const uintptr_t user_base = owner_process.get_address_space_info().user_base;
+  const uintptr_t user_host_base = owner_process.get_address_space_info().user_host_base;
+  const uintptr_t translated_offset = user_address - user_base;
+
+  if (user_host_base == 0 || translated_offset > UINTPTR_MAX - user_host_base)
+  {
+    return false;
+  }
+
+  *out_host_address = user_host_base + translated_offset;
+  return true;
+}
+
 int32_t user_runtime::copy_user_string(
-  const thread& owner_thread,
-  uintptr_t user_address,
-  char* buffer,
-  size_t buffer_size) const
+  const thread& owner_thread, uintptr_t user_address, char* buffer, size_t buffer_size) const
 {
   if (owner_thread.get_process_context() == nullptr)
   {
@@ -206,13 +226,14 @@ int32_t user_runtime::copy_user_string(
   for (size_t index = 0; index < buffer_size; ++index)
   {
     const uintptr_t current_address = user_address + index;
+    uintptr_t host_address = 0;
 
-    if (!validate_user_range(*owner_thread.get_process_context(), current_address, 1))
+    if (!try_translate_user_address(*owner_thread.get_process_context(), current_address, 1, &host_address))
     {
       return STATUS_FAULT;
     }
 
-    const char current_byte = *reinterpret_cast<const char*>(current_address);
+    const char current_byte = *reinterpret_cast<const char*>(host_address);
     buffer[index] = current_byte;
 
     if (current_byte == '\0')
@@ -233,6 +254,8 @@ thread* user_runtime::get_current_thread()
 void user_runtime::set_current_thread(thread* current_thread)
 {
   m_current_thread = current_thread;
+  const process* active_process = m_current_thread != nullptr ? m_current_thread->get_process_context() : nullptr;
+  arch_activate_process_address_space(active_process);
 
   if (m_current_thread != nullptr)
   {
@@ -286,7 +309,7 @@ int32_t user_runtime::dispatch_syscall(uint64_t syscall_number, uint64_t argumen
   }
 }
 
-bool user_runtime::should_resume_current_thread() const
+bool user_runtime::is_current_thread_resumable() const
 {
   if (m_current_thread == nullptr)
   {
@@ -339,9 +362,7 @@ user_runtime& get_kernel_user_runtime()
 
   handle_t shared_memory_handle = 0;
   shared_memory_object* shared_memory = runtime.create_shared_memory_object(
-    bootstrap.shared_memory_address,
-    bootstrap.shared_memory_size,
-    &shared_memory_handle);
+    bootstrap.shared_memory_address, bootstrap.shared_memory_size, &shared_memory_handle);
 
   if (shared_memory == nullptr || shared_memory_handle == 0)
   {
