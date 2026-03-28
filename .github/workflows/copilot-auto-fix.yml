@@ -1,0 +1,54 @@
+name: copilot-auto-fix
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+
+jobs:
+  trigger-copilot:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Create issue and assign to Copilot
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const run = context.payload.workflow_run;
+            const runUrl = run.html_url;
+            const branch = run.head_branch;
+            const sha = run.head_sha;
+            const shortSha = sha.substring(0, 7);
+
+            const body = [
+              `The CI workflow failed on branch \`${branch}\` (commit \`${shortSha}\`).`,
+              ``,
+              `**Workflow run:** ${runUrl}`,
+              ``,
+              `Please investigate the failing steps in the workflow run above and fix the underlying issue.`,
+            ].join('\n');
+
+            let issue;
+            try {
+              issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `CI failure on ${branch} (${shortSha})`,
+                body,
+                assignees: ['github-copilot'],
+              });
+            } catch (err) {
+              // Retry without the assignee if github-copilot is not yet enabled.
+              console.warn(`Could not assign github-copilot: ${err.message}. Retrying without assignee.`);
+              issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `CI failure on ${branch} (${shortSha})`,
+                body,
+              });
+            }
+
+            console.log(`Created issue #${issue.data.number}: ${issue.data.html_url}`);
