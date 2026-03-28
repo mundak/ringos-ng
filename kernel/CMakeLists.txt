@@ -2,9 +2,14 @@
 add_library(ringos_kernel OBJECT
   kernel.cpp
   debug.cpp
+  kernel_object.cpp
+  process.cpp
+  thread.cpp
+  channel.cpp
+  shared_memory_object.cpp
   memory.cpp
   panic.cpp
-  user_space.cpp
+  user_runtime.cpp
 )
 
 target_include_directories(ringos_kernel

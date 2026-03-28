@@ -1,17 +1,17 @@
 #include "kernel.h"
 
-#include "arch_user_task.h"
+#include "arch_user_runtime.h"
 #include "boot_info.h"
 #include "debug.h"
 #include "panic.h"
 
 [[noreturn]] void kernel_main(const boot_info& info)
 {
-  if (info.m_arch_id == ARCH_X64)
+  if (info.arch_id == ARCH_X64)
   {
     debug_log("ringos x64");
   }
-  else if (info.m_arch_id == ARCH_ARM64)
+  else if (info.arch_id == ARCH_ARM64)
   {
     debug_log("ringos arm64");
   }
@@ -23,5 +23,5 @@
   debug_log("gdb hooks ready");
   debug_log("hello world");
 
-  arch_run_initial_user_task();
+  arch_run_initial_user_runtime();
 }

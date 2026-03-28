@@ -24,5 +24,5 @@ static constexpr uint32_t ARCH_ARM64 = 1;
 //   - No reliance on implicit global constructors.
 struct boot_info
 {
-  uint32_t m_arch_id; // One of the ARCH_* constants defined above.
+  uint32_t arch_id; // One of the ARCH_* constants defined above.
 };

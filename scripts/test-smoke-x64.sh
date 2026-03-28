@@ -31,9 +31,8 @@ for expected_line in \
   "[gdb] ringos x64" \
   "[gdb] gdb hooks ready" \
   "[gdb] hello world" \
-  "[gdb] stage1 x64 kernel objects ready" \
-  "[gdb] stage1 user task reached ring3" \
-  "[gdb] stage1 returned to kernel after exit syscall"; do
+  "[gdb] x64 initial user runtime ready" \
+  "[gdb] x64 user runtime reached ring3"; do
   if ! grep -Fq -- "${expected_line}" "${DEBUG_LOG}"; then
     echo "FAIL: expected '${expected_line}' not found in x64 debug output" >&2
     echo "--- debug output ---" >&2

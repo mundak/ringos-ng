@@ -4,7 +4,8 @@ add_executable(ringos_arm64
   boot.S
   debug.cpp
   entry.cpp
-  user_task.cpp
+  user_runtime.cpp
+  user_runtime.S
 )
 
 target_link_options(ringos_arm64

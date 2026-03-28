@@ -5,7 +5,7 @@
 .global x64_syscall_entry
 .global x64_user_stub_start
 .global x64_user_stub_end
-.global x64_stage1_thread_exit
+.global x64_user_thread_exit
 .extern x64_handle_syscall
 
 x64_enter_user_thread:
@@ -57,7 +57,7 @@ x64_syscall_entry:
 
 .Lthread_exit:
   addq $80, %rsp
-  call x64_stage1_thread_exit
+  call x64_user_thread_exit
 
 x64_user_stub_start:
   leaq x64_user_message(%rip), %rdi
@@ -72,6 +72,6 @@ x64_user_stub_start:
   jmp .Lhang
 
 x64_user_message:
-  .asciz "stage1 user task reached ring3"
+  .asciz "x64 user runtime reached ring3"
 
 x64_user_stub_end:

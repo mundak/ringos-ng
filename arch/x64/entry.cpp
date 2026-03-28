@@ -4,7 +4,7 @@
 extern "C" [[noreturn]] void x64_entry()
 {
   boot_info info;
-  info.m_arch_id = ARCH_X64;
+  info.arch_id = ARCH_X64;
 
   kernel_main(info);
 }
