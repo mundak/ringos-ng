@@ -36,6 +36,7 @@ namespace
   constexpr uint32_t MSR_KERNEL_GS_BASE = 0xC0000102;
 
   constexpr uint64_t EFER_SCE = 1ULL << 0;
+  constexpr uintptr_t USER_THREAD_INITIAL_FLAGS = 0x2;
   constexpr uint16_t KERNEL_CODE_SELECTOR = 0x08;
   constexpr uint16_t USER_COMPAT_CODE_SELECTOR = 0x18;
   constexpr uint16_t PE_DOS_SIGNATURE = 0x5A4D;
@@ -462,7 +463,7 @@ namespace
     bootstrap.address_space.user_size = USER_REGION_SIZE;
     bootstrap.thread_context.instruction_pointer = entry_point;
     bootstrap.thread_context.stack_pointer = USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
-    bootstrap.thread_context.flags = 0x202;
+    bootstrap.thread_context.flags = USER_THREAD_INITIAL_FLAGS;
     bootstrap.shared_memory_address = USER_IMAGE_VIRTUAL_ADDRESS;
     bootstrap.shared_memory_size = USER_REGION_SIZE;
   }
@@ -539,4 +540,3 @@ extern "C" [[noreturn]] void x64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
-
