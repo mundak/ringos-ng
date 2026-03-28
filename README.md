@@ -287,6 +287,8 @@ The expected bootstrap order is:
 3. Build libc on top of the SDK and user-space services.
 4. Build a Clang-targeted sysroot that uses that libc.
 
+The Stage 0 baseline for that work lives in [docs/user-space-abi.md](docs/user-space-abi.md).
+
 Clang is only one part of hosted C++ support. After libc exists, the toolchain
 bring-up also needs the target runtime pieces that Clang expects, especially
 compiler-rt and the usual C++ runtime stack such as libunwind, libc++abi, and
