@@ -2,6 +2,7 @@ set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
 
 add_executable(ringos_arm64
   boot.S
+  debug.cpp
   entry.cpp
   pl011.cpp
   console.cpp

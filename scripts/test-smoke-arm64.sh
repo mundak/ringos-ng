@@ -40,6 +40,13 @@ if ! grep -q "ringos arm64" "${SERIAL_LOG}"; then
   exit 1
 fi
 
+if ! grep -q "\[debug\] gdb hooks ready" "${SERIAL_LOG}"; then
+  echo "FAIL: expected debug hook log not found in serial output" >&2
+  echo "--- serial output ---" >&2
+  cat "${SERIAL_LOG}" >&2
+  exit 1
+fi
+
 if ! grep -q "hello world" "${SERIAL_LOG}"; then
   echo "FAIL: expected 'hello world' not found in serial output" >&2
   echo "--- serial output ---" >&2

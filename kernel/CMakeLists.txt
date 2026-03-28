@@ -2,6 +2,7 @@
 add_library(ringos_kernel OBJECT
   kernel.cpp
   console.cpp
+  debug.cpp
   panic.cpp
   format.cpp
 )

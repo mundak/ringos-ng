@@ -105,10 +105,22 @@ Debug with QEMU's GDB stub:
 
 ```bash
 scripts/debug-x64.sh build/x64-debug/arch/x64/ringos_x64
-gdb-multiarch -ex "target remote :1234" build/x64-debug/arch/x64/ringos_x64
+gdb-multiarch -ex "target remote :1234" build/x64-debug/arch/x64/ringos_x64.elf64
 
 scripts/debug-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
 gdb-multiarch -ex "target remote :1234" build/arm64-debug/arch/arm64/ringos_arm64
+```
+
+Both debug launchers also accept `RINGOS_GDB_PORT` when you need a non-default
+stub port. For deterministic testing or custom tooling, they also accept
+`RINGOS_QEMU_BIN` to override the QEMU executable path.
+
+Inside the kernel, include `debug.h` when you want lightweight trace markers or
+an explicit debugger trap:
+
+```cpp
+debug_log("reached scheduler bring-up");
+debug_break("inspect scheduler state");
 ```
 
 Run smoke tests with CTest:
@@ -180,6 +192,8 @@ The shared code in `kernel/` currently provides:
   serial backends overriding the weak default
 - `panic` as the minimal panic path that writes to the console and halts
 - `kprint` as the current fixed-text formatting helper
+- `debug_log` and `debug_break` as the shared debugger-oriented trace and trap
+  hooks
 
 The boot contract assumes:
 

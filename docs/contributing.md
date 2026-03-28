@@ -17,8 +17,9 @@ After every source file modification (`.cpp`, `.h`, `.inl`):
    changed files to catch violations that clang-format cannot detect (naming,
    type usage, `auto` misuse, logging, etc.). Fix every reported issue before
    proceeding.
-2. Run `clang-format -i <file>` on the entire modified file to ensure it
-   conforms to the project's `.clang-format` configuration.
+2. Run `tools/clang-format.exe -i <file>` on Windows, or `clang-format -i
+  <file>` when the formatter is already on your `PATH`, on the entire modified
+  file so it conforms to the project's `.clang-format` configuration.
 
 ---
 

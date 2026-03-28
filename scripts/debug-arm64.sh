@@ -7,6 +7,10 @@
 #
 # In a separate terminal, connect with:
 #   gdb-multiarch -ex "target remote :1234" <path-to-ringos_arm64>
+#
+# Optional environment:
+#   RINGOS_GDB_PORT  Override the GDB stub port (default: 1234)
+#   RINGOS_QEMU_BIN  Override the QEMU binary path for testing/tooling
 
 set -euo pipefail
 
@@ -16,13 +20,15 @@ if [[ $# -lt 1 ]]; then
 fi
 
 KERNEL_IMAGE="$1"
+GDB_PORT="${RINGOS_GDB_PORT:-1234}"
+QEMU_BIN="${RINGOS_QEMU_BIN:-qemu-system-aarch64}"
 
-exec qemu-system-aarch64 \
+exec "${QEMU_BIN}" \
   -machine virt \
   -cpu cortex-a57 \
   -kernel "${KERNEL_IMAGE}" \
   -serial stdio \
   -display none \
   -no-reboot \
-  -s \
+  -gdb "tcp::${GDB_PORT}" \
   -S

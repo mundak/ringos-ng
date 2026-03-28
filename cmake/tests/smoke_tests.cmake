@@ -5,10 +5,21 @@ if(RINGOS_TARGET_ARCH STREQUAL "x64")
             $<TARGET_FILE:ringos_x64>
   )
 
+  add_test(
+    NAME debug_launch_x64
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-debug-launch-x64.sh
+  )
+
   set_tests_properties(
     smoke_x64
     PROPERTIES
       TIMEOUT 20
+  )
+
+  set_tests_properties(
+    debug_launch_x64
+    PROPERTIES
+      TIMEOUT 5
   )
 elseif(RINGOS_TARGET_ARCH STREQUAL "arm64")
   add_test(
@@ -17,9 +28,20 @@ elseif(RINGOS_TARGET_ARCH STREQUAL "arm64")
             $<TARGET_FILE:ringos_arm64>
   )
 
+  add_test(
+    NAME debug_launch_arm64
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-debug-launch-arm64.sh
+  )
+
   set_tests_properties(
     smoke_arm64
     PROPERTIES
       TIMEOUT 20
+  )
+
+  set_tests_properties(
+    debug_launch_arm64
+    PROPERTIES
+      TIMEOUT 5
   )
 endif()

@@ -111,11 +111,15 @@ Debug with QEMU's GDB stub:
 
 ```bash
 scripts/debug-x64.sh build/x64-debug/arch/x64/ringos_x64
-gdb-multiarch -ex "target remote :1234" build/x64-debug/arch/x64/ringos_x64
+gdb-multiarch -ex "target remote :1234" build/x64-debug/arch/x64/ringos_x64.elf64
 
 scripts/debug-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
 gdb-multiarch -ex "target remote :1234" build/arm64-debug/arch/arm64/ringos_arm64
 ```
+
+Set `RINGOS_GDB_PORT` to move the stub off the default port. Set
+`RINGOS_QEMU_BIN` when tests or local tooling need to intercept the QEMU launch
+without editing the shared scripts.
 
 ## Smoke Test Contract
 
@@ -126,6 +130,13 @@ Each smoke test script should:
 3. Apply a hard timeout.
 4. Assert the expected output appears.
 5. Return a non-zero exit code on timeout, early crash, or missing output.
+
+The debugger launch wrappers should also stay under test. Their contract is to:
+
+1. launch the correct QEMU binary for the active architecture
+2. expose a GDB stub on the configured port
+3. pause execution at startup with `-S`
+4. preserve the same headless serial settings used by local debugging
 
 Keep raw QEMU command lines inside scripts so the same execution path is used by
 developers, wrappers, and CTest.
