@@ -260,6 +260,41 @@ The planned RPC flow is synchronous:
 4. The server prepares a reply.
 5. The kernel returns the reply to the client and resumes it.
 
+### User-Space ABI and Toolchain Direction
+
+The first hosted software stack should be layered deliberately instead of
+making libc the kernel ABI.
+
+- The kernel boundary should be a small C SDK that exposes raw syscall entry
+  points, kernel object handles, message structures, startup conventions, and
+  basic error reporting.
+- libc should sit on top of that SDK and translate ISO C or POSIX-like APIs
+  into syscalls plus user-space service calls.
+- Architecture-specific trap details should stay behind thin per-target SDK
+  thunks so higher layers share one semantic contract even though x64 and arm64
+  use different calling conventions.
+- The first user programs should link against the SDK directly before libc is
+  introduced, so the syscall ABI and process startup path can be validated in
+  isolation.
+
+This keeps the ABI surface small, makes libc replaceable, and matches the
+microkernel goal of pushing policy into user space.
+
+The expected bootstrap order is:
+
+1. Define the syscall ABI and process startup contract.
+2. Build a target C SDK on top of that contract.
+3. Build libc on top of the SDK and user-space services.
+4. Build a Clang-targeted sysroot that uses that libc.
+
+Clang is only one part of hosted C++ support. After libc exists, the toolchain
+bring-up also needs the target runtime pieces that Clang expects, especially
+compiler-rt and the usual C++ runtime stack such as libunwind, libc++abi, and
+libc++.
+
+The staged implementation sketch for that path lives in
+[HelloWorld.md](HelloWorld.md).
+
 ### Near-Term Priorities
 
 The next major areas of work are:
@@ -267,6 +302,10 @@ The next major areas of work are:
 - expanding boot information passed into the shared kernel
 - MMU and virtual-memory design
 - interrupt and timer support
-- user-space process model and IPC implementation
+- user-space process model, syscall ABI, and IPC implementation
+- target process startup ABI, CRT objects, and sysroot layout
+- C SDK bring-up before libc
+- libc bring-up on top of the SDK and user-space services
+- Clang, compiler-rt, and C++ runtime bring-up against the target sysroot
 - device discovery and hardware abstraction
 - storage, filesystem, and networking services
