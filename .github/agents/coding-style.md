@@ -9,8 +9,9 @@ The complete coding style rules are defined in `docs/contributing.md`. Read that
 file and enforce every rule it describes. Pay special attention to rules that
 clang-format cannot catch, such as naming conventions, type usage, `auto`
 restrictions, `static` vs anonymous namespaces, function/template placement,
-header guards, namespace usage, include ordering, logging requirements, and
-commit message format.
+header guards, namespace usage, include ordering, logging requirements,
+required trailing blank lines at the end of each file, and commit message
+format.
 
 ## How to Review
 
