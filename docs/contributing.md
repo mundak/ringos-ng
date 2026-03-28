@@ -123,17 +123,19 @@ my_class::my_class()
 * No space after the `template` keyword before `<`.
 * **Template function definitions** must live in a separate `.inl` file,
   included at the end of the corresponding `.h` file.
+* Type template parameter names use `snake_case` and end with `_t`.
+* Non-type template parameter names use plain `snake_case`.
 
 ```cpp
 // container.h
 #pragma once
 
-template<typename T>
+template<typename value_t>
 class container
 {
 public:
-  void add(const T& value);
-  T get(int32_t index) const;
+  void add(const value_t& value);
+  value_t get(int32_t index) const;
 };
 
 #include "container.inl"
@@ -141,14 +143,14 @@ public:
 
 ```cpp
 // container.inl
-template<typename T>
-void container<T>::add(const T& value)
+template<typename value_t>
+void container<value_t>::add(const value_t& value)
 {
   // ...
 }
 
-template<typename T>
-T container<T>::get(int32_t index) const
+template<typename value_t>
+value_t container<value_t>::get(int32_t index) const
 {
   // ...
 }
@@ -168,11 +170,17 @@ Follow the **C++ Standard Library naming convention** (`snake_case` everywhere).
 | Functions / methods | `snake_case` | `poll_events()`, `render_frame()` |
 | Local variables | `snake_case` | `window_width`, `graphics_family` |
 | Public struct members | `snake_case` | `arch_id`, `user_base` |
+| Template type parameters | `snake_case` ending in `_t` | `value_t`, `process_t` |
+| Non-type template parameters | `snake_case` | `capacity`, `index_bits` |
+| Getter / accessor methods | `get_`, `is_`, `has_` prefixes | `get_handle()`, `is_ready()`, `has_messages()` |
 | Private class members | `m_` prefix | `m_window`, `m_vk_ctx` |
 | Constants / macros | `UPPER_SNAKE_CASE` | `VK_NULL_HANDLE`, `MAI_DEBUG` |
 
 Use `m_` only for private class members. Public struct fields, including ABI or
 plain-data carrier types, use unprefixed `snake_case`.
+
+Getter-style accessors should use a `get_` prefix. Boolean accessors should use
+`is_` or `has_` as appropriate. Do not name getters with a `_value` suffix.
 
 ---
 
