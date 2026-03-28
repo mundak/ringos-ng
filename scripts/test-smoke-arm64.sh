@@ -30,7 +30,9 @@ timeout "${TIMEOUT_SECONDS}" \
 for expected_line in \
   "[gdb] ringos arm64" \
   "[gdb] gdb hooks ready" \
-  "[gdb] hello world"; do
+  "[gdb] hello world" \
+  "[gdb] arm64 x64 emulator runtime ready" \
+  "[gdb] x64 PE64 test app reached ring3"; do
   if ! grep -Fq -- "${expected_line}" "${DEBUG_LOG}"; then
     echo "FAIL: expected '${expected_line}' not found in arm64 debug output" >&2
     echo "--- debug output ---" >&2

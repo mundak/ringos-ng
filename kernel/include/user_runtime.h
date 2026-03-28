@@ -33,7 +33,7 @@ public:
   thread* get_current_thread();
   void set_current_thread(thread* current_thread);
   int32_t dispatch_syscall(uint64_t syscall_number, uint64_t argument0);
-  bool is_current_thread_resumable() const;
+  bool is_current_thread_runnable() const;
 
 private:
   process* find_process_by_handle(handle_t handle_value);
@@ -55,4 +55,3 @@ private:
 
 user_runtime& get_kernel_user_runtime();
 [[noreturn]] void run_initial_user_runtime(initial_user_runtime_platform& platform);
-

@@ -309,7 +309,7 @@ int32_t user_runtime::dispatch_syscall(uint64_t syscall_number, uint64_t argumen
   }
 }
 
-bool user_runtime::is_current_thread_resumable() const
+bool user_runtime::is_current_thread_runnable() const
 {
   if (m_current_thread == nullptr)
   {
@@ -379,4 +379,3 @@ user_runtime& get_kernel_user_runtime()
   platform.enter_user_thread(platform.context, *initial_process, *initial_thread);
   panic("initial user runtime platform returned unexpectedly");
 }
-
