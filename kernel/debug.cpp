@@ -16,7 +16,7 @@ namespace
 
 void arch_debug_break();
 
-void debug_semihost_log(const char* message)
+void debug_log(const char* message)
 {
   debug_write_semihost_prefixed_line("[gdb] ", message);
 }
@@ -28,6 +28,6 @@ void debug_break()
 
 void debug_break(const char* reason)
 {
-  debug_semihost_log(reason);
+  debug_log(reason);
   debug_break();
 }

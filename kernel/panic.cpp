@@ -4,8 +4,8 @@
 
 [[noreturn]] void panic(const char* message)
 {
-  debug_semihost_log("PANIC");
-  debug_semihost_log(message);
+  debug_log("PANIC");
+  debug_log(message);
   while (true)
   {
   }
