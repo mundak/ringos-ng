@@ -6,9 +6,7 @@
 
 namespace
 {
-
   user_runtime g_user_runtime {};
-
 }
 
 void user_runtime::reset()
@@ -35,7 +33,9 @@ process* user_runtime::create_process(const address_space& address_space_info)
 }
 
 thread* user_runtime::create_thread(
-  process& process_context, const thread_context& initial_context, handle_t* out_thread_handle)
+  process& process_context,
+  const thread_context& initial_context,
+  handle_t* out_thread_handle)
 {
   if (out_thread_handle == nullptr)
   {
@@ -90,7 +90,9 @@ bool user_runtime::create_channel_pair(handle_t* out_first_handle, handle_t* out
 }
 
 shared_memory_object* user_runtime::create_shared_memory_object(
-  uintptr_t user_address, size_t size, handle_t* out_handle)
+  uintptr_t user_address,
+  size_t size,
+  handle_t* out_handle)
 {
   if (out_handle == nullptr)
   {
@@ -186,7 +188,10 @@ bool user_runtime::validate_user_range(const process& owner_process, uintptr_t u
 }
 
 int32_t user_runtime::copy_user_string(
-  const thread& owner_thread, uintptr_t user_address, char* buffer, size_t buffer_size) const
+  const thread& owner_thread,
+  uintptr_t user_address,
+  char* buffer,
+  size_t buffer_size) const
 {
   if (owner_thread.get_process_context() == nullptr)
   {
@@ -334,7 +339,9 @@ user_runtime& get_kernel_user_runtime()
 
   handle_t shared_memory_handle = 0;
   shared_memory_object* shared_memory = runtime.create_shared_memory_object(
-    bootstrap.shared_memory_address, bootstrap.shared_memory_size, &shared_memory_handle);
+    bootstrap.shared_memory_address,
+    bootstrap.shared_memory_size,
+    &shared_memory_handle);
 
   if (shared_memory == nullptr || shared_memory_handle == 0)
   {
@@ -351,3 +358,4 @@ user_runtime& get_kernel_user_runtime()
   platform.enter_user_thread(platform.context, *initial_process, *initial_thread);
   panic("initial user runtime platform returned unexpectedly");
 }
+

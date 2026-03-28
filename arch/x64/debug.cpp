@@ -8,7 +8,6 @@ namespace
   {
     asm volatile("outb %0, %1" : : "a"(value), "Nd"(port));
   }
-
 }
 
 void arch_debug_semihost_write(const char* message)
@@ -29,3 +28,4 @@ void arch_debug_break()
 {
   asm volatile("int3");
 }
+

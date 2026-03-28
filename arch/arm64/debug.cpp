@@ -3,7 +3,6 @@
 namespace
 {
   constexpr uintptr_t SYS_WRITE0 = 0x04;
-
 }
 
 void arch_debug_semihost_write(const char* message)
@@ -22,3 +21,4 @@ void arch_debug_break()
 {
   asm volatile("brk #0");
 }
+

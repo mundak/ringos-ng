@@ -45,6 +45,10 @@ namespaces, lambdas, `catch`, and `else`.
 **Always use braces**, even for single-line bodies. Never omit braces for `if`,
 `else`, `for`, `while`, or `do` statements.
 
+Do **not** add an extra empty line immediately inside namespace braces. The
+first declaration follows the opening brace directly, and the closing brace
+follows the last declaration directly.
+
 ```cpp
 // Good
 if (condition)
@@ -241,9 +245,7 @@ const std::string& name = get_name();
 ```cpp
 // Good — anonymous namespace
 namespace {
-
   void helper() { }
-
 }
 
 // Bad — static free function

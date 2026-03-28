@@ -6,7 +6,9 @@
 #include "panic.h"
 
 extern "C" [[noreturn]] void x64_enter_user_thread(
-  uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t flags);
+  uintptr_t instruction_pointer,
+  uintptr_t stack_pointer,
+  uintptr_t flags);
 extern "C" void x64_syscall_entry();
 extern "C" [[noreturn]] void x64_user_thread_exit();
 extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_start[];
@@ -203,7 +205,11 @@ namespace
   }
 
   bool copy_embedded_record(
-    void* record, size_t record_size, const uint8_t* image_bytes, size_t image_size, size_t offset)
+    void* record,
+    size_t record_size,
+    const uint8_t* image_bytes,
+    size_t image_size,
+    size_t offset)
   {
     if (offset > image_size || record_size > image_size - offset)
     {
@@ -383,7 +389,11 @@ namespace
         = section_headers_offset + (static_cast<size_t>(section_index) * sizeof(section_header));
 
       if (!copy_embedded_record(
-            &section_header, sizeof(section_header), image_bytes, image_size, current_section_offset))
+            &section_header,
+            sizeof(section_header),
+            image_bytes,
+            image_size,
+            current_section_offset))
       {
         panic("x64 test app PE image section table is truncated");
       }
@@ -458,7 +468,8 @@ namespace
   }
 
   void x64_initial_user_runtime_platform::prepare_thread_launch(
-    const process& initial_process, const thread& initial_thread)
+    const process& initial_process,
+    const thread& initial_thread)
   {
     (void) initial_process;
 
@@ -468,7 +479,8 @@ namespace
   }
 
   [[noreturn]] void x64_initial_user_runtime_platform::enter_user_thread(
-    const process& initial_process, const thread& initial_thread)
+    const process& initial_process,
+    const thread& initial_thread)
   {
     write_cr3(initial_process.get_address_space_info().arch_root_table);
 
@@ -527,3 +539,4 @@ extern "C" [[noreturn]] void x64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
+

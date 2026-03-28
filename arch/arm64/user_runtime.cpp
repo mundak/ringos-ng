@@ -6,7 +6,9 @@
 #include "panic.h"
 
 extern "C" [[noreturn]] void arm64_enter_user_thread(
-  uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t saved_program_status);
+  uintptr_t instruction_pointer,
+  uintptr_t stack_pointer,
+  uintptr_t saved_program_status);
 extern "C" const uint8_t arm64_exception_vectors[];
 extern "C" const uint8_t arm64_user_stub_start[];
 extern "C" const uint8_t arm64_user_stub_end[];
@@ -14,7 +16,6 @@ extern "C" [[noreturn]] void arm64_user_thread_exit();
 
 namespace
 {
-
   constexpr size_t PAGE_SIZE = 4096;
   constexpr size_t USER_REGION_SIZE = PAGE_SIZE * 2;
   constexpr uint32_t SVC64_EXCEPTION_CLASS = 0x15;
@@ -111,7 +112,8 @@ namespace
   }
 
   void arm64_initial_user_runtime_platform::prepare_thread_launch(
-    const process& initial_process, const thread& initial_thread)
+    const process& initial_process,
+    const thread& initial_thread)
   {
     (void) initial_process;
     (void) initial_thread;
@@ -120,7 +122,8 @@ namespace
   }
 
   [[noreturn]] void arm64_initial_user_runtime_platform::enter_user_thread(
-    const process& initial_process, const thread& initial_thread)
+    const process& initial_process,
+    const thread& initial_thread)
   {
     (void) initial_process;
 
@@ -131,7 +134,6 @@ namespace
       initial_thread.get_user_context().stack_pointer,
       initial_thread.get_user_context().flags);
   }
-
 }
 
 extern "C" bool arm64_handle_syscall(arm64_syscall_frame* frame)
@@ -190,3 +192,4 @@ extern "C" [[noreturn]] void arm64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
+
