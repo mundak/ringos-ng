@@ -1,22 +1,17 @@
 #include "channel.h"
 
-channel* channel::peer() const
+channel::channel(uint32_t channel_id, handle_t handle_value, channel* peer)
+  : kernel_object(channel_id, handle_value)
+  , m_peer(peer)
+{
+}
+
+channel* channel::get_peer() const
 {
   return m_peer;
 }
 
-void channel::clear()
+void channel::set_peer(channel* peer)
 {
-  clear_identity();
-  m_peer = nullptr;
-}
-
-void channel::activate(
-  uint32_t channel_id,
-  uint64_t handle_value,
-  channel* peer)
-{
-  clear();
-  activate_identity(channel_id, handle_value);
   m_peer = peer;
 }

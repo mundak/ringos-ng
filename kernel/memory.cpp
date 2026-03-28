@@ -2,6 +2,36 @@
 
 #include <stdint.h>
 
+extern "C" int __cxa_atexit(void (*)(void*), void*, void*)
+{
+  return 0;
+}
+
+void* operator new(size_t, void* storage) noexcept
+{
+  return storage;
+}
+
+namespace
+{
+
+  using init_function = void (*)();
+
+}
+
+extern "C" init_function __init_array_start[];
+extern "C" init_function __init_array_end[];
+
+void operator delete(void*, void*) noexcept { }
+
+void run_global_constructors()
+{
+  for (init_function* current = __init_array_start; current != __init_array_end; ++current)
+  {
+    (*current)();
+  }
+}
+
 extern "C" void* memcpy(void* destination, const void* source, size_t length)
 {
   uint8_t* destination_bytes = reinterpret_cast<uint8_t*>(destination);

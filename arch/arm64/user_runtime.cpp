@@ -1,8 +1,9 @@
+#include "user_runtime.h"
+
 #include "arch_user_runtime.h"
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
-#include "user_runtime.h"
 
 extern "C" [[noreturn]] void arm64_enter_user_thread(
   uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t saved_program_status);
@@ -46,12 +47,8 @@ namespace
   {
   public:
     void initialize(initial_user_runtime_bootstrap& bootstrap);
-    void prepare_thread_launch(
-      const process& initial_process,
-      const thread& initial_thread);
-    [[noreturn]] void enter_user_thread(
-      const process& initial_process,
-      const thread& initial_thread);
+    void prepare_thread_launch(const process& initial_process, const thread& initial_thread);
+    [[noreturn]] void enter_user_thread(const process& initial_process, const thread& initial_thread);
 
   private:
     void initialize_user_stub(arm64_process_storage& storage);
@@ -60,25 +57,17 @@ namespace
     arm64_process_storage m_process_storage[USER_RUNTIME_MAX_PROCESSES] {};
   };
 
-  void initialize_arm64_platform(
-    void* context,
-    initial_user_runtime_bootstrap& bootstrap)
+  void initialize_arm64_platform(void* context, initial_user_runtime_bootstrap& bootstrap)
   {
     static_cast<arm64_initial_user_runtime_platform*>(context)->initialize(bootstrap);
   }
 
-  void prepare_arm64_platform(
-    void* context,
-    const process& initial_process,
-    const thread& initial_thread)
+  void prepare_arm64_platform(void* context, const process& initial_process, const thread& initial_thread)
   {
     static_cast<arm64_initial_user_runtime_platform*>(context)->prepare_thread_launch(initial_process, initial_thread);
   }
 
-  [[noreturn]] void enter_arm64_platform(
-    void* context,
-    const process& initial_process,
-    const thread& initial_thread)
+  [[noreturn]] void enter_arm64_platform(void* context, const process& initial_process, const thread& initial_thread)
   {
     static_cast<arm64_initial_user_runtime_platform*>(context)->enter_user_thread(initial_process, initial_thread);
   }
@@ -114,34 +103,33 @@ namespace
     bootstrap.address_space.user_base = user_base;
     bootstrap.address_space.user_size = USER_REGION_SIZE;
     bootstrap.thread_context.instruction_pointer = user_base;
-    bootstrap.thread_context.stack_pointer = reinterpret_cast<uintptr_t>(m_process_storage[0].user_stack_page) + PAGE_SIZE;
+    bootstrap.thread_context.stack_pointer
+      = reinterpret_cast<uintptr_t>(m_process_storage[0].user_stack_page) + PAGE_SIZE;
     bootstrap.thread_context.flags = 0;
     bootstrap.shared_memory_address = user_base;
     bootstrap.shared_memory_size = USER_REGION_SIZE;
   }
 
   void arm64_initial_user_runtime_platform::prepare_thread_launch(
-    const process& initial_process,
-    const thread& initial_thread)
+    const process& initial_process, const thread& initial_thread)
   {
-    (void)initial_process;
-    (void)initial_thread;
+    (void) initial_process;
+    (void) initial_thread;
 
     write_vector_base(reinterpret_cast<uintptr_t>(arm64_exception_vectors));
   }
 
   [[noreturn]] void arm64_initial_user_runtime_platform::enter_user_thread(
-    const process& initial_process,
-    const thread& initial_thread)
+    const process& initial_process, const thread& initial_thread)
   {
-    (void)initial_process;
+    (void) initial_process;
 
     debug_log("arm64 initial user runtime ready");
 
     arm64_enter_user_thread(
-      initial_thread.user_context().instruction_pointer,
-      initial_thread.user_context().stack_pointer,
-      initial_thread.user_context().flags);
+      initial_thread.get_user_context().instruction_pointer,
+      initial_thread.get_user_context().stack_pointer,
+      initial_thread.get_user_context().flags);
   }
 
 }
@@ -158,8 +146,8 @@ extern "C" bool arm64_handle_syscall(arm64_syscall_frame* frame)
     panic("arm64 received an unexpected lower-el synchronous exception");
   }
 
-  user_runtime& runtime = kernel_user_runtime();
-  thread* current_thread = runtime.current_thread();
+  user_runtime& runtime = get_kernel_user_runtime();
+  thread* current_thread = runtime.get_current_thread();
 
   if (current_thread == nullptr)
   {

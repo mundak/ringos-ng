@@ -1,8 +1,9 @@
+#include "user_runtime.h"
+
 #include "arch_user_runtime.h"
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
-#include "user_runtime.h"
 
 extern "C" [[noreturn]] void x64_enter_user_thread(
   uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t flags);
@@ -76,12 +77,8 @@ namespace
   {
   public:
     void initialize(initial_user_runtime_bootstrap& bootstrap);
-    void prepare_thread_launch(
-      const process& initial_process,
-      const thread& initial_thread);
-    [[noreturn]] void enter_user_thread(
-      const process& initial_process,
-      const thread& initial_thread);
+    void prepare_thread_launch(const process& initial_process, const thread& initial_thread);
+    [[noreturn]] void enter_user_thread(const process& initial_process, const thread& initial_thread);
 
   private:
     void initialize_low_identity_mappings(x64_process_storage& storage);
@@ -94,25 +91,17 @@ namespace
     x64_cpu_local m_cpu_local {};
   };
 
-  void initialize_x64_platform(
-    void* context,
-    initial_user_runtime_bootstrap& bootstrap)
+  void initialize_x64_platform(void* context, initial_user_runtime_bootstrap& bootstrap)
   {
     static_cast<x64_initial_user_runtime_platform*>(context)->initialize(bootstrap);
   }
 
-  void prepare_x64_platform(
-    void* context,
-    const process& initial_process,
-    const thread& initial_thread)
+  void prepare_x64_platform(void* context, const process& initial_process, const thread& initial_thread)
   {
     static_cast<x64_initial_user_runtime_platform*>(context)->prepare_thread_launch(initial_process, initial_thread);
   }
 
-  [[noreturn]] void enter_x64_platform(
-    void* context,
-    const process& initial_process,
-    const thread& initial_thread)
+  [[noreturn]] void enter_x64_platform(void* context, const process& initial_process, const thread& initial_thread)
   {
     static_cast<x64_initial_user_runtime_platform*>(context)->enter_user_thread(initial_process, initial_thread);
   }
@@ -229,28 +218,26 @@ namespace
   }
 
   void x64_initial_user_runtime_platform::prepare_thread_launch(
-    const process& initial_process,
-    const thread& initial_thread)
+    const process& initial_process, const thread& initial_thread)
   {
-    (void)initial_process;
+    (void) initial_process;
 
-    m_cpu_local.user_stack_pointer = initial_thread.user_context().stack_pointer;
-    m_cpu_local.kernel_stack_pointer = initial_thread.kernel_stack_top();
+    m_cpu_local.user_stack_pointer = initial_thread.get_user_context().stack_pointer;
+    m_cpu_local.kernel_stack_pointer = initial_thread.get_kernel_stack_top();
     initialize_syscall_msrs();
   }
 
   [[noreturn]] void x64_initial_user_runtime_platform::enter_user_thread(
-    const process& initial_process,
-    const thread& initial_thread)
+    const process& initial_process, const thread& initial_thread)
   {
-    write_cr3(initial_process.address_space_info().arch_root_table);
+    write_cr3(initial_process.get_address_space_info().arch_root_table);
 
     debug_log("x64 initial user runtime ready");
 
     x64_enter_user_thread(
-      initial_thread.user_context().instruction_pointer,
-      initial_thread.user_context().stack_pointer,
-      initial_thread.user_context().flags);
+      initial_thread.get_user_context().instruction_pointer,
+      initial_thread.get_user_context().stack_pointer,
+      initial_thread.get_user_context().flags);
   }
 
 }
@@ -262,8 +249,8 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
     panic("x64 syscall frame was null");
   }
 
-  user_runtime& runtime = kernel_user_runtime();
-  thread* current_thread = runtime.current_thread();
+  user_runtime& runtime = get_kernel_user_runtime();
+  thread* current_thread = runtime.get_current_thread();
 
   if (current_thread == nullptr)
   {
