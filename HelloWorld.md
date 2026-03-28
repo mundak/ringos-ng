@@ -57,6 +57,7 @@ Goal:
 Deliverables:
 
 - a loader for statically linked user images
+- an x64 PE64 proof image built with clang's Windows target and no system libraries
 - an initial stack layout for argc, argv, envp, and auxiliary data if present
 - a tiny crt0-style entry path that calls into a user-defined main function
 

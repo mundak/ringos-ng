@@ -8,6 +8,8 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 
 - x64 boots in QEMU, reaches the shared C++ kernel entry point, and emits the
   expected host-side debug trace.
+- x64 also loads a minimal statically linked PE64 user test image and proves
+  the first ring3 entry, syscall, and exit path.
 - arm64 boots in QEMU virt, reaches the same shared C++ kernel entry point,
   and emits the expected host-side debug trace through semihosting.
 - Shared kernel code owns the boot handoff contract, debug-host logging path,

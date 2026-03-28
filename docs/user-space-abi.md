@@ -142,28 +142,28 @@ or higher-level language conventions without changing the syscall ABI.
 
 ### First Supported User Image Format
 
-The first supported user executable format is freestanding ELF64 on both architectures.
+The first supported user executable format is architecture-specific and intentionally minimal.
 
-- x64 user images: `ELFCLASS64`, `EM_X86_64`, statically linked.
+- x64 user images: `PE32+` (`PE64`), `IMAGE_FILE_MACHINE_AMD64`, statically linked, built without
+  system libraries, and loaded at a fixed image base for the Stage 2 proof path.
 - arm64 user images: `ELFCLASS64`, `EM_AARCH64`, statically linked.
-- Shared libraries, PIE, and a dynamic loader are out of scope for the first cut.
+- Shared libraries, PIE, a dynamic loader, and relocation processing are out of scope for the
+  first cut.
 
-The existing x64 kernel boot path converts the kernel image to a Multiboot-compatible 32-bit ELF
-container for QEMU boot. That is a kernel boot artifact only and is not part of the user-space
+The existing x64 kernel boot path still converts the kernel image to a Multiboot-compatible 32-bit
+ELF container for QEMU boot. That is a kernel boot artifact only and is not part of the user-space
 image contract.
 
 ### First Target Triples
 
-Stage 0 keeps the current provisional compile targets for the earliest user-space SDK and loader
-bring-up:
+Stage 0 keeps provisional compiler-facing targets for the earliest user-space bring-up:
 
-- `x86_64-unknown-none-elf`
-- `aarch64-unknown-none-elf`
+- x64 Stage 2 proof path: `x86_64-pc-windows-msvc` to emit a PE64 image without system libraries.
+- arm64 proof path: `aarch64-unknown-none-elf`.
 
-These names remain temporary compiler-facing targets that also match the Stage 0 runtime image
-container. A later stage may add ringos-specific triples and Clang driver support, but that
-should be treated as packaging and toolchain work rather than a change to the underlying syscall
-ABI.
+These names are implementation choices for the current bootstrap path, not a claim about the final
+ringos-specific toolchain surface. A later stage may add ringos-specific triples and Clang driver
+support without changing the underlying syscall ABI.
 
 ## Consequences For Stage 1
 
