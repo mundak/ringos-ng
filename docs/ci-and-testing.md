@@ -80,8 +80,8 @@ sequence inside the container.
 
 ### Native Linux
 
-Install the same core packages used by `docker/Dockerfile`. Add
-`gdb-multiarch` when you need debugger attach support.
+Install the same core packages used by `docker/Dockerfile`, including
+`gdb-multiarch` for the arm64 debugger-launch and semihosting tests.
 
 Configure and build:
 
@@ -120,6 +120,10 @@ gdb-multiarch -ex "target remote :1234" build/arm64-debug/arch/arm64/ringos_arm6
 Set `RINGOS_GDB_PORT` to move the stub off the default port. Set
 `RINGOS_QEMU_BIN` when tests or local tooling need to intercept the QEMU launch
 without editing the shared scripts.
+
+The arm64 debug wrapper also enables semihosting with `target=gdb`, which lets
+kernel code send debugger-only messages through `debug_semihost_log()` while
+keeping normal serial logging on `debug_log()`.
 
 ## Smoke Test Contract
 

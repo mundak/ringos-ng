@@ -67,8 +67,8 @@ docker run --rm ringos-ci bash -lc "cmake --preset arm64-ci && cmake --build --p
 ### Native Linux Workflow
 
 Native Linux remains useful for direct shell iteration and GDB-based debugging.
-Install the same core dependencies used by the shared container image, plus
-`gdb-multiarch` for debugging:
+Install the same core dependencies used by the shared container image,
+including `gdb-multiarch` for the arm64 debug and semihosting test surface:
 
 ```bash
 sudo apt-get update
@@ -120,8 +120,14 @@ an explicit debugger trap:
 
 ```cpp
 debug_log("reached scheduler bring-up");
+debug_semihost_log("visible in the arm64 GDB session via semihosting");
 debug_break("inspect scheduler state");
 ```
+
+`debug_semihost_log` is currently meaningful on arm64 when launched through
+`scripts/debug-arm64.sh`, which enables semihosting and routes it to the
+attached GDB session. `debug_log` continues to write to the serial console on
+all targets.
 
 Run smoke tests with CTest:
 
@@ -192,8 +198,8 @@ The shared code in `kernel/` currently provides:
   serial backends overriding the weak default
 - `panic` as the minimal panic path that writes to the console and halts
 - `kprint` as the current fixed-text formatting helper
-- `debug_log` and `debug_break` as the shared debugger-oriented trace and trap
-  hooks
+- `debug_log`, `debug_semihost_log`, and `debug_break` as the shared
+  debugger-oriented trace and trap hooks
 
 The boot contract assumes:
 

@@ -43,6 +43,8 @@ for expected_argument in \
   -display \
   none \
   -no-reboot \
+  -semihosting-config \
+  enable=on,target=gdb \
   -gdb \
   tcp::4321 \
   -S; do

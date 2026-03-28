@@ -3,6 +3,11 @@
 // Write a debug message to the serial console with a standard prefix.
 void debug_log(const char* message);
 
+// Write a debug message to the semihosting console with a standard prefix.
+// On arm64 under scripts/debug-arm64.sh this is routed to the attached GDB
+// session.
+void debug_semihost_log(const char* message);
+
 // Trigger an architecture-specific breakpoint trap for an attached debugger.
 void debug_break();
 

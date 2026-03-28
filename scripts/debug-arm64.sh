@@ -8,6 +8,9 @@
 # In a separate terminal, connect with:
 #   gdb-multiarch -ex "target remote :1234" <path-to-ringos_arm64>
 #
+# arm64 semihosting is enabled and directed to GDB so the kernel can emit
+# debugger-only messages with debug_semihost_log().
+#
 # Optional environment:
 #   RINGOS_GDB_PORT  Override the GDB stub port (default: 1234)
 #   RINGOS_QEMU_BIN  Override the QEMU binary path for testing/tooling
@@ -30,5 +33,6 @@ exec "${QEMU_BIN}" \
   -serial stdio \
   -display none \
   -no-reboot \
+  -semihosting-config enable=on,target=gdb \
   -gdb "tcp::${GDB_PORT}" \
   -S
