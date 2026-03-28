@@ -1,5 +1,6 @@
 #include "kernel.h"
 
+#include "arch_user_task.h"
 #include "boot_info.h"
 #include "debug.h"
 #include "panic.h"
@@ -22,7 +23,5 @@
   debug_log("gdb hooks ready");
   debug_log("hello world");
 
-  while (true)
-  {
-  }
+  arch_run_initial_user_task();
 }

@@ -2,10 +2,19 @@
 add_library(ringos_kernel OBJECT
   kernel.cpp
   debug.cpp
+  memory.cpp
   panic.cpp
+  user_space.cpp
 )
 
 target_include_directories(ringos_kernel
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+if(RINGOS_TARGET_ARCH STREQUAL "x64")
+  target_compile_options(ringos_kernel
+    PRIVATE
+      -mno-red-zone
+  )
+endif()

@@ -30,7 +30,10 @@ timeout "${TIMEOUT_SECONDS}" \
 for expected_line in \
   "[gdb] ringos x64" \
   "[gdb] gdb hooks ready" \
-  "[gdb] hello world"; do
+  "[gdb] hello world" \
+  "[gdb] stage1 x64 kernel objects ready" \
+  "[gdb] stage1 user task reached ring3" \
+  "[gdb] stage1 returned to kernel after exit syscall"; do
   if ! grep -Fq -- "${expected_line}" "${DEBUG_LOG}"; then
     echo "FAIL: expected '${expected_line}' not found in x64 debug output" >&2
     echo "--- debug output ---" >&2

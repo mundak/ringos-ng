@@ -36,7 +36,7 @@ _start:
   xorl %eax, %eax
   rep stosl
 
-  // ---- Identity-map the first 2 MiB using 2 MiB pages ----
+  // ---- Identity-map the first 4 MiB using 2 MiB pages ----
 
   // PML4[0] -> PDPT (present + writable)
   movl $boot_pdpt, %eax
@@ -50,6 +50,9 @@ _start:
 
   // PD[0] -> 2 MiB huge page at physical 0 (present + writable + page-size)
   movl $0x83, (boot_pd)
+
+  // PD[1] -> 2 MiB huge page at physical 2 MiB
+  movl $0x200083, boot_pd + 8
 
   // ---- Load the boot GDT ----
   lgdt (boot_gdt_ptr)
@@ -113,6 +116,9 @@ boot_gdt:
   .quad 0x0000000000000000      // Null descriptor
   .quad 0x00209A0000000000      // 64-bit code: L=1, D=0, P=1, DPL=0, E=1, R=1
   .quad 0x0000920000000000      // 64-bit data: P=1, DPL=0, W=1
+  .quad 0x00CFFA000000FFFF      // User 32-bit compat code: DPL=3, P=1, E=1, R=1
+  .quad 0x00CFF2000000FFFF      // User data: DPL=3, P=1, W=1
+  .quad 0x00AFFA000000FFFF      // User 64-bit code: L=1, DPL=3, P=1, E=1, R=1
 boot_gdt_end:
 
 boot_gdt_ptr:

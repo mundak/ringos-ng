@@ -4,6 +4,8 @@ add_executable(ringos_x64
   boot.S
   debug.cpp
   entry.cpp
+  user_task.cpp
+  user_task.S
 )
 
 target_compile_options(ringos_x64
