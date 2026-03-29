@@ -36,17 +36,11 @@
     },
     {
       "name": "x64-ci",
-      "inherits": "x64-debug",
-      "cacheVariables": {
-        "RINGOS_CI": "ON"
-      }
+      "inherits": "x64-debug"
     },
     {
       "name": "arm64-ci",
-      "inherits": "arm64-debug",
-      "cacheVariables": {
-        "RINGOS_CI": "ON"
-      }
+      "inherits": "arm64-debug"
     }
   ],
   "buildPresets": [

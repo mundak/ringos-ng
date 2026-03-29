@@ -15,8 +15,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(RINGOS_ENABLE_TESTING "Enable smoke tests" OFF)
-option(RINGOS_CI "Enable CI mode (disables non-essential developer options)" OFF)
-
 add_subdirectory(win32)
 add_subdirectory(emulator)
 add_subdirectory(kernel)
