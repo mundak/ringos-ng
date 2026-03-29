@@ -89,51 +89,51 @@ namespace
   {
     switch (status)
     {
-    case pe_image_load_status::ok:
-      return x64_pe64_image_load_status::ok;
-    case pe_image_load_status::invalid_argument:
-      return x64_pe64_image_load_status::invalid_argument;
-    case pe_image_load_status::missing_dos_header:
-      return x64_pe64_image_load_status::missing_dos_header;
-    case pe_image_load_status::invalid_dos_header:
-      return x64_pe64_image_load_status::invalid_dos_header;
-    case pe_image_load_status::missing_nt_headers:
-      return x64_pe64_image_load_status::missing_nt_headers;
-    case pe_image_load_status::invalid_nt_signature:
-      return x64_pe64_image_load_status::invalid_nt_signature;
-    case pe_image_load_status::wrong_machine:
-      return x64_pe64_image_load_status::wrong_machine;
-    case pe_image_load_status::missing_sections:
-      return x64_pe64_image_load_status::missing_sections;
-    case pe_image_load_status::unsupported_optional_header:
-      return x64_pe64_image_load_status::unsupported_optional_header;
-    case pe_image_load_status::unsupported_magic:
-      return x64_pe64_image_load_status::unsupported_magic;
-    case pe_image_load_status::unexpected_image_base:
-      return x64_pe64_image_load_status::unexpected_image_base;
-    case pe_image_load_status::unsupported_alignment:
-      return x64_pe64_image_load_status::unsupported_alignment;
-    case pe_image_load_status::image_too_large:
-      return x64_pe64_image_load_status::image_too_large;
-    case pe_image_load_status::headers_out_of_range:
-      return x64_pe64_image_load_status::headers_out_of_range;
-    case pe_image_load_status::entry_point_out_of_range:
-      return x64_pe64_image_load_status::entry_point_out_of_range;
-    case pe_image_load_status::invalid_import_directory:
-      return x64_pe64_image_load_status::invalid_import_directory;
-    case pe_image_load_status::unexpected_imports:
-      return x64_pe64_image_load_status::unexpected_imports;
-    case pe_image_load_status::unexpected_relocations:
-      return x64_pe64_image_load_status::unexpected_relocations;
-    case pe_image_load_status::truncated_section_table:
-      return x64_pe64_image_load_status::truncated_section_table;
-    case pe_image_load_status::section_out_of_range:
-      return x64_pe64_image_load_status::section_out_of_range;
-    case pe_image_load_status::section_data_out_of_range:
-      return x64_pe64_image_load_status::section_data_out_of_range;
+    case pe_image_load_status::OK:
+      return x64_pe64_image_load_status::OK;
+    case pe_image_load_status::INVALID_ARGUMENT:
+      return x64_pe64_image_load_status::INVALID_ARGUMENT;
+    case pe_image_load_status::MISSING_DOS_HEADER:
+      return x64_pe64_image_load_status::MISSING_DOS_HEADER;
+    case pe_image_load_status::INVALID_DOS_HEADER:
+      return x64_pe64_image_load_status::INVALID_DOS_HEADER;
+    case pe_image_load_status::MISSING_NT_HEADERS:
+      return x64_pe64_image_load_status::MISSING_NT_HEADERS;
+    case pe_image_load_status::INVALID_NT_SIGNATURE:
+      return x64_pe64_image_load_status::INVALID_NT_SIGNATURE;
+    case pe_image_load_status::WRONG_MACHINE:
+      return x64_pe64_image_load_status::WRONG_MACHINE;
+    case pe_image_load_status::MISSING_SECTIONS:
+      return x64_pe64_image_load_status::MISSING_SECTIONS;
+    case pe_image_load_status::UNSUPPORTED_OPTIONAL_HEADER:
+      return x64_pe64_image_load_status::UNSUPPORTED_OPTIONAL_HEADER;
+    case pe_image_load_status::UNSUPPORTED_MAGIC:
+      return x64_pe64_image_load_status::UNSUPPORTED_MAGIC;
+    case pe_image_load_status::UNEXPECTED_IMAGE_BASE:
+      return x64_pe64_image_load_status::UNEXPECTED_IMAGE_BASE;
+    case pe_image_load_status::UNSUPPORTED_ALIGNMENT:
+      return x64_pe64_image_load_status::UNSUPPORTED_ALIGNMENT;
+    case pe_image_load_status::IMAGE_TOO_LARGE:
+      return x64_pe64_image_load_status::IMAGE_TOO_LARGE;
+    case pe_image_load_status::HEADERS_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::HEADERS_OUT_OF_RANGE;
+    case pe_image_load_status::ENTRY_POINT_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::ENTRY_POINT_OUT_OF_RANGE;
+    case pe_image_load_status::INVALID_IMPORT_DIRECTORY:
+      return x64_pe64_image_load_status::INVALID_IMPORT_DIRECTORY;
+    case pe_image_load_status::UNEXPECTED_IMPORTS:
+      return x64_pe64_image_load_status::UNEXPECTED_IMPORTS;
+    case pe_image_load_status::UNEXPECTED_RELOCATIONS:
+      return x64_pe64_image_load_status::UNEXPECTED_RELOCATIONS;
+    case pe_image_load_status::TRUNCATED_SECTION_TABLE:
+      return x64_pe64_image_load_status::TRUNCATED_SECTION_TABLE;
+    case pe_image_load_status::SECTION_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::SECTION_OUT_OF_RANGE;
+    case pe_image_load_status::SECTION_DATA_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::SECTION_DATA_OUT_OF_RANGE;
     }
 
-    return x64_pe64_image_load_status::invalid_argument;
+    return x64_pe64_image_load_status::INVALID_ARGUMENT;
   }
 
   bool read_loaded_ascii_string(
@@ -228,7 +228,7 @@ namespace
   {
     if (loaded_image == nullptr || inout_next_stub_offset == nullptr || out_function_address == nullptr)
     {
-      return x64_pe64_image_load_status::invalid_argument;
+      return x64_pe64_image_load_status::INVALID_ARGUMENT;
     }
 
     if (import_resolver != nullptr && import_resolver->resolve_import != nullptr)
@@ -237,7 +237,7 @@ namespace
 
       if (!import_resolver->resolve_import(import_resolver->context, dll_name, function_name, &syscall_number))
       {
-        return x64_pe64_image_load_status::unsupported_import;
+        return x64_pe64_image_load_status::UNSUPPORTED_IMPORT;
       }
 
       const uint32_t stub_rva = static_cast<uint32_t>(align_up(*inout_next_stub_offset, sizeof(uint64_t)));
@@ -246,13 +246,13 @@ namespace
 
       if (stub_bytes == nullptr)
       {
-        return x64_pe64_image_load_status::import_stub_out_of_range;
+        return x64_pe64_image_load_status::IMPORT_STUB_OUT_OF_RANGE;
       }
 
       write_x64_windows_import_stub(stub_bytes, syscall_number);
       *out_function_address = expected_image_base + stub_rva;
       *inout_next_stub_offset = stub_rva + X64_WINDOWS_IMPORT_STUB_SIZE;
-      return x64_pe64_image_load_status::ok;
+      return x64_pe64_image_load_status::OK;
     }
 
     const x64_win32_import_resolution_status resolution_status = resolve_x64_win32_import(
@@ -266,19 +266,19 @@ namespace
 
     switch (resolution_status)
     {
-    case x64_win32_import_resolution_status::ok:
-      return x64_pe64_image_load_status::ok;
-    case x64_win32_import_resolution_status::invalid_argument:
-      return x64_pe64_image_load_status::invalid_import_directory;
-    case x64_win32_import_resolution_status::dll_not_found:
-    case x64_win32_import_resolution_status::symbol_not_found:
-      return x64_pe64_image_load_status::unsupported_import;
-    case x64_win32_import_resolution_status::unsupported_syscall_number:
-    case x64_win32_import_resolution_status::stub_out_of_space:
-      return x64_pe64_image_load_status::import_stub_out_of_range;
+    case x64_win32_import_resolution_status::OK:
+      return x64_pe64_image_load_status::OK;
+    case x64_win32_import_resolution_status::INVALID_ARGUMENT:
+      return x64_pe64_image_load_status::INVALID_IMPORT_DIRECTORY;
+    case x64_win32_import_resolution_status::DLL_NOT_FOUND:
+    case x64_win32_import_resolution_status::SYMBOL_NOT_FOUND:
+      return x64_pe64_image_load_status::UNSUPPORTED_IMPORT;
+    case x64_win32_import_resolution_status::UNSUPPORTED_SYSCALL_NUMBER:
+    case x64_win32_import_resolution_status::STUB_OUT_OF_SPACE:
+      return x64_pe64_image_load_status::IMPORT_STUB_OUT_OF_RANGE;
     }
 
-    return x64_pe64_image_load_status::invalid_import_directory;
+    return x64_pe64_image_load_status::INVALID_IMPORT_DIRECTORY;
   }
 }
 
@@ -293,7 +293,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
 {
   if (image_bytes == nullptr || loaded_image == nullptr || out_image_info == nullptr)
   {
-    return x64_pe64_image_load_status::invalid_argument;
+    return x64_pe64_image_load_status::INVALID_ARGUMENT;
   }
 
   out_image_info->entry_point = 0;
@@ -312,7 +312,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
   const x64_pe64_image_load_status base_load_status
     = map_common_load_status(load_pe32_plus_image(image_bytes, image_size, loaded_image, load_config, &load_result));
 
-  if (base_load_status != x64_pe64_image_load_status::ok)
+  if (base_load_status != x64_pe64_image_load_status::OK)
   {
     return base_load_status;
   }
@@ -325,7 +325,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
       load_result.import_directory.virtual_address > load_result.image_size
       || load_result.import_directory.size > load_result.image_size - load_result.import_directory.virtual_address)
     {
-      return x64_pe64_image_load_status::import_table_out_of_range;
+      return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
     }
 
     size_t next_stub_offset = load_result.image_size;
@@ -341,7 +341,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
       if (!copy_loaded_record(&descriptor, sizeof(descriptor), loaded_image, load_result.image_size, descriptor_rva))
       {
-        return x64_pe64_image_load_status::import_table_out_of_range;
+        return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
       }
 
       if (is_empty_import_descriptor(descriptor))
@@ -359,7 +359,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
         || !try_resolve_import_table_rva(
           descriptor.first_thunk, expected_image_base, load_result.image_size, &first_thunk_rva))
       {
-        return x64_pe64_image_load_status::import_table_out_of_range;
+        return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
       }
 
       if (descriptor.original_first_thunk != 0)
@@ -367,7 +367,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
         if (!try_resolve_import_table_rva(
               descriptor.original_first_thunk, expected_image_base, load_result.image_size, &lookup_table_rva))
         {
-          return x64_pe64_image_load_status::import_table_out_of_range;
+          return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
         }
       }
       else
@@ -379,7 +379,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
       if (!read_loaded_ascii_string(loaded_image, load_result.image_size, dll_name_rva, dll_name, sizeof(dll_name)))
       {
-        return x64_pe64_image_load_status::import_name_out_of_range;
+        return x64_pe64_image_load_status::IMPORT_NAME_OUT_OF_RANGE;
       }
 
       for (uint32_t thunk_index = 0;; ++thunk_index)
@@ -391,7 +391,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
         if (!copy_loaded_record(
               &lookup_entry, sizeof(lookup_entry), loaded_image, load_result.image_size, lookup_entry_rva))
         {
-          return x64_pe64_image_load_status::import_table_out_of_range;
+          return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
         }
 
         uint8_t* address_entry
@@ -399,7 +399,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
         if (address_entry == nullptr)
         {
-          return x64_pe64_image_load_status::import_table_out_of_range;
+          return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
         }
 
         if (lookup_entry == 0)
@@ -409,7 +409,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
         if ((lookup_entry & PE_IMPORT_BY_ORDINAL_MASK64) != 0)
         {
-          return x64_pe64_image_load_status::unsupported_import_ordinal;
+          return x64_pe64_image_load_status::UNSUPPORTED_IMPORT_ORDINAL;
         }
 
         const uint64_t raw_name_reference = lookup_entry & ~PE_IMPORT_BY_ORDINAL_MASK64;
@@ -418,7 +418,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
         if (!try_resolve_import_name_rva(
               raw_name_reference, expected_image_base, load_result.image_size, &import_name_rva))
         {
-          return x64_pe64_image_load_status::import_table_out_of_range;
+          return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
         }
 
         char function_name[64] {};
@@ -430,7 +430,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
               function_name,
               sizeof(function_name)))
         {
-          return x64_pe64_image_load_status::import_name_out_of_range;
+          return x64_pe64_image_load_status::IMPORT_NAME_OUT_OF_RANGE;
         }
 
         uint64_t resolved_address = 0;
@@ -444,7 +444,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
           &next_stub_offset,
           &resolved_address);
 
-        if (resolution_status != x64_pe64_image_load_status::ok)
+        if (resolution_status != x64_pe64_image_load_status::OK)
         {
           return resolution_status;
         }
@@ -456,72 +456,73 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
     if (!saw_terminator)
     {
-      return x64_pe64_image_load_status::invalid_import_directory;
+      return x64_pe64_image_load_status::INVALID_IMPORT_DIRECTORY;
     }
   }
 
   out_image_info->entry_point = load_result.entry_point;
   out_image_info->image_size = load_result.image_size;
-  return x64_pe64_image_load_status::ok;
+  return x64_pe64_image_load_status::OK;
 }
 
 const char* describe_x64_pe64_image_load_status(x64_pe64_image_load_status status)
 {
   switch (status)
   {
-  case x64_pe64_image_load_status::ok:
+  case x64_pe64_image_load_status::OK:
     return "x64 PE64 image loaded successfully";
-  case x64_pe64_image_load_status::invalid_argument:
+  case x64_pe64_image_load_status::INVALID_ARGUMENT:
     return "x64 PE64 image loader received an invalid argument";
-  case x64_pe64_image_load_status::missing_dos_header:
+  case x64_pe64_image_load_status::MISSING_DOS_HEADER:
     return "x64 PE64 image is missing the DOS header";
-  case x64_pe64_image_load_status::invalid_dos_header:
+  case x64_pe64_image_load_status::INVALID_DOS_HEADER:
     return "x64 PE64 image has an invalid DOS header";
-  case x64_pe64_image_load_status::missing_nt_headers:
+  case x64_pe64_image_load_status::MISSING_NT_HEADERS:
     return "x64 PE64 image is missing the NT headers";
-  case x64_pe64_image_load_status::invalid_nt_signature:
+  case x64_pe64_image_load_status::INVALID_NT_SIGNATURE:
     return "x64 PE64 image has an invalid NT signature";
-  case x64_pe64_image_load_status::wrong_machine:
+  case x64_pe64_image_load_status::WRONG_MACHINE:
     return "x64 PE64 image targets the wrong machine";
-  case x64_pe64_image_load_status::missing_sections:
+  case x64_pe64_image_load_status::MISSING_SECTIONS:
     return "x64 PE64 image does not define any sections";
-  case x64_pe64_image_load_status::unsupported_optional_header:
+  case x64_pe64_image_load_status::UNSUPPORTED_OPTIONAL_HEADER:
     return "x64 PE64 image has an unsupported optional header size";
-  case x64_pe64_image_load_status::unsupported_magic:
+  case x64_pe64_image_load_status::UNSUPPORTED_MAGIC:
     return "x64 PE64 image is not PE32+";
-  case x64_pe64_image_load_status::unexpected_image_base:
+  case x64_pe64_image_load_status::UNEXPECTED_IMAGE_BASE:
     return "x64 PE64 image uses an unexpected image base";
-  case x64_pe64_image_load_status::unsupported_alignment:
+  case x64_pe64_image_load_status::UNSUPPORTED_ALIGNMENT:
     return "x64 PE64 image must use 4 KiB section alignment";
-  case x64_pe64_image_load_status::image_too_large:
+  case x64_pe64_image_load_status::IMAGE_TOO_LARGE:
     return "x64 PE64 image does not fit in the initial user region";
-  case x64_pe64_image_load_status::headers_out_of_range:
+  case x64_pe64_image_load_status::HEADERS_OUT_OF_RANGE:
     return "x64 PE64 image headers are out of range";
-  case x64_pe64_image_load_status::entry_point_out_of_range:
+  case x64_pe64_image_load_status::ENTRY_POINT_OUT_OF_RANGE:
     return "x64 PE64 image entry point is out of range";
-  case x64_pe64_image_load_status::invalid_import_directory:
+  case x64_pe64_image_load_status::INVALID_IMPORT_DIRECTORY:
     return "x64 PE64 image has an invalid import directory";
-  case x64_pe64_image_load_status::unexpected_imports:
+  case x64_pe64_image_load_status::UNEXPECTED_IMPORTS:
     return "x64 PE64 image unexpectedly imports system libraries";
-  case x64_pe64_image_load_status::unexpected_relocations:
+  case x64_pe64_image_load_status::UNEXPECTED_RELOCATIONS:
     return "x64 PE64 image unexpectedly requires relocations";
-  case x64_pe64_image_load_status::truncated_section_table:
+  case x64_pe64_image_load_status::TRUNCATED_SECTION_TABLE:
     return "x64 PE64 image section table is truncated";
-  case x64_pe64_image_load_status::section_out_of_range:
+  case x64_pe64_image_load_status::SECTION_OUT_OF_RANGE:
     return "x64 PE64 image section exceeds the declared image size";
-  case x64_pe64_image_load_status::section_data_out_of_range:
+  case x64_pe64_image_load_status::SECTION_DATA_OUT_OF_RANGE:
     return "x64 PE64 image section data is out of range";
-  case x64_pe64_image_load_status::import_table_out_of_range:
+  case x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE:
     return "x64 PE64 image import table is out of range";
-  case x64_pe64_image_load_status::import_name_out_of_range:
+  case x64_pe64_image_load_status::IMPORT_NAME_OUT_OF_RANGE:
     return "x64 PE64 image import name is out of range";
-  case x64_pe64_image_load_status::unsupported_import:
+  case x64_pe64_image_load_status::UNSUPPORTED_IMPORT:
     return "x64 PE64 image imports an unsupported Windows symbol";
-  case x64_pe64_image_load_status::unsupported_import_ordinal:
+  case x64_pe64_image_load_status::UNSUPPORTED_IMPORT_ORDINAL:
     return "x64 PE64 image imports by ordinal, which is not supported yet";
-  case x64_pe64_image_load_status::import_stub_out_of_range:
+  case x64_pe64_image_load_status::IMPORT_STUB_OUT_OF_RANGE:
     return "x64 PE64 image import thunks do not fit in the initial user region";
   }
 
   return "x64 PE64 image loader failed with an unknown status";
 }
+

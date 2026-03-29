@@ -13,10 +13,10 @@ static constexpr size_t USER_RUNTIME_KERNEL_STACK_SIZE = 4096;
 
 enum class user_thread_state : uint32_t
 {
-  empty = 0,
-  ready = 1,
-  running = 2,
-  exited = 3,
+  EMPTY = 0,
+  READY = 1,
+  RUNNING = 2,
+  EXITED = 3,
 };
 
 struct address_space

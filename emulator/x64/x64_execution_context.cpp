@@ -29,7 +29,7 @@ void x64_execution_context::initialize_result()
 {
   m_state.flags |= RFLAGS_RESERVED;
   m_result = {
-    x64_emulator_completion::instruction_limit_reached,
+    x64_emulator_completion::INSTRUCTION_LIMIT_REACHED,
     0,
     m_state.instruction_pointer,
     0,
@@ -79,14 +79,14 @@ void x64_execution_context::set_fault(const x64_decoded_instruction& instruction
 
 void x64_execution_context::set_invalid_memory_access(uintptr_t fault_address, uint8_t fault_opcode)
 {
-  m_result.completion = x64_emulator_completion::invalid_memory_access;
+  m_result.completion = x64_emulator_completion::INVALID_MEMORY_ACCESS;
   m_result.fault_address = fault_address;
   m_result.fault_opcode = fault_opcode;
 }
 
 void x64_execution_context::set_unsupported_instruction(uint8_t fault_opcode)
 {
-  m_result.completion = x64_emulator_completion::unsupported_instruction;
+  m_result.completion = x64_emulator_completion::UNSUPPORTED_INSTRUCTION;
   m_result.fault_opcode = fault_opcode;
 }
 
@@ -276,7 +276,7 @@ void x64_execution_context::set_add_flags(uint64_t lhs, uint64_t rhs, uint64_t r
 
 bool x64_execution_context::push_u64(uint64_t value)
 {
-  uint64_t& stack_pointer = get_register64(static_cast<uint32_t>(x64_general_register::rsp));
+  uint64_t& stack_pointer = get_register64(static_cast<uint32_t>(x64_general_register::RSP));
 
   if (stack_pointer < m_memory.base_address + sizeof(uint64_t))
   {
@@ -289,7 +289,7 @@ bool x64_execution_context::push_u64(uint64_t value)
 
 bool x64_execution_context::pop_u64(uint64_t* out_value)
 {
-  uint64_t& stack_pointer = get_register64(static_cast<uint32_t>(x64_general_register::rsp));
+  uint64_t& stack_pointer = get_register64(static_cast<uint32_t>(x64_general_register::RSP));
 
   if (out_value == nullptr || !read_u64(static_cast<uintptr_t>(stack_pointer), out_value))
   {

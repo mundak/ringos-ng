@@ -10,12 +10,12 @@
 
 enum class x64_win32_import_resolution_status : uint32_t
 {
-  ok = 0,
-  invalid_argument,
-  dll_not_found,
-  symbol_not_found,
-  unsupported_syscall_number,
-  stub_out_of_space,
+  OK = 0,
+  INVALID_ARGUMENT,
+  DLL_NOT_FOUND,
+  SYMBOL_NOT_FOUND,
+  UNSUPPORTED_SYSCALL_NUMBER,
+  STUB_OUT_OF_SPACE,
 };
 
 x64_win32_import_resolution_status resolve_x64_win32_import(

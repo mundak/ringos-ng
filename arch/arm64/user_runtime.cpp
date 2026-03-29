@@ -86,9 +86,9 @@ namespace
 
   enum class arm64_user_image_kind : uint32_t
   {
-    unknown = 0,
-    native_arm64_pe64 = 1,
-    x64_pe64 = 2,
+    UNKNOWN = 0,
+    NATIVE_ARM64_PE64 = 1,
+    X64_PE64 = 2,
   };
 
   class arm64_initial_user_runtime_platform final
@@ -116,7 +116,7 @@ namespace
     void write_vector_base(uintptr_t vector_base);
 
     arm64_process_storage m_process_storage[USER_RUNTIME_MAX_PROCESSES] {};
-    arm64_user_image_kind m_user_image_kind = arm64_user_image_kind::unknown;
+    arm64_user_image_kind m_user_image_kind = arm64_user_image_kind::UNKNOWN;
     bool m_mmu_enabled = false;
   };
 
@@ -207,7 +207,7 @@ namespace
     const pe_image_load_status load_status
       = load_pe32_plus_image(image_bytes, image_size, storage.user_region, load_config, &load_result);
 
-    if (load_status != pe_image_load_status::ok)
+    if (load_status != pe_image_load_status::OK)
     {
       panic(describe_pe_image_load_status(load_status));
     }
@@ -225,13 +225,13 @@ namespace
 
     if (try_get_pe_machine(image_bytes, image_size, &pe_machine) && pe_machine == PE_MACHINE_ARM64)
     {
-      m_user_image_kind = arm64_user_image_kind::native_arm64_pe64;
+      m_user_image_kind = arm64_user_image_kind::NATIVE_ARM64_PE64;
       return initialize_arm64_pe_image(image_bytes, image_size, storage);
     }
 
     if (try_get_pe_machine(image_bytes, image_size, &pe_machine) && pe_machine == PE_MACHINE_X64)
     {
-      m_user_image_kind = arm64_user_image_kind::x64_pe64;
+      m_user_image_kind = arm64_user_image_kind::X64_PE64;
       memset(storage.user_region, 0, sizeof(storage.user_region));
 
       x64_pe64_image_info image_info {};
@@ -244,7 +244,7 @@ namespace
         &INITIAL_WINDOWS_IMPORT_RESOLVER,
         &image_info);
 
-      if (load_status != x64_pe64_image_load_status::ok)
+      if (load_status != x64_pe64_image_load_status::OK)
       {
         panic(describe_x64_pe64_image_load_status(load_status));
       }
@@ -327,18 +327,18 @@ namespace
 
     const thread_context user_context {
       state.instruction_pointer,
-      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]),
+      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]),
       static_cast<uintptr_t>(state.flags),
     };
     current_thread->set_user_context(user_context);
 
     const user_syscall_context syscall_context {
-      state.general_registers[static_cast<uint32_t>(x64_general_register::rax)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::rdi)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::rdx)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::r8)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::r9)],
-      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]),
+      state.general_registers[static_cast<uint32_t>(x64_general_register::RAX)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::RDI)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::RDX)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::R8)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::R9)],
+      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]),
     };
     const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
     *out_should_continue = runtime.is_current_thread_runnable();
@@ -354,11 +354,11 @@ namespace
     bootstrap.address_space.arch_root_table = reinterpret_cast<uintptr_t>(&m_process_storage[0].root_table);
     bootstrap.address_space.user_base = USER_REGION_VIRTUAL_ADDRESS;
     bootstrap.address_space.user_size
-      = m_user_image_kind == arm64_user_image_kind::native_arm64_pe64 ? USER_REGION_SIZE : X64_USER_REGION_SIZE;
+      = m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64 ? USER_REGION_SIZE : X64_USER_REGION_SIZE;
     bootstrap.address_space.user_host_base = reinterpret_cast<uintptr_t>(m_process_storage[0].user_region);
     bootstrap.thread_context.instruction_pointer = entry_point;
 
-    if (m_user_image_kind == arm64_user_image_kind::native_arm64_pe64)
+    if (m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64)
     {
       bootstrap.thread_context.stack_pointer = USER_REGION_VIRTUAL_ADDRESS + USER_REGION_SIZE - sizeof(uint64_t);
       bootstrap.thread_context.flags = ARM64_INITIAL_PSTATE;
@@ -371,7 +371,7 @@ namespace
 
     bootstrap.shared_memory_address = USER_REGION_VIRTUAL_ADDRESS;
     bootstrap.shared_memory_size
-      = m_user_image_kind == arm64_user_image_kind::native_arm64_pe64 ? USER_REGION_SIZE : X64_USER_REGION_SIZE;
+      = m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64 ? USER_REGION_SIZE : X64_USER_REGION_SIZE;
   }
 
   void arm64_initial_user_runtime_platform::prepare_thread_launch(
@@ -411,7 +411,7 @@ namespace
   {
     activate_process_address_space(&initial_process);
 
-    if (m_user_image_kind == arm64_user_image_kind::native_arm64_pe64)
+    if (m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64)
     {
       debug_log("arm64 initial user runtime ready");
 
@@ -421,13 +421,13 @@ namespace
         initial_thread.get_user_context().flags);
     }
 
-    if (m_user_image_kind == arm64_user_image_kind::x64_pe64)
+    if (m_user_image_kind == arm64_user_image_kind::X64_PE64)
     {
       user_runtime& runtime = get_kernel_user_runtime();
       x64_emulator_state emulated_state {};
       emulated_state.instruction_pointer = initial_thread.get_user_context().instruction_pointer;
       emulated_state.flags = static_cast<uint64_t>(initial_thread.get_user_context().flags);
-      emulated_state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]
+      emulated_state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]
         = initial_thread.get_user_context().stack_pointer;
       const x64_emulator_memory memory {
         X64_USER_IMAGE_VIRTUAL_ADDRESS,
@@ -439,7 +439,7 @@ namespace
         &arm64_initial_user_runtime_platform::dispatch_x64_syscall,
       };
       const x64_emulator_options options {
-        x64_emulator_engine::interpreter,
+        x64_emulator_engine::INTERPRETER,
         X64_EMULATOR_INSTRUCTION_BUDGET,
       };
       x64_emulator_result result {};
@@ -451,7 +451,7 @@ namespace
         panic("arm64 failed to launch the x64 emulator backend");
       }
 
-      if (result.completion != x64_emulator_completion::thread_exited)
+      if (result.completion != x64_emulator_completion::THREAD_EXITED)
       {
         panic(describe_x64_emulator_completion(result.completion));
       }
@@ -480,12 +480,12 @@ extern "C" bool arm64_handle_syscall(void* frame)
     panic("arm64 syscall frame was null");
   }
 
-  if (g_initial_user_runtime_platform.get_user_image_kind() == arm64_user_image_kind::x64_pe64)
+  if (g_initial_user_runtime_platform.get_user_image_kind() == arm64_user_image_kind::X64_PE64)
   {
     panic("arm64 hardware syscall path is disabled while the x64 emulator backend is active");
   }
 
-  if (g_initial_user_runtime_platform.get_user_image_kind() != arm64_user_image_kind::native_arm64_pe64)
+  if (g_initial_user_runtime_platform.get_user_image_kind() != arm64_user_image_kind::NATIVE_ARM64_PE64)
   {
     panic("arm64 syscall path was entered without a native arm64 user image");
   }

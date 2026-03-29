@@ -20,7 +20,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::thread_exited, "call_and_ret", "expected thread exit")
+             result.completion == x64_emulator_completion::THREAD_EXITED, "call_and_ret", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "call_and_ret", "expected one syscall");
   }
 
@@ -41,7 +41,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::thread_exited, "conditional_branch", "expected thread exit")
+             result.completion == x64_emulator_completion::THREAD_EXITED, "conditional_branch", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "conditional_branch", "expected one syscall");
   }
 
@@ -86,7 +86,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::thread_exited,
+             result.completion == x64_emulator_completion::THREAD_EXITED,
              "call_indirect_rip_relative",
              "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "call_indirect_rip_relative", "expected one syscall");
@@ -109,14 +109,14 @@ namespace
           program.size(),
           capture,
           &result,
-          x64_emulator_engine::interpreter,
+          x64_emulator_engine::INTERPRETER,
           8))
     {
       return false;
     }
 
     return expect_x64_emulator_test(
-      result.completion == x64_emulator_completion::instruction_limit_reached,
+      result.completion == x64_emulator_completion::INSTRUCTION_LIMIT_REACHED,
       "instruction_budget_limit",
       "expected instruction budget exhaustion");
   }
