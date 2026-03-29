@@ -12,6 +12,7 @@ add_library(ringos_x64_emulator OBJECT
   x64_pe64_image.cpp
   x64_stack_instructions.cpp
   x64_system_instructions.cpp
+  x64_windows_compat.cpp
 )
 
 target_include_directories(ringos_x64_emulator

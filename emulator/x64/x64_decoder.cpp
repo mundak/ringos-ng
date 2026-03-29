@@ -15,6 +15,9 @@ bool decode_x64_instruction(x64_execution_context& context, x64_decoded_instruct
     context.get_state().instruction_pointer,
     0,
     false,
+    false,
+    false,
+    false,
   };
 
   if (!context.read_u8(instruction.opcode_address, &instruction.opcode))
@@ -23,9 +26,12 @@ bool decode_x64_instruction(x64_execution_context& context, x64_decoded_instruct
     return false;
   }
 
-  if (instruction.opcode == 0x48)
+  if ((instruction.opcode & 0xF0) == 0x40)
   {
-    instruction.rex_w = true;
+    instruction.rex_w = (instruction.opcode & 0x08) != 0;
+    instruction.rex_r = (instruction.opcode & 0x04) != 0;
+    instruction.rex_x = (instruction.opcode & 0x02) != 0;
+    instruction.rex_b = (instruction.opcode & 0x01) != 0;
     ++instruction.opcode_address;
 
     if (!context.read_u8(instruction.opcode_address, &instruction.opcode))

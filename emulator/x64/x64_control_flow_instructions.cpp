@@ -64,7 +64,7 @@ x64_instruction_outcome execute_x64_call_relative(
   return x64_instruction_outcome::continue_running;
 }
 
-x64_instruction_outcome execute_x64_call_indirect(
+x64_instruction_outcome execute_x64_call_indirect_memory(
   x64_execution_context& context, const x64_decoded_instruction& instruction)
 {
   uint8_t modrm = 0;
@@ -192,4 +192,3 @@ x64_instruction_outcome execute_x64_jump_short_condition(
                                                         : instruction.next_address + sizeof(int8_t);
   return x64_instruction_outcome::continue_running;
 }
-

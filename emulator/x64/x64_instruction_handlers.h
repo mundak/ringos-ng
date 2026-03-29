@@ -27,7 +27,7 @@ x64_instruction_outcome execute_x64_syscall(x64_execution_context& context, cons
 x64_instruction_outcome execute_x64_return(x64_execution_context& context, const x64_decoded_instruction& instruction);
 x64_instruction_outcome execute_x64_call_relative(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
-x64_instruction_outcome execute_x64_call_indirect(
+x64_instruction_outcome execute_x64_call_indirect_memory(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
 x64_instruction_outcome execute_x64_jump_relative_near(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
@@ -35,4 +35,3 @@ x64_instruction_outcome execute_x64_jump_relative_short(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
 x64_instruction_outcome execute_x64_jump_short_condition(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
-

@@ -23,7 +23,7 @@ x64_instruction_outcome execute_x64_mov_immediate32(
     return x64_instruction_outcome::stop_running;
   }
 
-  const uint32_t register_index = instruction.opcode - 0xB8;
+  const uint32_t register_index = (instruction.opcode - 0xB8) + (instruction.rex_b ? 8U : 0U);
   uint32_t immediate = 0;
 
   if (!context.read_u32(instruction.next_address, &immediate))

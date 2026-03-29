@@ -5,6 +5,7 @@
 #include "memory.h"
 #include "panic.h"
 #include "x64_pe64_image.h"
+#include "x64_windows_compat.h"
 
 extern "C" [[noreturn]] void x64_enter_user_thread(
   uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t flags);
@@ -35,7 +36,7 @@ namespace
   constexpr uint32_t MSR_KERNEL_GS_BASE = 0xC0000102;
 
   constexpr uint64_t EFER_SCE = 1ULL << 0;
-  constexpr uintptr_t USER_THREAD_INITIAL_FLAGS = 0x2;
+  constexpr uint64_t USER_THREAD_INITIAL_FLAGS = 0x2;
   constexpr uint16_t KERNEL_CODE_SELECTOR = 0x08;
   constexpr uint16_t USER_COMPAT_CODE_SELECTOR = 0x18;
 
@@ -97,6 +98,18 @@ namespace
   {
     static_cast<x64_initial_user_runtime_platform*>(context)->initialize(bootstrap);
   }
+
+  bool resolve_initial_windows_import(
+    void* context, const char* dll_name, const char* function_name, uint32_t* out_syscall_number)
+  {
+    (void) context;
+    return try_resolve_x64_windows_import(dll_name, function_name, out_syscall_number);
+  }
+
+  constexpr x64_pe64_import_resolver INITIAL_WINDOWS_IMPORT_RESOLVER {
+    nullptr,
+    &resolve_initial_windows_import,
+  };
 
   void prepare_x64_platform(void* context, const process& initial_process, const thread& initial_thread)
   {
@@ -192,6 +205,7 @@ namespace
       USER_IMAGE_VIRTUAL_ADDRESS,
       loaded_image,
       USER_IMAGE_PAGE_COUNT * PAGE_SIZE,
+      &INITIAL_WINDOWS_IMPORT_RESOLVER,
       &image_info);
 
     if (load_status != x64_pe64_image_load_status::ok)
@@ -235,7 +249,7 @@ namespace
     bootstrap.address_space.user_host_base = reinterpret_cast<uintptr_t>(&m_process_storage[0].user_image_pages[0][0]);
     bootstrap.thread_context.instruction_pointer = entry_point;
     bootstrap.thread_context.stack_pointer = USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
-    bootstrap.thread_context.flags = 0x202;
+    bootstrap.thread_context.flags = USER_THREAD_INITIAL_FLAGS;
     bootstrap.shared_memory_address = USER_IMAGE_VIRTUAL_ADDRESS;
     bootstrap.shared_memory_size = USER_REGION_SIZE;
   }
@@ -303,7 +317,10 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
   };
   current_thread->set_user_context(user_context);
 
-  const int32_t syscall_status = runtime.dispatch_syscall(frame->rax, frame->rdi);
+  const user_syscall_context syscall_context {
+    frame->rax, frame->rdi, frame->rdx, frame->r8, frame->r9, static_cast<uintptr_t>(frame->user_rsp),
+  };
+  const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
   frame->rax = static_cast<uint64_t>(syscall_status);
   return runtime.is_current_thread_runnable();
 }
@@ -321,3 +338,4 @@ extern "C" [[noreturn]] void x64_user_thread_exit()
 {
   run_initial_user_runtime(g_x64_runtime_dispatch);
 }
+

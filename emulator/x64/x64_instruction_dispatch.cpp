@@ -29,18 +29,18 @@ void x64_instruction_dispatch::initialize_opcode_handlers()
     m_secondary_opcode_handlers[opcode] = &execute_x64_unsupported;
   }
 
+  m_primary_opcode_handlers[0x89] = &execute_x64_mov_register;
   m_primary_opcode_handlers[0x31] = &execute_x64_xor_register;
   m_primary_opcode_handlers[0x83] = &execute_x64_group83;
-  m_primary_opcode_handlers[0x89] = &execute_x64_mov_register;
   m_primary_opcode_handlers[0x8D] = &execute_x64_lea_rip_relative;
   m_primary_opcode_handlers[0x90] = &execute_x64_nop;
   m_primary_opcode_handlers[0xC3] = &execute_x64_return;
   m_primary_opcode_handlers[0xE8] = &execute_x64_call_relative;
   m_primary_opcode_handlers[0xE9] = &execute_x64_jump_relative_near;
   m_primary_opcode_handlers[0xEB] = &execute_x64_jump_relative_short;
-  m_primary_opcode_handlers[0xFF] = &execute_x64_call_indirect;
   m_primary_opcode_handlers[0x74] = &execute_x64_jump_short_condition;
   m_primary_opcode_handlers[0x75] = &execute_x64_jump_short_condition;
+  m_primary_opcode_handlers[0xFF] = &execute_x64_call_indirect_memory;
 
   for (uint32_t opcode = 0x50; opcode <= 0x57; ++opcode)
   {

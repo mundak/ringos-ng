@@ -235,6 +235,7 @@ namespace
       X64_USER_IMAGE_VIRTUAL_ADDRESS,
       loaded_image.data(),
       loaded_image.size(),
+      nullptr,
       &image_info);
 
     return expect_x64_emulator_test(
@@ -252,7 +253,13 @@ namespace
     std::array<uint8_t, X64_USER_REGION_SIZE> loaded_image {};
     x64_pe64_image_info image_info {};
     const x64_pe64_image_load_status status = load_x64_pe64_image(
-      image_bytes, image_size, X64_USER_IMAGE_VIRTUAL_ADDRESS, loaded_image.data(), loaded_image.size(), &image_info);
+      image_bytes,
+      image_size,
+      X64_USER_IMAGE_VIRTUAL_ADDRESS,
+      loaded_image.data(),
+      loaded_image.size(),
+      nullptr,
+      &image_info);
 
     if (!expect_x64_emulator_test(
           status == x64_pe64_image_load_status::ok,
@@ -378,7 +385,7 @@ namespace
         if (!read_c_string(
               loaded_image.data(),
               loaded_image.size(),
-            import_name_rva + sizeof(uint16_t),
+              import_name_rva + sizeof(uint16_t),
               import_name,
               sizeof(import_name)))
         {
@@ -419,4 +426,3 @@ void append_x64_system_and_loader_tests(std::vector<x64_emulator_test_case>& tes
   tests.push_back({ "loader_rejects_missing_header", &test_loader_rejects_missing_header });
   tests.push_back({ "loader_resolves_win32_imports", &test_loader_resolves_win32_imports });
 }
-

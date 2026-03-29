@@ -8,6 +8,7 @@ ringos_add_embedded_x64_test_app(
   i386:x86-64
   RINGOS_X64_IMPORT_TEST_APP_IMAGE_OBJECT
   BINARY_STEM ringos_emulator_import_test_app_x64_pe64_image
+  SOURCE_PATH ${CMAKE_SOURCE_DIR}/arch/x64/test_app_pe64.S
 )
 
 set(RINGOS_X64_EMULATOR_TEST_BINARY ${CMAKE_BINARY_DIR}/x64_emulator_unit_tests)
@@ -57,6 +58,7 @@ add_custom_command(
           -o ${RINGOS_X64_EMULATOR_TEST_BINARY}
   DEPENDS
     ${RINGOS_X64_EMULATOR_TEST_SOURCES}
+    ${CMAKE_SOURCE_DIR}/arch/x64/test_app_pe64.S
     ${CMAKE_SOURCE_DIR}/emulator/include/x64_emulator.h
     ${CMAKE_SOURCE_DIR}/emulator/include/x64_pe64_image.h
     ${CMAKE_SOURCE_DIR}/emulator/include/x64_win32_emulation.h

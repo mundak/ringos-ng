@@ -22,6 +22,9 @@ struct x64_decoded_instruction
   uintptr_t next_address;
   uint8_t opcode;
   bool rex_w;
+  bool rex_r;
+  bool rex_x;
+  bool rex_b;
 };
 
 using x64_instruction_handler
