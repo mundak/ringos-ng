@@ -16,7 +16,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo === Running arm64 tests in %IMAGE_NAME% container ===
-docker run --rm %IMAGE_NAME% bash -lc "cmake --preset arm64-ci && cmake --build --preset build-arm64-ci && ctest --preset test-arm64-ci"
+docker run --rm %IMAGE_NAME% bash -lc "cmake --preset arm64-ci && cmake --build --preset build-arm64-ci && ctest --preset smoke_arm64_native && ctest --preset smoke_arm64_x64_emulator"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%

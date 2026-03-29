@@ -8,7 +8,7 @@
 # Usage:
 #   scripts/test-smoke-x64.sh <path-to-ringos_x64>
 #
-# This script is registered as the smoke_x64 CTest test.
+# This script is registered as the smoke_x64_native CTest test.
 
 set -euo pipefail
 
@@ -33,7 +33,7 @@ for expected_line in \
   "[gdb] gdb hooks ready" \
   "[gdb] hello world" \
   "[gdb] x64 initial user runtime ready" \
-  "[gdb] x64 PE64 Win32 import test app reached ring3"; do
+  "[gdb] generic test app reached user mode"; do
   if ! grep -Fq -- "${expected_line}" "${DEBUG_LOG}"; then
     echo "FAIL: expected '${expected_line}' not found in x64 debug output" >&2
     echo "--- debug output ---" >&2
@@ -42,4 +42,4 @@ for expected_line in \
   fi
 done
 
-echo "PASS: x64 smoke test"
+echo "PASS: x64 native smoke test"
