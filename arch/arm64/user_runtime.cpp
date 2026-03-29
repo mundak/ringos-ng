@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
+#include "pe_image.h"
 #include "x64_emulator.h"
 #include "x64_pe64_image.h"
 #include "x64_windows_compat.h"
@@ -29,13 +30,6 @@ namespace
   constexpr uint64_t ARM64_INITIAL_PSTATE = 0;
   constexpr uint64_t X64_INITIAL_RFLAGS = 0x202;
   constexpr uint64_t X64_EMULATOR_INSTRUCTION_BUDGET = 512;
-  constexpr uint16_t PE_DOS_SIGNATURE = 0x5A4D;
-  constexpr uint32_t PE_NT_SIGNATURE = 0x00004550;
-  constexpr uint16_t PE_MACHINE_ARM64 = 0xAA64;
-  constexpr uint16_t PE_MACHINE_X64 = 0x8664;
-  constexpr uint16_t PE32_PLUS_MAGIC = 0x20B;
-  constexpr uint32_t PE_IMPORT_DIRECTORY_INDEX = 1;
-  constexpr uint32_t PE_BASE_RELOCATION_DIRECTORY_INDEX = 5;
   constexpr uint64_t ESR_EXCEPTION_CLASS_MASK = 0x3FULL;
   constexpr uint64_t ESR_EXCEPTION_CLASS_SHIFT = 26;
   constexpr uint64_t ESR_EXCEPTION_CLASS_SVC64 = 0x15ULL;
@@ -95,85 +89,6 @@ namespace
     unknown = 0,
     native_arm64_pe64 = 1,
     x64_pe64 = 2,
-  };
-
-  struct [[gnu::packed]] pe_dos_header
-  {
-    uint16_t e_magic;
-    uint8_t unused[58];
-    int32_t e_lfanew;
-  };
-
-  struct [[gnu::packed]] pe_file_header
-  {
-    uint16_t machine;
-    uint16_t number_of_sections;
-    uint32_t time_date_stamp;
-    uint32_t pointer_to_symbol_table;
-    uint32_t number_of_symbols;
-    uint16_t size_of_optional_header;
-    uint16_t characteristics;
-  };
-
-  struct [[gnu::packed]] pe_data_directory
-  {
-    uint32_t virtual_address;
-    uint32_t size;
-  };
-
-  struct [[gnu::packed]] pe_optional_header64
-  {
-    uint16_t magic;
-    uint8_t major_linker_version;
-    uint8_t minor_linker_version;
-    uint32_t size_of_code;
-    uint32_t size_of_initialized_data;
-    uint32_t size_of_uninitialized_data;
-    uint32_t address_of_entry_point;
-    uint32_t base_of_code;
-    uint64_t image_base;
-    uint32_t section_alignment;
-    uint32_t file_alignment;
-    uint16_t major_operating_system_version;
-    uint16_t minor_operating_system_version;
-    uint16_t major_image_version;
-    uint16_t minor_image_version;
-    uint16_t major_subsystem_version;
-    uint16_t minor_subsystem_version;
-    uint32_t win32_version_value;
-    uint32_t size_of_image;
-    uint32_t size_of_headers;
-    uint32_t check_sum;
-    uint16_t subsystem;
-    uint16_t dll_characteristics;
-    uint64_t size_of_stack_reserve;
-    uint64_t size_of_stack_commit;
-    uint64_t size_of_heap_reserve;
-    uint64_t size_of_heap_commit;
-    uint32_t loader_flags;
-    uint32_t number_of_rva_and_sizes;
-    pe_data_directory data_directories[16];
-  };
-
-  struct [[gnu::packed]] pe_nt_headers64
-  {
-    uint32_t signature;
-    pe_file_header file_header;
-    pe_optional_header64 optional_header;
-  };
-
-  struct [[gnu::packed]] pe_section_header
-  {
-    uint8_t name[8];
-    uint32_t virtual_size;
-    uint32_t virtual_address;
-    uint32_t size_of_raw_data;
-    uint32_t pointer_to_raw_data;
-    uint32_t pointer_to_relocations;
-    uint32_t pointer_to_linenumbers;
-    uint16_t number_of_relocations;
-    uint16_t number_of_linenumbers;
-    uint32_t characteristics;
   };
 
   class arm64_initial_user_runtime_platform final
@@ -249,59 +164,6 @@ namespace
     return (static_cast<uint64_t>(address) & ~0x1FFFFFULL) | flags | BLOCK_DESCRIPTOR;
   }
 
-  bool copy_embedded_record(
-    void* record, size_t record_size, const uint8_t* image_bytes, size_t image_size, size_t offset)
-  {
-    if (record == nullptr || image_bytes == nullptr)
-    {
-      return false;
-    }
-
-    if (offset > image_size || record_size > image_size - offset)
-    {
-      return false;
-    }
-
-    memcpy(record, image_bytes + offset, record_size);
-    return true;
-  }
-
-  bool try_get_pe_machine(const uint8_t* image_bytes, size_t image_size, uint16_t* out_machine)
-  {
-    if (out_machine == nullptr)
-    {
-      return false;
-    }
-
-    pe_dos_header dos_header {};
-
-    if (!copy_embedded_record(&dos_header, sizeof(dos_header), image_bytes, image_size, 0))
-    {
-      return false;
-    }
-
-    if (dos_header.e_magic != PE_DOS_SIGNATURE || dos_header.e_lfanew < 0)
-    {
-      return false;
-    }
-
-    pe_nt_headers64 nt_headers {};
-
-    if (!copy_embedded_record(
-          &nt_headers, sizeof(nt_headers), image_bytes, image_size, static_cast<size_t>(dos_header.e_lfanew)))
-    {
-      return false;
-    }
-
-    if (nt_headers.signature != PE_NT_SIGNATURE || nt_headers.optional_header.magic != PE32_PLUS_MAGIC)
-    {
-      return false;
-    }
-
-    *out_machine = nt_headers.file_header.machine;
-    return true;
-  }
-
   void arm64_initial_user_runtime_platform::initialize_process_storage(arm64_process_storage& storage)
   {
     memset(&storage, 0, sizeof(storage));
@@ -332,162 +194,20 @@ namespace
   uintptr_t arm64_initial_user_runtime_platform::initialize_arm64_pe_image(
     const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage)
   {
-    pe_dos_header dos_header {};
+    const pe_image_load_config load_config {
+      PE_MACHINE_ARM64, USER_REGION_VIRTUAL_ADDRESS, PAGE_SIZE, PAGE_SIZE, USER_REGION_SIZE, false, false,
+    };
+    pe_image_load_result load_result {};
+    const pe_image_load_status load_status
+      = load_pe32_plus_image(image_bytes, image_size, storage.user_region, load_config, &load_result);
 
-    if (!copy_embedded_record(&dos_header, sizeof(dos_header), image_bytes, image_size, 0))
+    if (load_status != pe_image_load_status::ok)
     {
-      panic("arm64 PE image is missing the DOS header");
-    }
-
-    if (dos_header.e_magic != PE_DOS_SIGNATURE)
-    {
-      panic("arm64 PE image has an invalid DOS header");
-    }
-
-    if (dos_header.e_lfanew < 0)
-    {
-      panic("arm64 PE image is missing the NT headers");
-    }
-
-    const size_t nt_headers_offset = static_cast<size_t>(dos_header.e_lfanew);
-    pe_nt_headers64 nt_headers {};
-
-    if (!copy_embedded_record(&nt_headers, sizeof(nt_headers), image_bytes, image_size, nt_headers_offset))
-    {
-      panic("arm64 PE image is missing the NT headers");
-    }
-
-    if (nt_headers.signature != PE_NT_SIGNATURE)
-    {
-      panic("arm64 PE image has an invalid NT signature");
-    }
-
-    if (nt_headers.file_header.machine != PE_MACHINE_ARM64)
-    {
-      panic("arm64 PE image targets the wrong machine");
-    }
-
-    if (nt_headers.file_header.number_of_sections == 0)
-    {
-      panic("arm64 PE image does not define any sections");
-    }
-
-    if (nt_headers.file_header.size_of_optional_header != sizeof(pe_optional_header64))
-    {
-      panic("arm64 PE image has an unsupported optional header size");
-    }
-
-    if (nt_headers.optional_header.magic != PE32_PLUS_MAGIC)
-    {
-      panic("arm64 PE image is not PE32+");
-    }
-
-    if (nt_headers.optional_header.image_base != USER_REGION_VIRTUAL_ADDRESS)
-    {
-      panic("arm64 PE image uses an unexpected image base");
-    }
-
-    if (
-      nt_headers.optional_header.section_alignment != PAGE_SIZE
-      || nt_headers.optional_header.file_alignment != PAGE_SIZE)
-    {
-      panic("arm64 PE image uses an unsupported alignment");
-    }
-
-    if (nt_headers.optional_header.size_of_image > USER_REGION_SIZE)
-    {
-      panic("arm64 PE image does not fit in the initial user region");
-    }
-
-    if (
-      nt_headers.optional_header.size_of_headers > image_size
-      || nt_headers.optional_header.size_of_headers > USER_REGION_SIZE)
-    {
-      panic("arm64 PE image headers are out of range");
-    }
-
-    if (nt_headers.optional_header.address_of_entry_point >= nt_headers.optional_header.size_of_image)
-    {
-      panic("arm64 PE image entry point is out of range");
-    }
-
-    const pe_data_directory& import_directory = nt_headers.optional_header.data_directories[PE_IMPORT_DIRECTORY_INDEX];
-
-    if (import_directory.virtual_address != 0 || import_directory.size != 0)
-    {
-      panic("arm64 PE image unexpectedly imports system libraries");
-    }
-
-    const pe_data_directory& relocation_directory
-      = nt_headers.optional_header.data_directories[PE_BASE_RELOCATION_DIRECTORY_INDEX];
-
-    if (relocation_directory.virtual_address != 0 || relocation_directory.size != 0)
-    {
-      panic("arm64 PE image unexpectedly requires relocations");
-    }
-
-    const size_t section_headers_offset
-      = nt_headers_offset + sizeof(uint32_t) + sizeof(pe_file_header) + nt_headers.file_header.size_of_optional_header;
-    const size_t section_headers_size = sizeof(pe_section_header) * nt_headers.file_header.number_of_sections;
-
-    if (section_headers_offset > image_size || section_headers_size > image_size - section_headers_offset)
-    {
-      panic("arm64 PE image section table is truncated");
-    }
-
-    memset(storage.user_region, 0, sizeof(storage.user_region));
-    memcpy(storage.user_region, image_bytes, nt_headers.optional_header.size_of_headers);
-
-    for (uint16_t section_index = 0; section_index < nt_headers.file_header.number_of_sections; ++section_index)
-    {
-      pe_section_header section_header {};
-
-      if (!copy_embedded_record(
-            &section_header,
-            sizeof(section_header),
-            image_bytes,
-            image_size,
-            section_headers_offset + (static_cast<size_t>(section_index) * sizeof(pe_section_header))))
-      {
-        panic("arm64 PE image section table is truncated");
-      }
-
-      const uint32_t section_memory_size
-        = section_header.virtual_size != 0 ? section_header.virtual_size : section_header.size_of_raw_data;
-
-      if (
-        section_header.virtual_address > nt_headers.optional_header.size_of_image
-        || section_memory_size > nt_headers.optional_header.size_of_image - section_header.virtual_address)
-      {
-        panic("arm64 PE image section exceeds the declared image size");
-      }
-
-      if (section_header.size_of_raw_data > 0)
-      {
-        if (
-          section_header.pointer_to_raw_data > image_size
-          || section_header.size_of_raw_data > image_size - section_header.pointer_to_raw_data)
-        {
-          panic("arm64 PE image section data is out of range");
-        }
-
-        memcpy(
-          storage.user_region + section_header.virtual_address,
-          image_bytes + section_header.pointer_to_raw_data,
-          section_header.size_of_raw_data);
-      }
-
-      if (section_memory_size > section_header.size_of_raw_data)
-      {
-        memset(
-          storage.user_region + section_header.virtual_address + section_header.size_of_raw_data,
-          0,
-          section_memory_size - section_header.size_of_raw_data);
-      }
+      panic(describe_pe_image_load_status(load_status));
     }
 
     *reinterpret_cast<uint64_t*>(storage.user_region + USER_REGION_SIZE - sizeof(uint64_t)) = 0;
-    return USER_REGION_VIRTUAL_ADDRESS + nt_headers.optional_header.address_of_entry_point;
+    return load_result.entry_point;
   }
 
   uintptr_t arm64_initial_user_runtime_platform::initialize_user_image(arm64_process_storage& storage)
@@ -815,4 +535,3 @@ extern "C" [[noreturn]] void arm64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
-
