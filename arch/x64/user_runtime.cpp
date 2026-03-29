@@ -36,6 +36,7 @@ namespace
   constexpr uint32_t MSR_KERNEL_GS_BASE = 0xC0000102;
 
   constexpr uint64_t EFER_SCE = 1ULL << 0;
+  constexpr uint64_t USER_THREAD_INITIAL_FLAGS = 0x2;
   constexpr uint16_t KERNEL_CODE_SELECTOR = 0x08;
   constexpr uint16_t USER_COMPAT_CODE_SELECTOR = 0x18;
 

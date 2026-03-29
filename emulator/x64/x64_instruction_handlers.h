@@ -12,6 +12,8 @@ x64_instruction_outcome execute_x64_pop_register(
 
 x64_instruction_outcome execute_x64_mov_immediate32(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
+x64_instruction_outcome execute_x64_mov_register(
+  x64_execution_context& context, const x64_decoded_instruction& instruction);
 x64_instruction_outcome execute_x64_lea_rip_relative(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
 x64_instruction_outcome execute_x64_nop(x64_execution_context& context, const x64_decoded_instruction& instruction);

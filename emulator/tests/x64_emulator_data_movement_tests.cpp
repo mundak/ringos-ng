@@ -4,6 +4,36 @@
 
 namespace
 {
+  bool test_mov_register_and_syscall()
+  {
+    constexpr std::array<uint8_t, 15> program {
+      0xBA, 0x44, 0x33, 0x22, 0x11, 0x48, 0x89, 0xD7, 0xB8, 0x34, 0x12, 0x00, 0x00, 0x0F, 0x05,
+    };
+    x64_syscall_capture capture {
+      nullptr, 0x1234, 0x11223344, STATUS_OK, true, nullptr, 0,
+    };
+    x64_emulator_result result {};
+
+    if (!run_x64_emulator_test_program(
+          "mov_register_and_syscall",
+          program.data(),
+          program.size(),
+          capture,
+          &result))
+    {
+      return false;
+    }
+
+    return expect_x64_emulator_test(
+             result.completion == x64_emulator_completion::thread_exited,
+             "mov_register_and_syscall",
+             "expected thread exit")
+      && expect_x64_emulator_test(
+             capture.call_count == 1,
+             "mov_register_and_syscall",
+             "expected one syscall");
+  }
+
   bool test_mov_and_syscall()
   {
     constexpr std::array<uint8_t, 12> program {
@@ -57,6 +87,7 @@ namespace
 
 void append_x64_data_movement_tests(std::vector<x64_emulator_test_case>& tests)
 {
+  tests.push_back({"mov_register_and_syscall", &test_mov_register_and_syscall});
   tests.push_back({"mov_and_syscall", &test_mov_and_syscall});
   tests.push_back({"lea_rip_relative_string", &test_lea_rip_relative_string});
 }
