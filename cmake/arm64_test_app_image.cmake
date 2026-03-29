@@ -32,18 +32,18 @@ function(
   set(RINGOS_SDK_PROCESS_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/ringos_arm64_process.obj)
   set(RINGOS_SDK_LIBRARY ${CMAKE_CURRENT_BINARY_DIR}/ringos_arm64_sdk.lib)
 
-  set(RINGOS_SDK_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/sdk/include)
+  set(RINGOS_SDK_INCLUDE_DIR ${CMAKE_SOURCE_DIR}/user/sdk/include)
   set(RINGOS_SDK_HEADERS
-    ${CMAKE_SOURCE_DIR}/sdk/include/ringos/debug.h
-    ${CMAKE_SOURCE_DIR}/sdk/include/ringos/handle.h
-    ${CMAKE_SOURCE_DIR}/sdk/include/ringos/process.h
-    ${CMAKE_SOURCE_DIR}/sdk/include/ringos/sdk.h
-    ${CMAKE_SOURCE_DIR}/sdk/include/ringos/status.h
-    ${CMAKE_SOURCE_DIR}/sdk/include/ringos/syscalls.h
-    ${CMAKE_SOURCE_DIR}/sdk/include/ringos/types.h)
-  set(RINGOS_SDK_SYSCALL_SOURCE ${CMAKE_SOURCE_DIR}/sdk/arm64/ringos_syscall.S)
-  set(RINGOS_SDK_DEBUG_SOURCE ${CMAKE_SOURCE_DIR}/sdk/src/ringos_debug.c)
-  set(RINGOS_SDK_PROCESS_SOURCE ${CMAKE_SOURCE_DIR}/sdk/src/ringos_process.c)
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/debug.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/handle.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/process.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/sdk.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/status.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/syscalls.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/types.h)
+  set(RINGOS_SDK_SYSCALL_SOURCE ${CMAKE_SOURCE_DIR}/user/sdk/arm64/ringos_syscall.S)
+  set(RINGOS_SDK_DEBUG_SOURCE ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_debug.c)
+  set(RINGOS_SDK_PROCESS_SOURCE ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_process.c)
 
   if(RINGOS_LLVM_LIB)
     set(RINGOS_SDK_ARCHIVE_COMMAND
