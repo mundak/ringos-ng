@@ -1,0 +1,6 @@
+dll: kernel32
+exports:
+  - name: OutputDebugStringA
+    syscall: STAGE1_SYSCALL_DEBUG_LOG
+  - name: ExitProcess
+    syscall: STAGE1_SYSCALL_THREAD_EXIT

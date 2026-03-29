@@ -1,7 +1,12 @@
 #pragma once
 
+#if defined(__STDC_HOSTED__) && __STDC_HOSTED__
+#include <cstddef>
+#include <cstdint>
+#else
 #include <stddef.h>
 #include <stdint.h>
+#endif
 
 inline constexpr size_t X64_USER_IMAGE_PAGE_SIZE = 4096;
 inline constexpr uintptr_t X64_USER_IMAGE_VIRTUAL_ADDRESS = 0x400000;
@@ -27,7 +32,12 @@ enum class x64_pe64_image_load_status : uint32_t
   image_too_large,
   headers_out_of_range,
   entry_point_out_of_range,
-  unexpected_imports,
+  invalid_import_directory,
+  unsupported_import_ordinal,
+  import_name_out_of_range,
+  unknown_import_module,
+  unknown_import_symbol,
+  import_stub_out_of_space,
   unexpected_relocations,
   truncated_section_table,
   section_out_of_range,
@@ -38,6 +48,7 @@ struct x64_pe64_image_info
 {
   uintptr_t entry_point;
   uint32_t image_size;
+  uint32_t import_count;
 };
 
 x64_pe64_image_load_status load_x64_pe64_image(
@@ -48,3 +59,4 @@ x64_pe64_image_load_status load_x64_pe64_image(
   size_t loaded_image_size,
   x64_pe64_image_info* out_image_info);
 const char* describe_x64_pe64_image_load_status(x64_pe64_image_load_status status);
+

@@ -4,12 +4,24 @@ function(
   output_format
   output_architecture
   out_object)
+  set(options)
+  set(oneValueArgs BINARY_STEM SOURCE_PATH)
+  cmake_parse_arguments(RINGOS_TEST_APP "${options}" "${oneValueArgs}" "" ${ARGN})
+
   find_program(RINGOS_LLD_LINK NAMES lld-link lld-link-18 lld-link-17 REQUIRED)
 
-  set(X64_TEST_APP_SOURCE ${CMAKE_SOURCE_DIR}/arch/x64/test_app_pe64.S)
-  set(X64_TEST_APP_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/ringos_test_app_x64_pe64_image.obj)
-  set(X64_TEST_APP_IMAGE ${CMAKE_CURRENT_BINARY_DIR}/ringos_test_app_x64_pe64_image)
-  set(X64_TEST_APP_IMAGE_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/ringos_test_app_x64_pe64_image.o)
+  if(NOT RINGOS_TEST_APP_SOURCE_PATH)
+    set(RINGOS_TEST_APP_SOURCE_PATH ${CMAKE_SOURCE_DIR}/arch/x64/test_app_pe64.S)
+  endif()
+
+  if(NOT RINGOS_TEST_APP_BINARY_STEM)
+    set(RINGOS_TEST_APP_BINARY_STEM ringos_test_app_x64_pe64_image)
+  endif()
+
+  set(X64_TEST_APP_SOURCE ${RINGOS_TEST_APP_SOURCE_PATH})
+  set(X64_TEST_APP_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/${RINGOS_TEST_APP_BINARY_STEM}.obj)
+  set(X64_TEST_APP_IMAGE ${CMAKE_CURRENT_BINARY_DIR}/${RINGOS_TEST_APP_BINARY_STEM})
+  set(X64_TEST_APP_IMAGE_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/${RINGOS_TEST_APP_BINARY_STEM}.o)
 
   add_custom_command(
     OUTPUT ${X64_TEST_APP_IMAGE_OBJECT}
@@ -35,8 +47,8 @@ function(
             -I binary
             -O ${output_format}
             -B ${output_architecture}
-            ringos_test_app_x64_pe64_image
-            ringos_test_app_x64_pe64_image.o
+          ${RINGOS_TEST_APP_BINARY_STEM}
+          ${RINGOS_TEST_APP_BINARY_STEM}.o
     DEPENDS ${X64_TEST_APP_SOURCE}
     BYPRODUCTS ${X64_TEST_APP_OBJECT} ${X64_TEST_APP_IMAGE}
     COMMENT "Building embedded x64 PE64 test app"
