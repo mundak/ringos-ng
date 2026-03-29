@@ -33,20 +33,6 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "RINGOS_TARGET_ARCH": "arm64"
       }
-    },
-    {
-      "name": "x64-ci",
-      "inherits": "x64-debug",
-      "cacheVariables": {
-        "RINGOS_CI": "ON"
-      }
-    },
-    {
-      "name": "arm64-ci",
-      "inherits": "arm64-debug",
-      "cacheVariables": {
-        "RINGOS_CI": "ON"
-      }
     }
   ],
   "buildPresets": [
@@ -57,20 +43,12 @@
     {
       "name": "build-arm64-debug",
       "configurePreset": "arm64-debug"
-    },
-    {
-      "name": "build-x64-ci",
-      "configurePreset": "x64-ci"
-    },
-    {
-      "name": "build-arm64-ci",
-      "configurePreset": "arm64-ci"
     }
   ],
   "testPresets": [
     {
       "name": "x64_emulator_unit",
-      "configurePreset": "x64-ci",
+      "configurePreset": "x64-debug",
       "output": {
         "outputOnFailure": true
       },
@@ -85,7 +63,7 @@
     },
     {
       "name": "x64_win32_loader_unit",
-      "configurePreset": "x64-ci",
+      "configurePreset": "x64-debug",
       "output": {
         "outputOnFailure": true
       },
@@ -100,7 +78,7 @@
     },
     {
       "name": "smoke_x64_native",
-      "configurePreset": "x64-ci",
+      "configurePreset": "x64-debug",
       "output": {
         "outputOnFailure": true
       },
@@ -115,7 +93,7 @@
     },
     {
       "name": "smoke_arm64_native",
-      "configurePreset": "arm64-ci",
+      "configurePreset": "arm64-debug",
       "output": {
         "outputOnFailure": true
       },
@@ -130,7 +108,7 @@
     },
     {
       "name": "smoke_arm64_x64_emulator",
-      "configurePreset": "arm64-ci",
+      "configurePreset": "arm64-debug",
       "output": {
         "outputOnFailure": true
       },

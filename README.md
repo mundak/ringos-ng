@@ -68,8 +68,8 @@ If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
 docker build -f docker/Dockerfile -t ringos-ci .
-docker run --rm ringos-ci bash -lc "cmake --preset x64-ci && cmake --build --preset build-x64-ci && ctest --preset x64_emulator_unit && ctest --preset smoke_x64_native"
-docker run --rm ringos-ci bash -lc "cmake --preset arm64-ci && cmake --build --preset build-arm64-ci && ctest --preset smoke_arm64_native && ctest --preset smoke_arm64_x64_emulator"
+docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset smoke_x64_native"
+docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset smoke_arm64_native && ctest --preset smoke_arm64_x64_emulator"
 ```
 
 ### Native Linux Workflow
@@ -144,8 +144,11 @@ debug console.
 Run smoke tests with CTest:
 
 ```bash
-ctest --preset test-x64-debug
-ctest --preset test-arm64-debug
+ctest --preset x64_emulator_unit
+ctest --preset x64_win32_loader_unit
+ctest --preset smoke_x64_native
+ctest --preset smoke_arm64_native
+ctest --preset smoke_arm64_x64_emulator
 ```
 
 More detail on the local and CI verification contract lives in
