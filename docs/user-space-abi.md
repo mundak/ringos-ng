@@ -163,8 +163,9 @@ Stage 0 keeps provisional compiler-facing targets for the earliest user-space br
 - arm64 proof path: `aarch64-pc-windows-msvc` to emit a PE64 image without system libraries.
 
 These names are implementation choices for the current bootstrap path, not a claim about the final
-ringos-specific toolchain surface. A later stage may add ringos-specific triples and Clang driver
-support without changing the underlying syscall ABI.
+ringos-specific toolchain surface. Stage 8 adopts `x86_64-unknown-ringos-msvc` and
+`aarch64-unknown-ringos-msvc` as the real ringos compiler-facing triples while keeping the same
+bootstrap PE or COFF image model and underlying syscall ABI.
 
 ## Consequences For Stage 1
 
