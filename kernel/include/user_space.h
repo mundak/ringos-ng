@@ -34,3 +34,4 @@ static constexpr uint64_t STAGE1_SYSCALL_THREAD_EXIT = 2;
 static constexpr uint64_t STAGE2_SYSCALL_WINDOWS_GET_STD_HANDLE = 0x100;
 static constexpr uint64_t STAGE2_SYSCALL_WINDOWS_WRITE_FILE = 0x101;
 static constexpr uint64_t STAGE2_SYSCALL_WINDOWS_EXIT_PROCESS = 0x102;
+

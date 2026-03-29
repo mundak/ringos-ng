@@ -54,3 +54,4 @@ private:
   const x64_emulator_options& m_options;
   x64_emulator_result& m_result;
 };
+

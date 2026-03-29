@@ -57,3 +57,4 @@ x64_instruction_outcome execute_x64_pop_register(
   context.get_state().instruction_pointer = instruction.next_address;
   return x64_instruction_outcome::continue_running;
 }
+

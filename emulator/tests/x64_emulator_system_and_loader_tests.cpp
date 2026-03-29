@@ -54,3 +54,4 @@ void append_x64_system_and_loader_tests(std::vector<x64_emulator_test_case>& tes
   tests.push_back({ "unsupported_engine", &test_unsupported_engine_reports_cleanly });
   tests.push_back({ "loader_rejects_missing_header", &test_loader_rejects_missing_header });
 }
+

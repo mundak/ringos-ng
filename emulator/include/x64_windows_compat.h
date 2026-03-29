@@ -15,3 +15,4 @@ inline constexpr int32_t X64_WINDOWS_STD_OUTPUT_HANDLE = -11;
 inline constexpr int32_t X64_WINDOWS_STD_ERROR_HANDLE = -12;
 
 bool try_resolve_x64_windows_import(const char* dll_name, const char* function_name, uint32_t* out_syscall_number);
+

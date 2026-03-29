@@ -19,3 +19,4 @@ private:
   x64_instruction_handler m_primary_opcode_handlers[256];
   x64_instruction_handler m_secondary_opcode_handlers[256];
 };
+

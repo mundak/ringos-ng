@@ -130,3 +130,4 @@ void append_x64_stack_and_control_flow_tests(std::vector<x64_emulator_test_case>
   tests.push_back({ "call_indirect_rip_relative", &test_call_indirect_rip_relative });
   tests.push_back({ "instruction_budget_limit", &test_instruction_budget_limit });
 }
+

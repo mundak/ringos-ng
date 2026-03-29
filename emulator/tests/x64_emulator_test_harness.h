@@ -38,3 +38,4 @@ void append_x64_data_movement_tests(std::vector<x64_emulator_test_case>& tests);
 void append_x64_stack_and_control_flow_tests(std::vector<x64_emulator_test_case>& tests);
 void append_x64_alu_tests(std::vector<x64_emulator_test_case>& tests);
 void append_x64_system_and_loader_tests(std::vector<x64_emulator_test_case>& tests);
+

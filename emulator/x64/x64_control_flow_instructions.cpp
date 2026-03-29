@@ -175,3 +175,4 @@ x64_instruction_outcome execute_x64_jump_short_condition(
                                                         : instruction.next_address + sizeof(int8_t);
   return x64_instruction_outcome::continue_running;
 }
+

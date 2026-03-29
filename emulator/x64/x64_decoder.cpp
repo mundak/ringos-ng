@@ -45,3 +45,4 @@ bool decode_x64_instruction(x64_execution_context& context, x64_decoded_instruct
   *out_instruction = instruction;
   return true;
 }
+

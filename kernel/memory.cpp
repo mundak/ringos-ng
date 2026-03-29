@@ -20,7 +20,9 @@ namespace
 extern "C" init_function __init_array_start[];
 extern "C" init_function __init_array_end[];
 
-void operator delete(void*, void*) noexcept { }
+void operator delete(void*, void*) noexcept
+{
+}
 
 void run_global_constructors()
 {
@@ -55,3 +57,4 @@ extern "C" void* memset(void* destination, int value, size_t length)
 
   return destination;
 }
+

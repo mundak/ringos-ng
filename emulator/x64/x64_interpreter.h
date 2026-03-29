@@ -19,3 +19,4 @@ private:
   x64_execution_context m_context;
   x64_instruction_dispatch m_dispatch;
 };
+

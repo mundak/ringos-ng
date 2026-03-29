@@ -80,3 +80,4 @@ x64_instruction_outcome x64_instruction_dispatch::dispatch_secondary_opcode(
   context.get_result().fault_opcode = secondary_opcode;
   return m_secondary_opcode_handlers[secondary_opcode](context, instruction);
 }
+

@@ -29,3 +29,4 @@ struct x64_decoded_instruction
 
 using x64_instruction_handler
   = x64_instruction_outcome (*)(x64_execution_context& context, const x64_decoded_instruction& instruction);
+
