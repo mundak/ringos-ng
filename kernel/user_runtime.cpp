@@ -4,10 +4,21 @@
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
+#include "x64_windows_compat.h"
 
 namespace
 {
+  constexpr uint64_t WINDOWS_HANDLE_STDIN = 1;
+  constexpr uint64_t WINDOWS_HANDLE_STDOUT = 2;
+  constexpr uint64_t WINDOWS_HANDLE_STDERR = 3;
+  constexpr size_t WINDOWS_LOG_BUFFER_SIZE = 96;
+
   user_runtime g_user_runtime {};
+
+  bool is_windows_console_handle(uint64_t handle_value)
+  {
+    return handle_value == WINDOWS_HANDLE_STDOUT || handle_value == WINDOWS_HANDLE_STDERR;
+  }
 }
 
 void user_runtime::reset()
@@ -210,6 +221,54 @@ bool user_runtime::try_translate_user_address(
   return true;
 }
 
+int32_t user_runtime::copy_user_bytes(
+  const process& owner_process, uintptr_t user_address, void* buffer, size_t buffer_size) const
+{
+  if (buffer == nullptr)
+  {
+    return STATUS_INVALID_ARGUMENT;
+  }
+
+  if (buffer_size == 0)
+  {
+    return STATUS_OK;
+  }
+
+  uintptr_t host_address = 0;
+
+  if (!try_translate_user_address(owner_process, user_address, buffer_size, &host_address))
+  {
+    return STATUS_FAULT;
+  }
+
+  memcpy(buffer, reinterpret_cast<const void*>(host_address), buffer_size);
+  return STATUS_OK;
+}
+
+int32_t user_runtime::write_user_bytes(
+  const process& owner_process, uintptr_t user_address, const void* buffer, size_t buffer_size) const
+{
+  if (buffer == nullptr)
+  {
+    return STATUS_INVALID_ARGUMENT;
+  }
+
+  if (buffer_size == 0)
+  {
+    return STATUS_OK;
+  }
+
+  uintptr_t host_address = 0;
+
+  if (!try_translate_user_address(owner_process, user_address, buffer_size, &host_address))
+  {
+    return STATUS_FAULT;
+  }
+
+  memcpy(reinterpret_cast<void*>(host_address), buffer, buffer_size);
+  return STATUS_OK;
+}
+
 int32_t user_runtime::copy_user_string(
   const thread& owner_thread, uintptr_t user_address, char* buffer, size_t buffer_size) const
 {
@@ -263,7 +322,7 @@ void user_runtime::set_current_thread(thread* current_thread)
   }
 }
 
-int32_t user_runtime::dispatch_syscall(uint64_t syscall_number, uint64_t argument0)
+int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_context)
 {
   thread* active_thread = get_current_thread();
 
@@ -272,19 +331,26 @@ int32_t user_runtime::dispatch_syscall(uint64_t syscall_number, uint64_t argumen
     return STATUS_BAD_STATE;
   }
 
-  switch (syscall_number)
+  process* owner_process = active_thread->get_process_context();
+
+  if (owner_process == nullptr)
+  {
+    return STATUS_BAD_STATE;
+  }
+
+  switch (syscall_context.syscall_number)
   {
   case STAGE1_SYSCALL_DEBUG_LOG:
   {
-    if (argument0 == 0)
+    if (syscall_context.argument0 == 0)
     {
       return STATUS_INVALID_ARGUMENT;
     }
 
     char message_buffer[96];
     memset(message_buffer, 0, sizeof(message_buffer));
-    const int32_t copy_status
-      = copy_user_string(*active_thread, static_cast<uintptr_t>(argument0), message_buffer, sizeof(message_buffer));
+    const int32_t copy_status = copy_user_string(
+      *active_thread, static_cast<uintptr_t>(syscall_context.argument0), message_buffer, sizeof(message_buffer));
 
     if (copy_status != STATUS_OK)
     {
@@ -298,7 +364,79 @@ int32_t user_runtime::dispatch_syscall(uint64_t syscall_number, uint64_t argumen
   case STAGE1_SYSCALL_THREAD_EXIT:
   {
     active_thread->set_state(user_thread_state::exited);
-    active_thread->set_exit_status(argument0);
+    active_thread->set_exit_status(syscall_context.argument0);
+    return STATUS_OK;
+  }
+
+  case STAGE2_SYSCALL_WINDOWS_GET_STD_HANDLE:
+  {
+    const int32_t standard_handle = static_cast<int32_t>(syscall_context.argument0);
+
+    if (standard_handle == X64_WINDOWS_STD_INPUT_HANDLE)
+    {
+      return static_cast<int32_t>(WINDOWS_HANDLE_STDIN);
+    }
+
+    if (standard_handle == X64_WINDOWS_STD_OUTPUT_HANDLE)
+    {
+      return static_cast<int32_t>(WINDOWS_HANDLE_STDOUT);
+    }
+
+    if (standard_handle == X64_WINDOWS_STD_ERROR_HANDLE)
+    {
+      return static_cast<int32_t>(WINDOWS_HANDLE_STDERR);
+    }
+
+    return -1;
+  }
+
+  case STAGE2_SYSCALL_WINDOWS_WRITE_FILE:
+  {
+    if (!is_windows_console_handle(syscall_context.argument0) || syscall_context.argument1 == 0)
+    {
+      return 0;
+    }
+
+    char write_buffer[WINDOWS_LOG_BUFFER_SIZE + 1];
+    uintptr_t current_address = static_cast<uintptr_t>(syscall_context.argument1);
+    size_t remaining_bytes = static_cast<size_t>(syscall_context.argument2);
+    uint32_t total_written = 0;
+
+    while (remaining_bytes > 0)
+    {
+      const size_t chunk_size = remaining_bytes < WINDOWS_LOG_BUFFER_SIZE ? remaining_bytes : WINDOWS_LOG_BUFFER_SIZE;
+      const int32_t copy_status = copy_user_bytes(*owner_process, current_address, write_buffer, chunk_size);
+
+      if (copy_status != STATUS_OK)
+      {
+        return 0;
+      }
+
+      write_buffer[chunk_size] = '\0';
+      debug_log(write_buffer);
+      current_address += chunk_size;
+      remaining_bytes -= chunk_size;
+      total_written += static_cast<uint32_t>(chunk_size);
+    }
+
+    if (syscall_context.argument3 != 0)
+    {
+      const int32_t write_status = write_user_bytes(
+        *owner_process, static_cast<uintptr_t>(syscall_context.argument3), &total_written, sizeof(total_written));
+
+      if (write_status != STATUS_OK)
+      {
+        return 0;
+      }
+    }
+
+    return 1;
+  }
+
+  case STAGE2_SYSCALL_WINDOWS_EXIT_PROCESS:
+  {
+    active_thread->set_state(user_thread_state::exited);
+    active_thread->set_exit_status(syscall_context.argument0);
     return STATUS_OK;
   }
 
@@ -379,3 +517,4 @@ user_runtime& get_kernel_user_runtime()
   platform.enter_user_thread(platform.context, *initial_process, *initial_thread);
   panic("initial user runtime platform returned unexpectedly");
 }
+

@@ -9,6 +9,7 @@ function(
   set(X64_TEST_APP_SOURCE ${CMAKE_SOURCE_DIR}/arch/x64/test_app_pe64.S)
   set(X64_TEST_APP_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/ringos_test_app_x64_pe64_image.obj)
   set(X64_TEST_APP_IMAGE ${CMAKE_CURRENT_BINARY_DIR}/ringos_test_app_x64_pe64_image)
+  set(X64_TEST_APP_WINDOWS_EXE ${CMAKE_CURRENT_BINARY_DIR}/ringos_test_app_x64_pe64_image.exe)
   set(X64_TEST_APP_IMAGE_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/ringos_test_app_x64_pe64_image.o)
 
   add_custom_command(
@@ -22,7 +23,7 @@ function(
     COMMAND ${RINGOS_LLD_LINK}
             /machine:x64
             /entry:user_start
-            /subsystem:native
+          /subsystem:console
             /nodefaultlib
             /fixed
             /dynamicbase:no
@@ -30,6 +31,7 @@ function(
             /filealign:4096
             /out:${X64_TEST_APP_IMAGE}
             ${X64_TEST_APP_OBJECT}
+        COMMAND ${CMAKE_COMMAND} -E copy ${X64_TEST_APP_IMAGE} ${X64_TEST_APP_WINDOWS_EXE}
     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}
             ${CMAKE_OBJCOPY}
             -I binary
@@ -38,8 +40,8 @@ function(
             ringos_test_app_x64_pe64_image
             ringos_test_app_x64_pe64_image.o
     DEPENDS ${X64_TEST_APP_SOURCE}
-    BYPRODUCTS ${X64_TEST_APP_OBJECT} ${X64_TEST_APP_IMAGE}
-    COMMENT "Building embedded x64 PE64 test app"
+    BYPRODUCTS ${X64_TEST_APP_OBJECT} ${X64_TEST_APP_IMAGE} ${X64_TEST_APP_WINDOWS_EXE}
+    COMMENT "Building embedded x64 PE64 Windows test app"
     VERBATIM
   )
 

@@ -34,6 +34,16 @@ struct thread_context
   uintptr_t flags;
 };
 
+struct user_syscall_context
+{
+  uint64_t syscall_number;
+  uint64_t argument0;
+  uint64_t argument1;
+  uint64_t argument2;
+  uint64_t argument3;
+  uintptr_t stack_pointer;
+};
+
 struct initial_user_runtime_bootstrap
 {
   address_space address_space;
@@ -41,3 +51,4 @@ struct initial_user_runtime_bootstrap
   uintptr_t shared_memory_address;
   size_t shared_memory_size;
 };
+

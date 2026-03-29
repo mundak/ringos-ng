@@ -1,5 +1,4 @@
 #include "x64_emulator_test_harness.h"
-
 #include "x64_pe64_image.h"
 
 #include <array>
@@ -31,7 +30,7 @@ namespace
 
   bool test_loader_rejects_missing_header()
   {
-    constexpr std::array<uint8_t, 1> image {0x00};
+    constexpr std::array<uint8_t, 1> image { 0x00 };
     std::array<uint8_t, X64_USER_REGION_SIZE> loaded_image {};
     x64_pe64_image_info image_info {};
     const x64_pe64_image_load_status status = load_x64_pe64_image(
@@ -40,6 +39,7 @@ namespace
       X64_USER_IMAGE_VIRTUAL_ADDRESS,
       loaded_image.data(),
       loaded_image.size(),
+      nullptr,
       &image_info);
 
     return expect_x64_emulator_test(
@@ -51,7 +51,7 @@ namespace
 
 void append_x64_system_and_loader_tests(std::vector<x64_emulator_test_case>& tests)
 {
-  tests.push_back({"unsupported_engine", &test_unsupported_engine_reports_cleanly});
-  tests.push_back({"loader_rejects_missing_header", &test_loader_rejects_missing_header});
+  tests.push_back({ "unsupported_engine", &test_unsupported_engine_reports_cleanly });
+  tests.push_back({ "loader_rejects_missing_header", &test_loader_rejects_missing_header });
 }
 
