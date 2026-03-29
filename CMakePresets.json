@@ -84,6 +84,21 @@
       }
     },
     {
+      "name": "x64_win32_loader_unit",
+      "configurePreset": "x64-ci",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^x64_win32_loader_unit$"
+        }
+      }
+    },
+    {
       "name": "smoke_x64_native",
       "configurePreset": "x64-ci",
       "output": {

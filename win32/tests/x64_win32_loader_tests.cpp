@@ -1,12 +1,12 @@
 #include "user_space.h"
-#include "x64_emulator_test_harness.h"
 #include "x64_pe64_image.h"
 
 #include <array>
+#include <cstdio>
 #include <cstring>
 
-extern "C" const uint8_t _binary_ringos_emulator_import_test_app_x64_pe64_image_start[];
-extern "C" const uint8_t _binary_ringos_emulator_import_test_app_x64_pe64_image_end[];
+extern "C" const uint8_t _binary_ringos_win32_import_test_app_x64_pe64_image_start[];
+extern "C" const uint8_t _binary_ringos_win32_import_test_app_x64_pe64_image_end[];
 
 namespace
 {
@@ -89,6 +89,22 @@ namespace
     uint32_t name_rva;
     uint32_t first_thunk;
   };
+
+  void fail_x64_win32_test(const char* test_name, const char* message)
+  {
+    std::fprintf(stderr, "FAIL: %s: %s\n", test_name, message);
+  }
+
+  bool expect_x64_win32_test(bool condition, const char* test_name, const char* message)
+  {
+    if (!condition)
+    {
+      fail_x64_win32_test(test_name, message);
+      return false;
+    }
+
+    return true;
+  }
 
   bool copy_record(void* destination, size_t size, const uint8_t* image, size_t image_size, size_t offset)
   {
@@ -201,29 +217,6 @@ namespace
       && stub_bytes[9] == 0x05 && stub_bytes[10] == 0xC3;
   }
 
-  bool test_unsupported_engine_reports_cleanly()
-  {
-    constexpr std::array<uint8_t, 2> program {
-      0x0F,
-      0x05,
-    };
-    x64_syscall_capture capture {
-      nullptr, 0, 0, STATUS_OK, true, nullptr, 0,
-    };
-    x64_emulator_result result {};
-
-    if (!run_x64_emulator_test_program(
-          "unsupported_engine", program.data(), program.size(), capture, &result, x64_emulator_engine::jit, 8))
-    {
-      return false;
-    }
-
-    return expect_x64_emulator_test(
-      result.completion == x64_emulator_completion::unsupported_engine,
-      "unsupported_engine",
-      "expected unsupported engine completion");
-  }
-
   bool test_loader_rejects_missing_header()
   {
     constexpr std::array<uint8_t, 1> image { 0x00 };
@@ -238,7 +231,7 @@ namespace
       nullptr,
       &image_info);
 
-    return expect_x64_emulator_test(
+    return expect_x64_win32_test(
       status == x64_pe64_image_load_status::missing_dos_header,
       "loader_rejects_missing_header",
       "expected missing DOS header status");
@@ -246,10 +239,10 @@ namespace
 
   bool test_loader_resolves_win32_imports()
   {
-    const uint8_t* const image_bytes = _binary_ringos_emulator_import_test_app_x64_pe64_image_start;
+    const uint8_t* const image_bytes = _binary_ringos_win32_import_test_app_x64_pe64_image_start;
     const size_t image_size = static_cast<size_t>(
-      _binary_ringos_emulator_import_test_app_x64_pe64_image_end
-      - _binary_ringos_emulator_import_test_app_x64_pe64_image_start);
+      _binary_ringos_win32_import_test_app_x64_pe64_image_end
+      - _binary_ringos_win32_import_test_app_x64_pe64_image_start);
     std::array<uint8_t, X64_USER_REGION_SIZE> loaded_image {};
     x64_pe64_image_info image_info {};
     const x64_pe64_image_load_status status = load_x64_pe64_image(
@@ -261,7 +254,7 @@ namespace
       nullptr,
       &image_info);
 
-    if (!expect_x64_emulator_test(
+    if (!expect_x64_win32_test(
           status == x64_pe64_image_load_status::ok,
           "loader_resolves_win32_imports",
           "expected imported image to load successfully"))
@@ -269,7 +262,7 @@ namespace
       return false;
     }
 
-    if (!expect_x64_emulator_test(
+    if (!expect_x64_win32_test(
           image_info.import_count == 2, "loader_resolves_win32_imports", "expected two resolved Win32 imports"))
     {
       return false;
@@ -281,7 +274,7 @@ namespace
       !copy_record(&dos_header, sizeof(dos_header), loaded_image.data(), loaded_image.size(), 0)
       || dos_header.e_magic != PE_DOS_SIGNATURE)
     {
-      return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "failed to read DOS header");
+      return expect_x64_win32_test(false, "loader_resolves_win32_imports", "failed to read DOS header");
     }
 
     pe_nt_headers64 nt_headers {};
@@ -295,7 +288,7 @@ namespace
         static_cast<size_t>(dos_header.e_lfanew))
       || nt_headers.signature != PE_NT_SIGNATURE)
     {
-      return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "failed to read NT headers");
+      return expect_x64_win32_test(false, "loader_resolves_win32_imports", "failed to read NT headers");
     }
 
     const pe_data_directory& import_directory = nt_headers.optional_header.data_directories[PE_IMPORT_DIRECTORY_INDEX];
@@ -308,7 +301,7 @@ namespace
 
       if (!copy_record(&descriptor, sizeof(descriptor), loaded_image.data(), loaded_image.size(), descriptor_rva))
       {
-        return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "import descriptor was unreadable");
+        return expect_x64_win32_test(false, "loader_resolves_win32_imports", "import descriptor was unreadable");
       }
 
       if (
@@ -323,14 +316,14 @@ namespace
 
       if (!try_resolve_import_table_rva(descriptor.first_thunk, image_info.image_size, &first_thunk_rva))
       {
-        return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "first thunk RVA was invalid");
+        return expect_x64_win32_test(false, "loader_resolves_win32_imports", "first thunk RVA was invalid");
       }
 
       if (descriptor.original_first_thunk != 0)
       {
         if (!try_resolve_import_table_rva(descriptor.original_first_thunk, image_info.image_size, &lookup_rva))
         {
-          return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "lookup thunk RVA was invalid");
+          return expect_x64_win32_test(false, "loader_resolves_win32_imports", "lookup thunk RVA was invalid");
         }
       }
       else
@@ -359,7 +352,7 @@ namespace
             loaded_image.size(),
             first_thunk_rva + (thunk_index * sizeof(uint64_t))))
         {
-          return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "import thunk was unreadable");
+          return expect_x64_win32_test(false, "loader_resolves_win32_imports", "import thunk was unreadable");
         }
 
         if (lookup_entry == 0)
@@ -369,7 +362,7 @@ namespace
 
         if ((lookup_entry & PE_IMPORT_BY_ORDINAL64) != 0)
         {
-          return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "did not expect ordinal imports");
+          return expect_x64_win32_test(false, "loader_resolves_win32_imports", "did not expect ordinal imports");
         }
 
         const uint64_t raw_name_reference = lookup_entry & PE_IMPORT_RVA_MASK;
@@ -377,7 +370,7 @@ namespace
 
         if (!try_resolve_import_name_rva(raw_name_reference, image_info.image_size, &import_name_rva))
         {
-          return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "import name RVA was invalid");
+          return expect_x64_win32_test(false, "loader_resolves_win32_imports", "import name RVA was invalid");
         }
 
         char import_name[64] {};
@@ -389,18 +382,18 @@ namespace
               import_name,
               sizeof(import_name)))
         {
-          return expect_x64_emulator_test(false, "loader_resolves_win32_imports", "import name was unreadable");
+          return expect_x64_win32_test(false, "loader_resolves_win32_imports", "import name was unreadable");
         }
 
         const uint32_t expected_syscall = expected_syscall_for_import(import_name);
 
-        if (!expect_x64_emulator_test(
+        if (!expect_x64_win32_test(
               expected_syscall != 0, "loader_resolves_win32_imports", "unexpected import name in test image"))
         {
           return false;
         }
 
-        if (!expect_x64_emulator_test(
+        if (!expect_x64_win32_test(
               expect_syscall_stub(loaded_image.data(), loaded_image.size(), resolved_entry, expected_syscall),
               "loader_resolves_win32_imports",
               "resolved IAT entry did not point at the expected syscall stub"))
@@ -415,14 +408,24 @@ namespace
       descriptor_rva += sizeof(pe_import_descriptor);
     }
 
-    return expect_x64_emulator_test(
+    return expect_x64_win32_test(
       verified_imports == 2, "loader_resolves_win32_imports", "expected to verify exactly two imported symbols");
   }
 }
 
-void append_x64_system_and_loader_tests(std::vector<x64_emulator_test_case>& tests)
+int main()
 {
-  tests.push_back({ "unsupported_engine", &test_unsupported_engine_reports_cleanly });
-  tests.push_back({ "loader_rejects_missing_header", &test_loader_rejects_missing_header });
-  tests.push_back({ "loader_resolves_win32_imports", &test_loader_resolves_win32_imports });
+  if (!test_loader_rejects_missing_header())
+  {
+    return 1;
+  }
+
+  if (!test_loader_resolves_win32_imports())
+  {
+    return 1;
+  }
+
+  std::puts("PASS: x64 win32 loader unit tests");
+  return 0;
 }
+

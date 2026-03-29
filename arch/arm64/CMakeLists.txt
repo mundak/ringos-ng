@@ -44,6 +44,7 @@ function(ringos_add_arm64_kernel_target target_name dependency_target image_obje
     PRIVATE
       ringos_kernel
       ringos_x64_emulator
+      ringos_x64_win32_emulation
   )
   set_target_properties(${target_name}
     PROPERTIES
@@ -57,6 +58,11 @@ target_compile_options(ringos_kernel
 )
 
 target_compile_options(ringos_x64_emulator
+  PRIVATE
+    ${ARM64_KERNEL_COMPILE_OPTIONS}
+)
+
+target_compile_options(ringos_x64_win32_emulation
   PRIVATE
     ${ARM64_KERNEL_COMPILE_OPTIONS}
 )
