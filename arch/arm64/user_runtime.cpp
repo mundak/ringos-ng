@@ -244,7 +244,7 @@ namespace
         &INITIAL_WINDOWS_IMPORT_RESOLVER,
         &image_info);
 
-      if (load_status != x64_pe64_image_load_status::ok)
+      if (load_status != x64_pe64_image_load_status::OK)
       {
         panic(describe_x64_pe64_image_load_status(load_status));
       }

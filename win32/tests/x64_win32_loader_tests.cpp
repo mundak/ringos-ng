@@ -217,9 +217,6 @@ namespace
       && stub_bytes[9] == 0x05 && stub_bytes[10] == 0xC3;
   }
 
-  }
-
-
   bool test_loader_rejects_missing_header()
   {
     constexpr std::array<uint8_t, 1> image { 0x00 };

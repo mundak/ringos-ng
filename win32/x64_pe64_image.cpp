@@ -90,50 +90,50 @@ namespace
     switch (status)
     {
     case pe_image_load_status::OK:
-      return x64_pe64_image_load_status::ok;
+      return x64_pe64_image_load_status::OK;
     case pe_image_load_status::INVALID_ARGUMENT:
-      return x64_pe64_image_load_status::invalid_argument;
+      return x64_pe64_image_load_status::INVALID_ARGUMENT;
     case pe_image_load_status::MISSING_DOS_HEADER:
-      return x64_pe64_image_load_status::missing_dos_header;
+      return x64_pe64_image_load_status::MISSING_DOS_HEADER;
     case pe_image_load_status::INVALID_DOS_HEADER:
-      return x64_pe64_image_load_status::invalid_dos_header;
+      return x64_pe64_image_load_status::INVALID_DOS_HEADER;
     case pe_image_load_status::MISSING_NT_HEADERS:
-      return x64_pe64_image_load_status::missing_nt_headers;
+      return x64_pe64_image_load_status::MISSING_NT_HEADERS;
     case pe_image_load_status::INVALID_NT_SIGNATURE:
-      return x64_pe64_image_load_status::invalid_nt_signature;
+      return x64_pe64_image_load_status::INVALID_NT_SIGNATURE;
     case pe_image_load_status::WRONG_MACHINE:
-      return x64_pe64_image_load_status::wrong_machine;
+      return x64_pe64_image_load_status::WRONG_MACHINE;
     case pe_image_load_status::MISSING_SECTIONS:
-      return x64_pe64_image_load_status::missing_sections;
+      return x64_pe64_image_load_status::MISSING_SECTIONS;
     case pe_image_load_status::UNSUPPORTED_OPTIONAL_HEADER:
-      return x64_pe64_image_load_status::unsupported_optional_header;
+      return x64_pe64_image_load_status::UNSUPPORTED_OPTIONAL_HEADER;
     case pe_image_load_status::UNSUPPORTED_MAGIC:
-      return x64_pe64_image_load_status::unsupported_magic;
+      return x64_pe64_image_load_status::UNSUPPORTED_MAGIC;
     case pe_image_load_status::UNEXPECTED_IMAGE_BASE:
-      return x64_pe64_image_load_status::unexpected_image_base;
+      return x64_pe64_image_load_status::UNEXPECTED_IMAGE_BASE;
     case pe_image_load_status::UNSUPPORTED_ALIGNMENT:
-      return x64_pe64_image_load_status::unsupported_alignment;
+      return x64_pe64_image_load_status::UNSUPPORTED_ALIGNMENT;
     case pe_image_load_status::IMAGE_TOO_LARGE:
-      return x64_pe64_image_load_status::image_too_large;
+      return x64_pe64_image_load_status::IMAGE_TOO_LARGE;
     case pe_image_load_status::HEADERS_OUT_OF_RANGE:
-      return x64_pe64_image_load_status::headers_out_of_range;
+      return x64_pe64_image_load_status::HEADERS_OUT_OF_RANGE;
     case pe_image_load_status::ENTRY_POINT_OUT_OF_RANGE:
-      return x64_pe64_image_load_status::entry_point_out_of_range;
+      return x64_pe64_image_load_status::ENTRY_POINT_OUT_OF_RANGE;
     case pe_image_load_status::INVALID_IMPORT_DIRECTORY:
-      return x64_pe64_image_load_status::invalid_import_directory;
+      return x64_pe64_image_load_status::INVALID_IMPORT_DIRECTORY;
     case pe_image_load_status::UNEXPECTED_IMPORTS:
-      return x64_pe64_image_load_status::unexpected_imports;
+      return x64_pe64_image_load_status::UNEXPECTED_IMPORTS;
     case pe_image_load_status::UNEXPECTED_RELOCATIONS:
-      return x64_pe64_image_load_status::unexpected_relocations;
+      return x64_pe64_image_load_status::UNEXPECTED_RELOCATIONS;
     case pe_image_load_status::TRUNCATED_SECTION_TABLE:
-      return x64_pe64_image_load_status::truncated_section_table;
+      return x64_pe64_image_load_status::TRUNCATED_SECTION_TABLE;
     case pe_image_load_status::SECTION_OUT_OF_RANGE:
-      return x64_pe64_image_load_status::section_out_of_range;
+      return x64_pe64_image_load_status::SECTION_OUT_OF_RANGE;
     case pe_image_load_status::SECTION_DATA_OUT_OF_RANGE:
-      return x64_pe64_image_load_status::section_data_out_of_range;
+      return x64_pe64_image_load_status::SECTION_DATA_OUT_OF_RANGE;
     }
 
-    return x64_pe64_image_load_status::invalid_argument;
+    return x64_pe64_image_load_status::INVALID_ARGUMENT;
   }
 
   bool read_loaded_ascii_string(
@@ -312,7 +312,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
   const x64_pe64_image_load_status base_load_status
     = map_common_load_status(load_pe32_plus_image(image_bytes, image_size, loaded_image, load_config, &load_result));
 
-  if (base_load_status != x64_pe64_image_load_status::ok)
+  if (base_load_status != x64_pe64_image_load_status::OK)
   {
     return base_load_status;
   }
