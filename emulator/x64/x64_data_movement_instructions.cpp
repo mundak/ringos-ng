@@ -117,4 +117,3 @@ x64_instruction_outcome execute_x64_nop(x64_execution_context& context, const x6
   context.get_state().instruction_pointer = instruction.next_address;
   return x64_instruction_outcome::continue_running;
 }
-

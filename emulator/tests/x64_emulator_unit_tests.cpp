@@ -22,4 +22,3 @@ int main()
   std::puts("PASS: x64 emulator unit tests");
   return 0;
 }
-

@@ -116,4 +116,3 @@ x64_instruction_outcome execute_x64_group83(x64_execution_context& context, cons
   context.get_state().instruction_pointer = instruction.next_address + 2;
   return x64_instruction_outcome::continue_running;
 }
-

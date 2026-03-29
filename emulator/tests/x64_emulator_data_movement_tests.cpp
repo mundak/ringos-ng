@@ -14,12 +14,7 @@ namespace
     };
     x64_emulator_result result {};
 
-    if (!run_x64_emulator_test_program(
-          "mov_register_and_syscall",
-          program.data(),
-          program.size(),
-          capture,
-          &result))
+    if (!run_x64_emulator_test_program("mov_register_and_syscall", program.data(), program.size(), capture, &result))
     {
       return false;
     }
@@ -28,10 +23,7 @@ namespace
              result.completion == x64_emulator_completion::thread_exited,
              "mov_register_and_syscall",
              "expected thread exit")
-      && expect_x64_emulator_test(
-             capture.call_count == 1,
-             "mov_register_and_syscall",
-             "expected one syscall");
+      && expect_x64_emulator_test(capture.call_count == 1, "mov_register_and_syscall", "expected one syscall");
   }
 
   bool test_mov_and_syscall()
@@ -87,8 +79,7 @@ namespace
 
 void append_x64_data_movement_tests(std::vector<x64_emulator_test_case>& tests)
 {
-  tests.push_back({"mov_register_and_syscall", &test_mov_register_and_syscall});
-  tests.push_back({"mov_and_syscall", &test_mov_and_syscall});
-  tests.push_back({"lea_rip_relative_string", &test_lea_rip_relative_string});
+  tests.push_back({ "mov_register_and_syscall", &test_mov_register_and_syscall });
+  tests.push_back({ "mov_and_syscall", &test_mov_and_syscall });
+  tests.push_back({ "lea_rip_relative_string", &test_lea_rip_relative_string });
 }
-
