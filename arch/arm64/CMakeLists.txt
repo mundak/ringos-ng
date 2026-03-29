@@ -33,6 +33,11 @@ target_compile_options(ringos_x64_emulator
     ${ARM64_KERNEL_COMPILE_OPTIONS}
 )
 
+target_compile_options(ringos_x64_win32_emulation
+  PRIVATE
+    ${ARM64_KERNEL_COMPILE_OPTIONS}
+)
+
 target_compile_options(ringos_arm64
   PRIVATE
     ${ARM64_KERNEL_COMPILE_OPTIONS}
@@ -47,6 +52,7 @@ target_link_libraries(ringos_arm64
   PRIVATE
     ringos_kernel
     ringos_x64_emulator
+    ringos_x64_win32_emulation
 )
 
 set_target_properties(ringos_arm64

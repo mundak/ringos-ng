@@ -11,6 +11,8 @@ struct x64_emulator_test_case
   bool (*run)();
 };
 
+inline constexpr uintptr_t X64_TEST_PROGRAM_BASE = 0x400000;
+
 struct x64_syscall_capture
 {
   const x64_emulator_memory* memory;
@@ -37,5 +39,5 @@ bool run_x64_emulator_test_program(
 void append_x64_data_movement_tests(std::vector<x64_emulator_test_case>& tests);
 void append_x64_stack_and_control_flow_tests(std::vector<x64_emulator_test_case>& tests);
 void append_x64_alu_tests(std::vector<x64_emulator_test_case>& tests);
-void append_x64_system_and_loader_tests(std::vector<x64_emulator_test_case>& tests);
+void append_x64_system_tests(std::vector<x64_emulator_test_case>& tests);
 

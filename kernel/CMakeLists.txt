@@ -16,7 +16,7 @@ target_include_directories(ringos_kernel
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
   PRIVATE
-    ${CMAKE_SOURCE_DIR}/emulator/include
+    ${CMAKE_SOURCE_DIR}/win32/include
 )
 
 if(RINGOS_TARGET_ARCH STREQUAL "x64")

@@ -34,6 +34,7 @@ target_link_libraries(ringos_x64
   PRIVATE
     ringos_kernel
     ringos_x64_emulator
+    ringos_x64_win32_emulation
 )
 
 set_target_properties(ringos_x64

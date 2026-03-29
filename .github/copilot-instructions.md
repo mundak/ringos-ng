@@ -2,6 +2,8 @@ Before generating or modifying any code, read and follow the rules in [docs/cont
 
 Any locally run agent must do its work in a dedicated git worktree. Do not make changes directly in the primary checkout. On Windows, create agent worktrees as visible sibling directories of the main checkout rather than under a hidden repo-local `.worktrees` folder so VS Code can recognize them.
 
+When a formatting step requires `tools/clang-format.exe`, do not assume the `tools/` directory exists inside the dedicated worktree. If the worktree does not contain `tools/`, use the sibling primary checkout's `tools/clang-format.exe` instead, or fall back to `clang-format` on `PATH`.
+
 Do not use VS Code editor-integrated tools for this workspace.
 
 - Do not use CMake editor integration for configure, build, or test operations.
