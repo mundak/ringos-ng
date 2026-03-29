@@ -1,0 +1,40 @@
+name: x64_win32_loader_unit
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  x64_win32_loader_unit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            clang \
+            gdb-multiarch \
+            lld \
+            llvm \
+            qemu-system-arm \
+            qemu-system-misc \
+            qemu-system-x86
+
+      - name: Configure x64
+        run: cmake --preset x64-ci
+
+      - name: Build x64
+        run: cmake --build --preset build-x64-ci
+
+      - name: Run x64 Win32 loader unit test
+        run: ctest --preset x64_win32_loader_unit

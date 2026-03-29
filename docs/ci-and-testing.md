@@ -50,6 +50,7 @@ Build presets:
 Test presets:
 
 - `x64_emulator_unit`
+- `x64_win32_loader_unit`
 - `smoke_x64_native`
 - `smoke_arm64_native`
 - `smoke_arm64_x64_emulator`
@@ -98,6 +99,7 @@ Run tests:
 
 ```bash
 ctest --preset x64_emulator_unit
+ctest --preset x64_win32_loader_unit
 ctest --preset smoke_x64_native
 ctest --preset smoke_arm64_native
 ctest --preset smoke_arm64_x64_emulator
@@ -148,18 +150,23 @@ The x64 emulator unit test binary should stay architecture-independent and run
 as a host executable under its dedicated CTest preset. Add new instruction coverage
 there before expanding the interpreter or introducing a JIT backend.
 
+The x64 Win32 loader unit test binary should also run as a host executable
+under its own dedicated CTest preset so PE import-resolution coverage remains
+independent from the smoke tests.
+
 Keep raw QEMU command lines inside scripts so the same execution path is used by
 developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose four separately
+The current GitHub Actions setup should continue to expose five separately
 tracked workflows:
 
 1. `x64_emulator_unit`
-2. `smoke_x64_native`
-3. `smoke_arm64_native`
-4. `smoke_arm64_x64_emulator`
+2. `x64_win32_loader_unit`
+3. `smoke_x64_native`
+4. `smoke_arm64_native`
+5. `smoke_arm64_x64_emulator`
 
 Each workflow installs the Linux dependency set, configures and builds the
 matching target, and then runs exactly one scenario-specific CTest preset.
