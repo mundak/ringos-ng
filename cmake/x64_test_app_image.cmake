@@ -16,7 +16,7 @@ function(
   endif()
 
   if(NOT RINGOS_TEST_APP_SOURCE_PATH)
-    set(RINGOS_TEST_APP_SOURCE_PATH ${CMAKE_SOURCE_DIR}/user/samples/x64_test_app.c)
+    set(RINGOS_TEST_APP_SOURCE_PATH ${CMAKE_SOURCE_DIR}/user/samples/test_app.c)
   endif()
 
   if(NOT RINGOS_TEST_APP_BINARY_STEM)
