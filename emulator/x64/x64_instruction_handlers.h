@@ -20,6 +20,8 @@ x64_instruction_outcome execute_x64_nop(x64_execution_context& context, const x6
 
 x64_instruction_outcome execute_x64_xor_register(
   x64_execution_context& context, const x64_decoded_instruction& instruction);
+x64_instruction_outcome execute_x64_test_register(
+  x64_execution_context& context, const x64_decoded_instruction& instruction);
 x64_instruction_outcome execute_x64_group83(x64_execution_context& context, const x64_decoded_instruction& instruction);
 
 x64_instruction_outcome execute_x64_syscall(x64_execution_context& context, const x64_decoded_instruction& instruction);

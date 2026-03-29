@@ -301,6 +301,21 @@ The expected bootstrap order is:
 
 The Stage 0 baseline for that work lives in [docs/user-space-abi.md](docs/user-space-abi.md).
 
+The current Stage 7 bootstrap packages the SDK sysroot under
+`build/<preset>/sysroot/<triple>` and exposes a `ringos_sdk_sysroot` build
+target plus `stage-x64-sdk-sysroot` and `stage-arm64-sdk-sysroot` build
+presets. Each packaged sysroot now carries bootstrap Clang config files, a
+`crt0.obj` startup object, a minimal hosted C library archive implemented in
+C++ behind a C ABI, a bootstrap compiler-rt builtins archive, and toolchain
+metadata under `share/ringos/` so external build tooling can discover the
+provisional target triple and runtime layout.
+
+In the current bootstrap cut, the libc archive is intentionally small: console
+output and basic string routines are present, the malloc family is stubbed out
+until later work, and the arm64-hosted x64-emulator smoke payload still uses a
+minimal assembly guest while the x64 emulator grows beyond its current
+instruction subset.
+
 Clang is only one part of hosted C++ support. After libc exists, the toolchain
 bring-up also needs the target runtime pieces that Clang expects, especially
 compiler-rt and the usual C++ runtime stack such as libunwind, libc++abi, and

@@ -35,6 +35,44 @@ x64_instruction_outcome execute_x64_xor_register(
   return x64_instruction_outcome::CONTINUE_RUNNING;
 }
 
+x64_instruction_outcome execute_x64_test_register(
+  x64_execution_context& context, const x64_decoded_instruction& instruction)
+{
+  uint8_t modrm = 0;
+
+  if (!context.read_u8(instruction.next_address, &modrm))
+  {
+    context.get_result().completion = x64_emulator_completion::INVALID_MEMORY_ACCESS;
+    return x64_instruction_outcome::STOP_RUNNING;
+  }
+
+  const uint8_t mod = static_cast<uint8_t>((modrm >> 6) & 0x3);
+  const uint8_t source_register = static_cast<uint8_t>((modrm >> 3) & 0x7);
+  const uint8_t destination_register = static_cast<uint8_t>(modrm & 0x7);
+
+  if (mod != 3)
+  {
+    context.set_unsupported_instruction(instruction.opcode);
+    return x64_instruction_outcome::STOP_RUNNING;
+  }
+
+  if (instruction.rex_w)
+  {
+    const uint64_t result_value
+      = context.get_register64(destination_register) & context.get_register64(source_register);
+    context.set_logic_flags(result_value, true);
+  }
+  else
+  {
+    const uint32_t result_value
+      = context.get_register32(destination_register) & context.get_register32(source_register);
+    context.set_logic_flags(result_value, false);
+  }
+
+  context.get_state().instruction_pointer = instruction.next_address + 1;
+  return x64_instruction_outcome::CONTINUE_RUNNING;
+}
+
 x64_instruction_outcome execute_x64_group83(x64_execution_context& context, const x64_decoded_instruction& instruction)
 {
   uint8_t modrm = 0;
@@ -116,4 +154,3 @@ x64_instruction_outcome execute_x64_group83(x64_execution_context& context, cons
   context.get_state().instruction_pointer = instruction.next_address + 2;
   return x64_instruction_outcome::CONTINUE_RUNNING;
 }
-

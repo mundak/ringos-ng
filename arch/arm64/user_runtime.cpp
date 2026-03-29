@@ -18,6 +18,7 @@ extern "C" [[noreturn]] void arm64_user_thread_exit();
 
 namespace
 {
+  constexpr char HEX_DIGITS[] = "0123456789abcdef";
   constexpr size_t PAGE_SIZE = 4096;
   constexpr size_t LARGE_PAGE_SIZE = 0x200000;
   constexpr size_t KERNEL_IDENTITY_SIZE = 0x2000000;
@@ -83,6 +84,53 @@ namespace
     uint64_t sp_el0;
     uint64_t esr;
   };
+
+  void append_hex_nibble(char* buffer, size_t* cursor, size_t capacity, uint8_t value)
+  {
+    if (*cursor + 1 < capacity)
+    {
+      buffer[*cursor] = HEX_DIGITS[value & 0xF];
+      ++(*cursor);
+    }
+  }
+
+  void append_hex_u64(char* buffer, size_t* cursor, size_t capacity, uint64_t value)
+  {
+    for (int32_t shift = 60; shift >= 0; shift -= 4)
+    {
+      append_hex_nibble(buffer, cursor, capacity, static_cast<uint8_t>((value >> shift) & 0xF));
+    }
+  }
+
+  void append_literal(char* buffer, size_t* cursor, size_t capacity, const char* value)
+  {
+    if (value == nullptr)
+    {
+      return;
+    }
+
+    while (*value != '\0' && *cursor + 1 < capacity)
+    {
+      buffer[*cursor] = *value;
+      ++(*cursor);
+      ++value;
+    }
+  }
+
+  void debug_log_x64_emulator_fault(const x64_emulator_result& result)
+  {
+    char message[80] {};
+    size_t cursor = 0;
+
+    append_literal(message, &cursor, sizeof(message), "x64 fault ip=0x");
+    append_hex_u64(message, &cursor, sizeof(message), static_cast<uint64_t>(result.fault_address));
+    append_literal(message, &cursor, sizeof(message), " opcode=0x");
+    append_hex_nibble(message, &cursor, sizeof(message), static_cast<uint8_t>(result.fault_opcode >> 4));
+    append_hex_nibble(message, &cursor, sizeof(message), result.fault_opcode);
+    message[cursor] = '\0';
+
+    debug_log(message);
+  }
 
   enum class arm64_user_image_kind : uint32_t
   {
@@ -453,6 +501,7 @@ namespace
 
       if (result.completion != x64_emulator_completion::THREAD_EXITED)
       {
+        debug_log_x64_emulator_fault(result);
         panic(describe_x64_emulator_completion(result.completion));
       }
 

@@ -20,6 +20,14 @@ add_subdirectory(emulator)
 add_subdirectory(kernel)
 add_subdirectory(arch/${RINGOS_TARGET_ARCH})
 
+if(TARGET ringos_${RINGOS_TARGET_ARCH}_sdk_sysroot)
+  add_custom_target(ringos_sdk_sysroot DEPENDS ringos_${RINGOS_TARGET_ARCH}_sdk_sysroot)
+endif()
+
+if(TARGET ringos_x64_sdk_sysroot AND TARGET ringos_arm64_sdk_sysroot)
+  add_custom_target(ringos_all_sdk_sysroots DEPENDS ringos_x64_sdk_sysroot ringos_arm64_sdk_sysroot)
+endif()
+
 if(RINGOS_ENABLE_TESTING)
   include(CTest)
   include(cmake/tests/smoke_tests.cmake)
