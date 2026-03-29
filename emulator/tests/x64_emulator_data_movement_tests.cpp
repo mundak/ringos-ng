@@ -25,7 +25,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::thread_exited,
+             result.completion == x64_emulator_completion::THREAD_EXITED,
              "mov_register_and_syscall",
              "expected thread exit")
       && expect_x64_emulator_test(
@@ -50,7 +50,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::thread_exited, "mov_and_syscall", "expected thread exit")
+             result.completion == x64_emulator_completion::THREAD_EXITED, "mov_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "mov_and_syscall", "expected one syscall");
   }
 
@@ -70,7 +70,7 @@ namespace
           program.size(),
           capture,
           &result,
-          x64_emulator_engine::interpreter,
+          x64_emulator_engine::INTERPRETER,
           32,
           7))
     {
@@ -78,7 +78,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::thread_exited,
+             result.completion == x64_emulator_completion::THREAD_EXITED,
              "lea_rip_relative_string",
              "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "lea_rip_relative_string", "expected one syscall");

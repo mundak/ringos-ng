@@ -232,7 +232,7 @@ namespace
       &image_info);
 
     return expect_x64_win32_test(
-      status == x64_pe64_image_load_status::missing_dos_header,
+      status == x64_pe64_image_load_status::MISSING_DOS_HEADER,
       "loader_rejects_missing_header",
       "expected missing DOS header status");
   }
@@ -255,7 +255,7 @@ namespace
       &image_info);
 
     if (!expect_x64_win32_test(
-          status == x64_pe64_image_load_status::ok,
+          status == x64_pe64_image_load_status::OK,
           "loader_resolves_win32_imports",
           "expected imported image to load successfully"))
     {

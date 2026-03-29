@@ -18,7 +18,7 @@ bool x64_interpreter::run()
 
   if (!m_context.is_valid_invocation())
   {
-    m_context.get_result().completion = x64_emulator_completion::invalid_argument;
+    m_context.get_result().completion = x64_emulator_completion::INVALID_ARGUMENT;
     return false;
   }
 
@@ -33,18 +33,18 @@ bool x64_interpreter::run()
 
     const x64_instruction_outcome outcome = m_dispatch.dispatch(m_context, instruction);
 
-    if (outcome == x64_instruction_outcome::continue_running || outcome == x64_instruction_outcome::retire_and_stop)
+    if (outcome == x64_instruction_outcome::CONTINUE_RUNNING || outcome == x64_instruction_outcome::RETIRE_AND_STOP)
     {
       ++m_context.get_result().retired_instructions;
     }
 
-    if (outcome != x64_instruction_outcome::continue_running)
+    if (outcome != x64_instruction_outcome::CONTINUE_RUNNING)
     {
       return true;
     }
   }
 
-  m_context.get_result().completion = x64_emulator_completion::instruction_limit_reached;
+  m_context.get_result().completion = x64_emulator_completion::INSTRUCTION_LIMIT_REACHED;
   return true;
 }
 

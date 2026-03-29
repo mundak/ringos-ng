@@ -15,6 +15,14 @@ ringos_add_embedded_x64_test_app(
   aarch64
   X64_TEST_APP_IMAGE_OBJECT)
 
+ringos_add_embedded_arm64_test_app(
+  ringos_arm64_ansi_c_test_app
+  elf64-littleaarch64
+  aarch64
+  ARM64_ANSI_C_TEST_APP_IMAGE_OBJECT
+  BINARY_STEM ringos_ansi_c_test_app_arm64_pe64_image
+  SOURCE_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world.c)
+
 set(ARM64_KERNEL_COMPILE_OPTIONS
   -mgeneral-regs-only
 )
@@ -72,6 +80,12 @@ ringos_add_arm64_kernel_target(
   ringos_arm64_test_app
   ${ARM64_TEST_APP_IMAGE_OBJECT}
   ringos_test_app_arm64_pe64_image)
+
+ringos_add_arm64_kernel_target(
+  ringos_arm64_ansi_c
+  ringos_arm64_ansi_c_test_app
+  ${ARM64_ANSI_C_TEST_APP_IMAGE_OBJECT}
+  ringos_ansi_c_test_app_arm64_pe64_image)
 
 ringos_add_arm64_kernel_target(
   ringos_arm64_x64_emulator

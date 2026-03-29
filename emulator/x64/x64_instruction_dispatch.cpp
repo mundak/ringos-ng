@@ -67,7 +67,7 @@ x64_instruction_outcome x64_instruction_dispatch::dispatch_secondary_opcode(
   if (instruction.rex_w)
   {
     context.set_unsupported_instruction(instruction.opcode);
-    return x64_instruction_outcome::stop_running;
+    return x64_instruction_outcome::STOP_RUNNING;
   }
 
   uint8_t secondary_opcode = 0;
@@ -75,7 +75,7 @@ x64_instruction_outcome x64_instruction_dispatch::dispatch_secondary_opcode(
   if (!context.read_u8(instruction.next_address, &secondary_opcode))
   {
     context.set_invalid_memory_access(instruction.next_address, 0);
-    return x64_instruction_outcome::stop_running;
+    return x64_instruction_outcome::STOP_RUNNING;
   }
 
   context.get_result().fault_opcode = secondary_opcode;

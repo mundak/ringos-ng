@@ -4,6 +4,9 @@
 
 * **C++20** (`-std=c++20`). Use modern features (structured bindings, concepts,
   `std::format`, `constexpr`, etc.) where they improve clarity.
+* Freestanding user-space runtime, libc, and sample app sources under `user/`
+  may use ANSI C when the goal is to validate the C ABI or the staged C
+  library surface.
 * Compile with `-Wall -Wextra -Wpedantic` (GCC/Clang) or `/W4` (MSVC).
   **Zero warnings policy.**
 
@@ -71,6 +74,8 @@ if (condition)
 
 * **All function definitions** must live in `.cpp` files. Headers contain only
   declarations.
+  Freestanding ANSI C sources under `user/` are the exception: keep their
+  definitions in `.c` files so the staged C runtime and sample apps stay pure C.
 * Return type stays on the same line as the function name.
 
 ```cpp
@@ -179,10 +184,14 @@ Follow the **C++ Standard Library naming convention** (`snake_case` everywhere).
 | Non-type template parameters | `snake_case` | `capacity`, `index_bits` |
 | Getter / accessor methods | `get_`, `is_`, `has_` prefixes | `get_handle()`, `is_ready()`, `has_messages()` |
 | Private class members | `m_` prefix | `m_window`, `m_vk_ctx` |
+| Enum values | `UPPER_SNAKE_CASE` | `READY`, `MAP_MEMORY` |
 | Constants / macros | `UPPER_SNAKE_CASE` | `VK_NULL_HANDLE`, `MAI_DEBUG` |
 
 Use `m_` only for private class members. Public struct fields, including ABI or
 plain-data carrier types, use unprefixed `snake_case`.
+
+Enum type names still follow `snake_case`. Only the individual enum values use
+`UPPER_SNAKE_CASE`.
 
 Getter-style accessors should use a `get_` prefix. Boolean accessors should use
 `is_` or `has_` as appropriate. Do not name getters with a `_value` suffix.
@@ -256,7 +265,7 @@ static void helper() { }
 
 ## File Layout
 
-Each module lives in its own subdirectory under `src/`:
+Each C++ module lives in its own subdirectory under `src/`:
 
 ```
 src/

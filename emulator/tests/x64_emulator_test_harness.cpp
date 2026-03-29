@@ -37,8 +37,8 @@ namespace
     }
 
     ++capture.call_count;
-    const uint64_t syscall_number = state.general_registers[static_cast<uint32_t>(x64_general_register::rax)];
-    const uint64_t argument0 = state.general_registers[static_cast<uint32_t>(x64_general_register::rdi)];
+    const uint64_t syscall_number = state.general_registers[static_cast<uint32_t>(x64_general_register::RAX)];
+    const uint64_t argument0 = state.general_registers[static_cast<uint32_t>(x64_general_register::RDI)];
 
     if (syscall_number != capture.expected_number)
     {
@@ -119,8 +119,8 @@ bool run_x64_emulator_test_program(
   x64_emulator_state state {};
   state.instruction_pointer = X64_TEST_PROGRAM_BASE;
   state.flags = 0x202;
-  state.general_registers[static_cast<uint32_t>(x64_general_register::rax)] = initial_rax;
-  state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]
+  state.general_registers[static_cast<uint32_t>(x64_general_register::RAX)] = initial_rax;
+  state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]
     = X64_TEST_PROGRAM_BASE + memory_bytes.size();
   capture.memory = &memory;
   capture.call_count = 0;

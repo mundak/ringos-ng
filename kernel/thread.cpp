@@ -7,7 +7,7 @@ thread::thread(
   uint32_t thread_id, handle_t handle_value, process& process_context, const thread_context& initial_context)
   : kernel_object(thread_id, handle_value)
   , m_process(&process_context)
-  , m_state(user_thread_state::ready)
+  , m_state(user_thread_state::READY)
   , m_user_context(initial_context)
   , m_exit_status(0)
 {
@@ -53,3 +53,4 @@ void thread::set_exit_status(uint64_t exit_status)
 {
   m_exit_status = exit_status;
 }
+
