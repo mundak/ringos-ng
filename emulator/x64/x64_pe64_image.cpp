@@ -11,7 +11,7 @@ namespace
   constexpr uint16_t PE32_PLUS_MAGIC = 0x20B;
   constexpr uint32_t PE_IMPORT_DIRECTORY_INDEX = 1;
   constexpr uint32_t PE_BASE_RELOCATION_DIRECTORY_INDEX = 5;
-  constexpr uint64_t PE_IMPORT_BY_ORDINAL_FLAG64 = 1ULL << 63;
+  constexpr uint64_t PE_IMPORT_BY_ORDINAL_MASK64 = 1ULL << 63;
   constexpr size_t X64_WINDOWS_IMPORT_STUB_SIZE = 8;
 
   struct [[gnu::packed]] pe_dos_header
@@ -588,12 +588,12 @@ x64_pe64_image_load_status load_x64_pe64_image(
           break;
         }
 
-        if ((lookup_entry & PE_IMPORT_BY_ORDINAL_FLAG64) != 0)
+        if ((lookup_entry & PE_IMPORT_BY_ORDINAL_MASK64) != 0)
         {
           return x64_pe64_image_load_status::unsupported_import_ordinal;
         }
 
-        const uint64_t raw_name_reference = lookup_entry & ~PE_IMPORT_BY_ORDINAL_FLAG64;
+        const uint64_t raw_name_reference = lookup_entry & ~PE_IMPORT_BY_ORDINAL_MASK64;
         uint32_t import_name_rva = 0;
 
         if (!try_resolve_import_name_rva(
