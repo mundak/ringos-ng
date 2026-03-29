@@ -69,37 +69,63 @@
   ],
   "testPresets": [
     {
-      "name": "test-x64-debug",
-      "configurePreset": "x64-debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "test-arm64-debug",
-      "configurePreset": "arm64-debug",
-      "output": {
-        "outputOnFailure": true
-      }
-    },
-    {
-      "name": "test-x64-ci",
+      "name": "x64_emulator_unit",
       "configurePreset": "x64-ci",
       "output": {
         "outputOnFailure": true
       },
       "execution": {
         "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^x64_emulator_unit$"
+        }
       }
     },
     {
-      "name": "test-arm64-ci",
+      "name": "smoke_x64_native",
+      "configurePreset": "x64-ci",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^smoke_x64_native$"
+        }
+      }
+    },
+    {
+      "name": "smoke_arm64_native",
       "configurePreset": "arm64-ci",
       "output": {
         "outputOnFailure": true
       },
       "execution": {
         "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^smoke_arm64_native$"
+        }
+      }
+    },
+    {
+      "name": "smoke_arm64_x64_emulator",
+      "configurePreset": "arm64-ci",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^smoke_arm64_x64_emulator$"
+        }
       }
     }
   ]

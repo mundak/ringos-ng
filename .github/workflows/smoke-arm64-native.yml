@@ -1,4 +1,4 @@
-name: ci
+name: smoke_arm64_native
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  build-and-test:
+  smoke_arm64_native:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -30,20 +30,11 @@ jobs:
             qemu-system-misc \
             qemu-system-x86
 
-      - name: Configure x64
-        run: cmake --preset x64-ci
-
-      - name: Build x64
-        run: cmake --build --preset build-x64-ci
-
-      - name: Run x64 smoke tests
-        run: ctest --preset test-x64-ci
-
       - name: Configure arm64
         run: cmake --preset arm64-ci
 
       - name: Build arm64
         run: cmake --build --preset build-arm64-ci
 
-      - name: Run arm64 smoke tests
-        run: ctest --preset test-arm64-ci
+      - name: Run native arm64 smoke test
+        run: ctest --preset smoke_arm64_native
