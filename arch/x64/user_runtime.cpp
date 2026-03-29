@@ -235,7 +235,7 @@ namespace
     bootstrap.address_space.user_host_base = reinterpret_cast<uintptr_t>(&m_process_storage[0].user_image_pages[0][0]);
     bootstrap.thread_context.instruction_pointer = entry_point;
     bootstrap.thread_context.stack_pointer = USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
-    bootstrap.thread_context.flags = 0x202;
+    bootstrap.thread_context.flags = USER_THREAD_INITIAL_FLAGS;
     bootstrap.shared_memory_address = USER_IMAGE_VIRTUAL_ADDRESS;
     bootstrap.shared_memory_size = USER_REGION_SIZE;
   }
