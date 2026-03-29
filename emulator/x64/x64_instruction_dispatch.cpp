@@ -39,6 +39,7 @@ void x64_instruction_dispatch::initialize_opcode_handlers()
   m_primary_opcode_handlers[0xEB] = &execute_x64_jump_relative_short;
   m_primary_opcode_handlers[0x74] = &execute_x64_jump_short_condition;
   m_primary_opcode_handlers[0x75] = &execute_x64_jump_short_condition;
+  m_primary_opcode_handlers[0xFF] = &execute_x64_call_indirect_memory;
 
   for (uint32_t opcode = 0x50; opcode <= 0x57; ++opcode)
   {

@@ -32,7 +32,7 @@ public:
   int32_t copy_user_string(const thread& owner_thread, uintptr_t user_address, char* buffer, size_t buffer_size) const;
   thread* get_current_thread();
   void set_current_thread(thread* current_thread);
-  int32_t dispatch_syscall(uint64_t syscall_number, uint64_t argument0);
+  int32_t dispatch_syscall(const user_syscall_context& syscall_context);
   bool is_current_thread_runnable() const;
 
 private:
@@ -41,6 +41,9 @@ private:
   channel* find_channel_by_handle(handle_t handle_value);
   shared_memory_object* find_shared_memory_object_by_handle(handle_t handle_value);
   kernel_object* find_object_by_handle(handle_t handle_value);
+  int32_t copy_user_bytes(const process& owner_process, uintptr_t user_address, void* buffer, size_t buffer_size) const;
+  int32_t write_user_bytes(
+    const process& owner_process, uintptr_t user_address, const void* buffer, size_t buffer_size) const;
   void grant_process_access(kernel_object& object);
   bool try_translate_user_address(
     const process& owner_process, uintptr_t user_address, size_t length, uintptr_t* out_host_address) const;
@@ -55,3 +58,4 @@ private:
 
 user_runtime& get_kernel_user_runtime();
 [[noreturn]] void run_initial_user_runtime(initial_user_runtime_platform& platform);
+

@@ -23,6 +23,7 @@ set(RINGOS_X64_EMULATOR_IMPLEMENTATION_SOURCES
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_pe64_image.cpp
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_stack_instructions.cpp
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_system_instructions.cpp
+  ${CMAKE_SOURCE_DIR}/emulator/x64/x64_windows_compat.cpp
 )
 
 add_custom_command(
@@ -41,6 +42,7 @@ add_custom_command(
     ${RINGOS_X64_EMULATOR_TEST_SOURCES}
     ${CMAKE_SOURCE_DIR}/emulator/include/x64_emulator.h
     ${CMAKE_SOURCE_DIR}/emulator/include/x64_pe64_image.h
+    ${CMAKE_SOURCE_DIR}/emulator/include/x64_windows_compat.h
     ${CMAKE_SOURCE_DIR}/kernel/include/user_space.h
     ${CMAKE_SOURCE_DIR}/emulator/tests/x64_emulator_test_harness.h
     ${CMAKE_SOURCE_DIR}/emulator/x64/x64_decoder.h

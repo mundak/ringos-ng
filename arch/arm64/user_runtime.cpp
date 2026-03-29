@@ -6,6 +6,7 @@
 #include "panic.h"
 #include "x64_emulator.h"
 #include "x64_pe64_image.h"
+#include "x64_windows_compat.h"
 
 extern "C" const uint8_t arm64_exception_vectors[];
 extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_start[];
@@ -90,6 +91,18 @@ namespace
     static_cast<arm64_initial_user_runtime_platform*>(context)->initialize(bootstrap);
   }
 
+  bool resolve_initial_windows_import(
+    void* context, const char* dll_name, const char* function_name, uint32_t* out_syscall_number)
+  {
+    (void) context;
+    return try_resolve_x64_windows_import(dll_name, function_name, out_syscall_number);
+  }
+
+  constexpr x64_pe64_import_resolver INITIAL_WINDOWS_IMPORT_RESOLVER {
+    nullptr,
+    &resolve_initial_windows_import,
+  };
+
   void prepare_arm64_platform(void* context, const process& initial_process, const thread& initial_thread)
   {
     static_cast<arm64_initial_user_runtime_platform*>(context)->prepare_thread_launch(initial_process, initial_thread);
@@ -146,7 +159,13 @@ namespace
       = static_cast<size_t>(_binary_ringos_test_app_x64_pe64_image_end - _binary_ringos_test_app_x64_pe64_image_start);
     x64_pe64_image_info image_info {};
     const x64_pe64_image_load_status load_status = load_x64_pe64_image(
-      image_bytes, image_size, X64_USER_IMAGE_VIRTUAL_ADDRESS, storage.user_region, X64_USER_REGION_SIZE, &image_info);
+      image_bytes,
+      image_size,
+      X64_USER_IMAGE_VIRTUAL_ADDRESS,
+      storage.user_region,
+      X64_USER_REGION_SIZE,
+      &INITIAL_WINDOWS_IMPORT_RESOLVER,
+      &image_info);
 
     if (load_status != x64_pe64_image_load_status::ok)
     {
@@ -233,9 +252,15 @@ namespace
     };
     current_thread->set_user_context(user_context);
 
-    const int32_t syscall_status = runtime.dispatch_syscall(
+    const user_syscall_context syscall_context {
       state.general_registers[static_cast<uint32_t>(x64_general_register::rax)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::rdi)]);
+      state.general_registers[static_cast<uint32_t>(x64_general_register::rdi)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::rdx)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::r8)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::r9)],
+      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]),
+    };
+    const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
     *out_should_continue = runtime.is_current_thread_runnable();
     return syscall_status;
   }
@@ -366,3 +391,4 @@ extern "C" [[noreturn]] void arm64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
+

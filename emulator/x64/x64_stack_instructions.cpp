@@ -23,7 +23,7 @@ x64_instruction_outcome execute_x64_push_register(
     return x64_instruction_outcome::stop_running;
   }
 
-  const uint32_t register_index = instruction.opcode - 0x50;
+  const uint32_t register_index = (instruction.opcode - 0x50) + (instruction.rex_b ? 8U : 0U);
   const uint64_t value = context.get_register64(register_index);
 
   if (!context.push_u64(value))
@@ -44,7 +44,7 @@ x64_instruction_outcome execute_x64_pop_register(
     return x64_instruction_outcome::stop_running;
   }
 
-  const uint32_t register_index = instruction.opcode - 0x58;
+  const uint32_t register_index = (instruction.opcode - 0x58) + (instruction.rex_b ? 8U : 0U);
   uint64_t value = 0;
 
   if (!context.pop_u64(&value))
