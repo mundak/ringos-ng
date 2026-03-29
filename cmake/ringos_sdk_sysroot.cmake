@@ -85,7 +85,9 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(process_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_process.c)
     set(crt0_source ${CMAKE_SOURCE_DIR}/user/crt/src/crt0.c)
     set(libc_errno_source ${CMAKE_SOURCE_DIR}/user/libc/src/errno.cpp)
+    set(libc_puts_source ${CMAKE_SOURCE_DIR}/user/libc/src/puts.cpp)
     set(libc_stdio_source ${CMAKE_SOURCE_DIR}/user/libc/src/stdio.cpp)
+    set(libc_exit_source ${CMAKE_SOURCE_DIR}/user/libc/src/exit.cpp)
     set(libc_stdlib_source ${CMAKE_SOURCE_DIR}/user/libc/src/stdlib.cpp)
     set(libc_string_source ${CMAKE_SOURCE_DIR}/user/libc/src/string.cpp)
     set(compiler_rt_source ${CMAKE_SOURCE_DIR}/user/compiler_rt/src/builtins.c)
@@ -103,7 +105,9 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(process_object ${staging_root}/ringos_process.obj)
     set(crt0_object ${staging_root}/crt0.obj)
     set(libc_errno_object ${staging_root}/libc_errno.obj)
+    set(libc_puts_object ${staging_root}/libc_puts.obj)
     set(libc_stdio_object ${staging_root}/libc_stdio.obj)
+    set(libc_exit_object ${staging_root}/libc_exit.obj)
     set(libc_stdlib_object ${staging_root}/libc_stdlib.obj)
     set(libc_string_object ${staging_root}/libc_string.obj)
     set(compiler_rt_object ${staging_root}/compiler_rt_builtins.obj)
@@ -180,7 +184,9 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         COMMAND ${RINGOS_LLVM_LIB}
                 /out:${staging_libc}
                 ${libc_errno_object}
+                ${libc_puts_object}
                 ${libc_stdio_object}
+                ${libc_exit_object}
                 ${libc_stdlib_object}
                 ${libc_string_object})
       set(compiler_rt_archive_command
@@ -200,7 +206,9 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
                 rcs
                 ${staging_libc}
                 ${libc_errno_object}
+                ${libc_puts_object}
                 ${libc_stdio_object}
+                ${libc_exit_object}
                 ${libc_stdlib_object}
                 ${libc_string_object})
       set(compiler_rt_archive_command
@@ -287,8 +295,38 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -Wpedantic
             -I ${sdk_include_dir}
             -I ${libc_include_dir}
+            -c ${libc_puts_source}
+            -o ${libc_puts_object}
+          COMMAND ${CMAKE_CXX_COMPILER}
+            --target=${target_triple}
+            -O2
+            -ffreestanding
+            -fno-exceptions
+            -fno-rtti
+            -fno-stack-protector
+            -fno-builtin
+            -Wall
+            -Wextra
+            -Wpedantic
+            -I ${sdk_include_dir}
+            -I ${libc_include_dir}
             -c ${libc_stdio_source}
             -o ${libc_stdio_object}
+          COMMAND ${CMAKE_CXX_COMPILER}
+            --target=${target_triple}
+            -O2
+            -ffreestanding
+            -fno-exceptions
+            -fno-rtti
+            -fno-stack-protector
+            -fno-builtin
+            -Wall
+            -Wextra
+            -Wpedantic
+            -I ${sdk_include_dir}
+            -I ${libc_include_dir}
+            -c ${libc_exit_source}
+            -o ${libc_exit_object}
           COMMAND ${CMAKE_CXX_COMPILER}
             --target=${target_triple}
             -O2

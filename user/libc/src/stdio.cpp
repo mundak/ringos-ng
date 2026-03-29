@@ -151,17 +151,6 @@ int printf(const char* format, ...)
   return result;
 }
 
-int puts(const char* string)
-{
-  if (string == nullptr)
-  {
-    errno = EINVAL;
-    return -1;
-  }
-
-  return ringos_debug_log(string);
-}
-
 int snprintf(char* buffer, size_t buffer_size, const char* format, ...)
 {
   va_list arguments;

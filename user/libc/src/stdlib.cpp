@@ -31,11 +31,6 @@ void* calloc(size_t count, size_t size)
   return nullptr;
 }
 
-void exit(int exit_status)
-{
-  ringos_thread_exit(static_cast<uint64_t>(static_cast<uint32_t>(exit_status)));
-}
-
 void free(void* pointer)
 {
   (void) pointer;
