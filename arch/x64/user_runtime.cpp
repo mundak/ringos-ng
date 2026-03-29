@@ -11,8 +11,8 @@ extern "C" [[noreturn]] void x64_enter_user_thread(
   uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t flags);
 extern "C" void x64_syscall_entry();
 extern "C" [[noreturn]] void x64_user_thread_exit();
-extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_start[];
-extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_end[];
+extern "C" const uint8_t _binary_ringos_test_app_image_start[];
+extern "C" const uint8_t _binary_ringos_test_app_image_end[];
 
 namespace
 {
@@ -194,9 +194,9 @@ namespace
 
   uintptr_t x64_initial_user_runtime_platform::initialize_user_image(x64_process_storage& storage)
   {
-    const uint8_t* const image_bytes = _binary_ringos_test_app_x64_pe64_image_start;
+    const uint8_t* const image_bytes = _binary_ringos_test_app_image_start;
     const size_t image_size
-      = static_cast<size_t>(_binary_ringos_test_app_x64_pe64_image_end - _binary_ringos_test_app_x64_pe64_image_start);
+      = static_cast<size_t>(_binary_ringos_test_app_image_end - _binary_ringos_test_app_image_start);
     uint8_t* const loaded_image = &storage.user_image_pages[0][0];
     x64_pe64_image_info image_info {};
     const x64_pe64_image_load_status load_status = load_x64_pe64_image(
