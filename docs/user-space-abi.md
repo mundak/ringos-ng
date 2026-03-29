@@ -146,7 +146,8 @@ The first supported user executable format is architecture-specific and intentio
 
 - x64 user images: `PE32+` (`PE64`), `IMAGE_FILE_MACHINE_AMD64`, statically linked, built without
   system libraries, and loaded at a fixed image base for the Stage 2 proof path.
-- arm64 user images: `ELFCLASS64`, `EM_AARCH64`, statically linked.
+- arm64 user images: `PE32+` (`PE64`), `IMAGE_FILE_MACHINE_ARM64`, statically linked, built without
+  system libraries, and loaded at a fixed image base for the early proof path.
 - Shared libraries, PIE, a dynamic loader, and relocation processing are out of scope for the
   first cut.
 
@@ -159,7 +160,7 @@ image contract.
 Stage 0 keeps provisional compiler-facing targets for the earliest user-space bring-up:
 
 - x64 Stage 2 proof path: `x86_64-pc-windows-msvc` to emit a PE64 image without system libraries.
-- arm64 proof path: `aarch64-unknown-none-elf`.
+- arm64 proof path: `aarch64-pc-windows-msvc` to emit a PE64 image without system libraries.
 
 These names are implementation choices for the current bootstrap path, not a claim about the final
 ringos-specific toolchain surface. A later stage may add ringos-specific triples and Clang driver
@@ -176,6 +177,6 @@ Stage 1 implementation work should therefore target:
 - explicit shared-memory objects for bulk transfer and shared buffers
 
 Any Stage 1 design that changes the bare-handle model, requires implicit handle inheritance,
-asynchronous message-only IPC, or a non-ELF first user image format should be treated as a
+asynchronous message-only IPC, or a different first user image format should be treated as a
 deliberate ABI change and updated here
 before code is written.

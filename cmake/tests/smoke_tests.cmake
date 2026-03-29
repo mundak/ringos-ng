@@ -1,47 +1,61 @@
 if(RINGOS_TARGET_ARCH STREQUAL "x64")
   add_test(
-    NAME smoke_x64
+    NAME smoke_x64_native
     COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-smoke-x64.sh
             $<TARGET_FILE:ringos_x64>
   )
 
   add_test(
-    NAME debug_launch_x64
-    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-debug-launch-x64.sh
+    NAME smoke_x64_ansi_c
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-smoke-x64-ansi-c.sh
+            $<TARGET_FILE:ringos_x64_ansi_c>
   )
 
   set_tests_properties(
-    smoke_x64
+    smoke_x64_native
     PROPERTIES
       TIMEOUT 20
   )
 
   set_tests_properties(
-    debug_launch_x64
+    smoke_x64_ansi_c
     PROPERTIES
-      TIMEOUT 5
+      TIMEOUT 20
   )
 elseif(RINGOS_TARGET_ARCH STREQUAL "arm64")
   add_test(
-    NAME smoke_arm64
-    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-smoke-arm64.sh
-            $<TARGET_FILE:ringos_arm64>
+    NAME smoke_arm64_native
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-smoke-arm64-native.sh
+      $<TARGET_FILE:ringos_arm64>
   )
 
   add_test(
-    NAME debug_launch_arm64
-    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-debug-launch-arm64.sh
+    NAME smoke_arm64_ansi_c
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-smoke-arm64-ansi-c.sh
+      $<TARGET_FILE:ringos_arm64_ansi_c>
+  )
+
+  add_test(
+    NAME smoke_arm64_x64_emulator
+    COMMAND ${CMAKE_SOURCE_DIR}/scripts/test-smoke-arm64-x64-emulator.sh
+      $<TARGET_FILE:ringos_arm64_x64_emulator>
   )
 
   set_tests_properties(
-    smoke_arm64
+    smoke_arm64_native
     PROPERTIES
       TIMEOUT 20
   )
 
   set_tests_properties(
-    debug_launch_arm64
+    smoke_arm64_ansi_c
     PROPERTIES
-      TIMEOUT 5
+      TIMEOUT 20
+  )
+
+  set_tests_properties(
+    smoke_arm64_x64_emulator
+    PROPERTIES
+      TIMEOUT 20
   )
 endif()

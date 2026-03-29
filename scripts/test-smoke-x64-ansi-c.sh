@@ -1,19 +1,10 @@
 #!/usr/bin/env bash
-# Smoke test for the x64 kernel image.
-#
-# Launches the kernel in QEMU, enforces a hard timeout, and asserts that the
-# expected host-side debug output appears. Exits non-zero on timeout, early
-# crash, or missing output.
-#
-# Usage:
-#   scripts/test-smoke-x64.sh <path-to-ringos_x64>
-#
-# This script is registered as the smoke_x64_native CTest test.
+# Smoke test for the x64 kernel image that boots the ANSI C hello world app.
 
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <path-to-ringos_x64>" >&2
+  echo "Usage: $0 <path-to-ringos_x64_ansi_c>" >&2
   exit 1
 fi
 
@@ -33,13 +24,13 @@ for expected_line in \
   "[gdb] gdb hooks ready" \
   "[gdb] hello world" \
   "[gdb] x64 initial user runtime ready" \
-  "[gdb] generic test app reached user mode"; do
+  "[gdb] hello world from ANSI C"; do
   if ! grep -Fq -- "${expected_line}" "${DEBUG_LOG}"; then
-    echo "FAIL: expected '${expected_line}' not found in x64 debug output" >&2
+    echo "FAIL: expected '${expected_line}' not found in x64 ANSI C debug output" >&2
     echo "--- debug output ---" >&2
     cat "${DEBUG_LOG}" >&2
     exit 1
   fi
 done
 
-echo "PASS: x64 native smoke test"
+echo "PASS: x64 ANSI C smoke test"

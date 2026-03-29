@@ -1,5 +1,4 @@
 #include "x64_emulator_test_harness.h"
-#include "x64_pe64_image.h"
 
 #include <array>
 
@@ -48,7 +47,7 @@ namespace
 
   bool test_call_indirect_rip_relative()
   {
-    constexpr uintptr_t indirect_target = X64_USER_IMAGE_VIRTUAL_ADDRESS + 24;
+    constexpr uintptr_t indirect_target = X64_TEST_PROGRAM_BASE + 24;
     constexpr std::array<uint8_t, 25> program {
       0xFF,
       0x15,

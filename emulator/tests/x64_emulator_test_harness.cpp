@@ -1,7 +1,6 @@
 #include "x64_emulator_test_harness.h"
 
 #include "user_space.h"
-#include "x64_pe64_image.h"
 
 #include <array>
 #include <cstdio>
@@ -9,7 +8,6 @@
 
 namespace
 {
-  constexpr uintptr_t TEST_IMAGE_BASE = X64_USER_IMAGE_VIRTUAL_ADDRESS;
   constexpr size_t TEST_MEMORY_SIZE = 256;
 
   uint8_t* translate_guest(const x64_emulator_memory& memory, uintptr_t guest_address, size_t length)
@@ -114,15 +112,16 @@ bool run_x64_emulator_test_program(
   std::memcpy(memory_bytes.data(), program, program_size);
 
   x64_emulator_memory memory {
-    TEST_IMAGE_BASE,
+    X64_TEST_PROGRAM_BASE,
     memory_bytes.data(),
     memory_bytes.size(),
   };
   x64_emulator_state state {};
-  state.instruction_pointer = TEST_IMAGE_BASE;
+  state.instruction_pointer = X64_TEST_PROGRAM_BASE;
   state.flags = 0x202;
   state.general_registers[static_cast<uint32_t>(x64_general_register::RAX)] = initial_rax;
-  state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)] = TEST_IMAGE_BASE + memory_bytes.size();
+  state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]
+    = X64_TEST_PROGRAM_BASE + memory_bytes.size();
   capture.memory = &memory;
   capture.call_count = 0;
   const x64_emulator_callbacks callbacks {

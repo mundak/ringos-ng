@@ -11,14 +11,16 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 - x64 also loads a minimal statically linked PE64 user test image and proves
   the first ring3 entry, syscall, and exit path.
 - arm64 boots in QEMU virt, reaches the same shared C++ kernel entry point,
-  emits the expected host-side debug trace through semihosting, and now drives
-  the existing x64 PE64 user test image through an interpreter-backed emulator path.
+  emits the expected host-side debug trace through semihosting, and now covers
+  both a native arm64 user image path and an interpreter-backed x64 PE64 user
+  image path.
 - Both targets now install a per-process user address space with explicit MMU
   boundaries, while keeping the kernel mapped in every process context.
 - Shared kernel code owns the boot handoff contract, debug-host logging path,
   and panic handling.
-- CI builds both supported targets, runs the smoke surface, and also runs host-side
-  x64 emulator instruction tests.
+- CI exposes four independently tracked workflows: one for the host-side x64
+  emulator unit test, one for native x64 smoke, one for native arm64 smoke,
+  and one for emulated x64-on-arm64 smoke.
 
 ## Supported Targets
 
@@ -66,8 +68,8 @@ If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
 docker build -f docker/Dockerfile -t ringos-ci .
-docker run --rm ringos-ci bash -lc "cmake --preset x64-ci && cmake --build --preset build-x64-ci && ctest --preset test-x64-ci"
-docker run --rm ringos-ci bash -lc "cmake --preset arm64-ci && cmake --build --preset build-arm64-ci && ctest --preset test-arm64-ci"
+docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset smoke_x64_native"
+docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset smoke_arm64_native && ctest --preset smoke_arm64_x64_emulator"
 ```
 
 ### Native Linux Workflow
@@ -142,8 +144,11 @@ debug console.
 Run smoke tests with CTest:
 
 ```bash
-ctest --preset test-x64-debug
-ctest --preset test-arm64-debug
+ctest --preset x64_emulator_unit
+ctest --preset x64_win32_loader_unit
+ctest --preset smoke_x64_native
+ctest --preset smoke_arm64_native
+ctest --preset smoke_arm64_x64_emulator
 ```
 
 More detail on the local and CI verification contract lives in
@@ -176,7 +181,8 @@ More detail on the local and CI verification contract lives in
 │   ├── docker-test-x64.bat
 │   ├── run-arm64.sh
 │   ├── run-x64.sh
-│   ├── test-smoke-arm64.sh
+│   ├── test-smoke-arm64-native.sh
+│   ├── test-smoke-arm64-x64-emulator.sh
 │   └── test-smoke-x64.sh
 └── docs/
     ├── ci-and-testing.md

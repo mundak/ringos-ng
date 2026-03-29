@@ -4,13 +4,16 @@
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
+#include "pe_image.h"
 #include "x64_emulator.h"
 #include "x64_pe64_image.h"
 #include "x64_windows_compat.h"
 
 extern "C" const uint8_t arm64_exception_vectors[];
-extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_start[];
-extern "C" const uint8_t _binary_ringos_test_app_x64_pe64_image_end[];
+extern "C" const uint8_t _binary_ringos_test_app_image_start[];
+extern "C" const uint8_t _binary_ringos_test_app_image_end[];
+extern "C" [[noreturn]] void arm64_enter_user_thread(
+  uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t spsr);
 extern "C" [[noreturn]] void arm64_user_thread_exit();
 
 namespace
@@ -24,8 +27,12 @@ namespace
   constexpr size_t USER_REGION_SIZE = LARGE_PAGE_SIZE;
   constexpr uint32_t USER_BLOCK_INDEX = static_cast<uint32_t>(USER_REGION_VIRTUAL_ADDRESS / LARGE_PAGE_SIZE);
   constexpr uint32_t KERNEL_ROOT_INDEX = static_cast<uint32_t>(KERNEL_IDENTITY_BASE >> 30);
+  constexpr uint64_t ARM64_INITIAL_PSTATE = 0;
   constexpr uint64_t X64_INITIAL_RFLAGS = 0x202;
   constexpr uint64_t X64_EMULATOR_INSTRUCTION_BUDGET = 512;
+  constexpr uint64_t ESR_EXCEPTION_CLASS_MASK = 0x3FULL;
+  constexpr uint64_t ESR_EXCEPTION_CLASS_SHIFT = 26;
+  constexpr uint64_t ESR_EXCEPTION_CLASS_SVC64 = 0x15ULL;
 
   constexpr uint64_t TABLE_DESCRIPTOR = 0x3;
   constexpr uint64_t BLOCK_DESCRIPTOR = 0x1;
@@ -60,6 +67,30 @@ namespace
     alignas(LARGE_PAGE_SIZE) uint8_t user_region[USER_REGION_SIZE];
   };
 
+  struct arm64_syscall_frame
+  {
+    uint64_t x0;
+    uint64_t x1;
+    uint64_t x2;
+    uint64_t x3;
+    uint64_t x4;
+    uint64_t x5;
+    uint64_t x6;
+    uint64_t x7;
+    uint64_t x8;
+    uint64_t elr;
+    uint64_t spsr;
+    uint64_t sp_el0;
+    uint64_t esr;
+  };
+
+  enum class arm64_user_image_kind : uint32_t
+  {
+    UNKNOWN = 0,
+    NATIVE_ARM64_PE64 = 1,
+    X64_PE64 = 2,
+  };
+
   class arm64_initial_user_runtime_platform final
   {
   public:
@@ -67,9 +98,11 @@ namespace
     void prepare_thread_launch(const process& initial_process, const thread& initial_thread);
     [[noreturn]] void enter_user_thread(const process& initial_process, const thread& initial_thread);
     void activate_process_address_space(const process* process_context);
+    arm64_user_image_kind get_user_image_kind() const;
 
   private:
     static int32_t dispatch_x64_syscall(void* context, const x64_emulator_state& state, bool* out_should_continue);
+    uintptr_t initialize_arm64_pe_image(const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage);
     void enable_mmu();
     uintptr_t initialize_user_image(arm64_process_storage& storage);
     void initialize_process_storage(arm64_process_storage& storage);
@@ -83,6 +116,7 @@ namespace
     void write_vector_base(uintptr_t vector_base);
 
     arm64_process_storage m_process_storage[USER_RUNTIME_MAX_PROCESSES] {};
+    arm64_user_image_kind m_user_image_kind = arm64_user_image_kind::UNKNOWN;
     bool m_mmu_enabled = false;
   };
 
@@ -152,28 +186,74 @@ namespace
     }
   }
 
-  uintptr_t arm64_initial_user_runtime_platform::initialize_user_image(arm64_process_storage& storage)
+  arm64_user_image_kind arm64_initial_user_runtime_platform::get_user_image_kind() const
   {
-    const uint8_t* const image_bytes = _binary_ringos_test_app_x64_pe64_image_start;
-    const size_t image_size
-      = static_cast<size_t>(_binary_ringos_test_app_x64_pe64_image_end - _binary_ringos_test_app_x64_pe64_image_start);
-    x64_pe64_image_info image_info {};
-    const x64_pe64_image_load_status load_status = load_x64_pe64_image(
-      image_bytes,
-      image_size,
-      X64_USER_IMAGE_VIRTUAL_ADDRESS,
-      storage.user_region,
-      X64_USER_REGION_SIZE,
-      &INITIAL_WINDOWS_IMPORT_RESOLVER,
-      &image_info);
+    return m_user_image_kind;
+  }
 
-    if (load_status != x64_pe64_image_load_status::OK)
+  uintptr_t arm64_initial_user_runtime_platform::initialize_arm64_pe_image(
+    const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage)
+  {
+    const pe_image_load_config load_config {
+      .expected_machine = PE_MACHINE_ARM64,
+      .expected_image_base = USER_REGION_VIRTUAL_ADDRESS,
+      .expected_section_alignment = PAGE_SIZE,
+      .expected_file_alignment = PAGE_SIZE,
+      .loaded_image_size = USER_REGION_SIZE,
+      .allow_imports = false,
+      .allow_relocations = false,
+    };
+    pe_image_load_result load_result {};
+    const pe_image_load_status load_status
+      = load_pe32_plus_image(image_bytes, image_size, storage.user_region, load_config, &load_result);
+
+    if (load_status != pe_image_load_status::OK)
     {
-      panic(describe_x64_pe64_image_load_status(load_status));
+      panic(describe_pe_image_load_status(load_status));
     }
 
-    *reinterpret_cast<uint64_t*>(storage.user_region + X64_USER_REGION_SIZE - sizeof(uint64_t)) = 0;
-    return image_info.entry_point;
+    *reinterpret_cast<uint64_t*>(storage.user_region + USER_REGION_SIZE - sizeof(uint64_t)) = 0;
+    return load_result.entry_point;
+  }
+
+  uintptr_t arm64_initial_user_runtime_platform::initialize_user_image(arm64_process_storage& storage)
+  {
+    const uint8_t* const image_bytes = _binary_ringos_test_app_image_start;
+    const size_t image_size
+      = static_cast<size_t>(_binary_ringos_test_app_image_end - _binary_ringos_test_app_image_start);
+    uint16_t pe_machine = 0;
+
+    if (try_get_pe_machine(image_bytes, image_size, &pe_machine) && pe_machine == PE_MACHINE_ARM64)
+    {
+      m_user_image_kind = arm64_user_image_kind::NATIVE_ARM64_PE64;
+      return initialize_arm64_pe_image(image_bytes, image_size, storage);
+    }
+
+    if (try_get_pe_machine(image_bytes, image_size, &pe_machine) && pe_machine == PE_MACHINE_X64)
+    {
+      m_user_image_kind = arm64_user_image_kind::X64_PE64;
+      memset(storage.user_region, 0, sizeof(storage.user_region));
+
+      x64_pe64_image_info image_info {};
+      const x64_pe64_image_load_status load_status = load_x64_pe64_image(
+        image_bytes,
+        image_size,
+        X64_USER_IMAGE_VIRTUAL_ADDRESS,
+        storage.user_region,
+        X64_USER_REGION_SIZE,
+        &INITIAL_WINDOWS_IMPORT_RESOLVER,
+        &image_info);
+
+      if (load_status != x64_pe64_image_load_status::ok)
+      {
+        panic(describe_x64_pe64_image_load_status(load_status));
+      }
+
+      *reinterpret_cast<uint64_t*>(storage.user_region + X64_USER_REGION_SIZE - sizeof(uint64_t)) = 0;
+      return image_info.entry_point;
+    }
+
+    panic("arm64 attached user image has an unsupported signature");
   }
 
   void arm64_initial_user_runtime_platform::write_vector_base(uintptr_t vector_base)
@@ -273,13 +353,25 @@ namespace
 
     bootstrap.address_space.arch_root_table = reinterpret_cast<uintptr_t>(&m_process_storage[0].root_table);
     bootstrap.address_space.user_base = USER_REGION_VIRTUAL_ADDRESS;
-    bootstrap.address_space.user_size = X64_USER_REGION_SIZE;
+    bootstrap.address_space.user_size
+      = m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64 ? USER_REGION_SIZE : X64_USER_REGION_SIZE;
     bootstrap.address_space.user_host_base = reinterpret_cast<uintptr_t>(m_process_storage[0].user_region);
     bootstrap.thread_context.instruction_pointer = entry_point;
-    bootstrap.thread_context.stack_pointer = X64_USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
-    bootstrap.thread_context.flags = X64_INITIAL_RFLAGS;
+
+    if (m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64)
+    {
+      bootstrap.thread_context.stack_pointer = USER_REGION_VIRTUAL_ADDRESS + USER_REGION_SIZE - sizeof(uint64_t);
+      bootstrap.thread_context.flags = ARM64_INITIAL_PSTATE;
+    }
+    else
+    {
+      bootstrap.thread_context.stack_pointer = X64_USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
+      bootstrap.thread_context.flags = X64_INITIAL_RFLAGS;
+    }
+
     bootstrap.shared_memory_address = USER_REGION_VIRTUAL_ADDRESS;
-    bootstrap.shared_memory_size = X64_USER_REGION_SIZE;
+    bootstrap.shared_memory_size
+      = m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64 ? USER_REGION_SIZE : X64_USER_REGION_SIZE;
   }
 
   void arm64_initial_user_runtime_platform::prepare_thread_launch(
@@ -319,40 +411,55 @@ namespace
   {
     activate_process_address_space(&initial_process);
 
-    user_runtime& runtime = get_kernel_user_runtime();
-    x64_emulator_state emulated_state {};
-    emulated_state.instruction_pointer = initial_thread.get_user_context().instruction_pointer;
-    emulated_state.flags = static_cast<uint64_t>(initial_thread.get_user_context().flags);
-    emulated_state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]
-      = initial_thread.get_user_context().stack_pointer;
-    const x64_emulator_memory memory {
-      X64_USER_IMAGE_VIRTUAL_ADDRESS,
-      m_process_storage[0].user_region,
-      X64_USER_REGION_SIZE,
-    };
-    const x64_emulator_callbacks callbacks {
-      &runtime,
-      &arm64_initial_user_runtime_platform::dispatch_x64_syscall,
-    };
-    const x64_emulator_options options {
-      x64_emulator_engine::INTERPRETER,
-      X64_EMULATOR_INSTRUCTION_BUDGET,
-    };
-    x64_emulator_result result {};
-
-    debug_log("arm64 x64 emulator runtime ready");
-
-    if (!run_x64_emulator(emulated_state, memory, callbacks, options, &result))
+    if (m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64)
     {
-      panic("arm64 failed to launch the x64 emulator backend");
+      debug_log("arm64 initial user runtime ready");
+
+      arm64_enter_user_thread(
+        initial_thread.get_user_context().instruction_pointer,
+        initial_thread.get_user_context().stack_pointer,
+        initial_thread.get_user_context().flags);
     }
 
-    if (result.completion != x64_emulator_completion::THREAD_EXITED)
+    if (m_user_image_kind == arm64_user_image_kind::X64_PE64)
     {
-      panic(describe_x64_emulator_completion(result.completion));
+      user_runtime& runtime = get_kernel_user_runtime();
+      x64_emulator_state emulated_state {};
+      emulated_state.instruction_pointer = initial_thread.get_user_context().instruction_pointer;
+      emulated_state.flags = static_cast<uint64_t>(initial_thread.get_user_context().flags);
+      emulated_state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]
+        = initial_thread.get_user_context().stack_pointer;
+      const x64_emulator_memory memory {
+        X64_USER_IMAGE_VIRTUAL_ADDRESS,
+        m_process_storage[0].user_region,
+        X64_USER_REGION_SIZE,
+      };
+      const x64_emulator_callbacks callbacks {
+        &runtime,
+        &arm64_initial_user_runtime_platform::dispatch_x64_syscall,
+      };
+      const x64_emulator_options options {
+        x64_emulator_engine::INTERPRETER,
+        X64_EMULATOR_INSTRUCTION_BUDGET,
+      };
+      x64_emulator_result result {};
+
+      debug_log("arm64 x64 emulator runtime ready");
+
+      if (!run_x64_emulator(emulated_state, memory, callbacks, options, &result))
+      {
+        panic("arm64 failed to launch the x64 emulator backend");
+      }
+
+      if (result.completion != x64_emulator_completion::THREAD_EXITED)
+      {
+        panic(describe_x64_emulator_completion(result.completion));
+      }
+
+      arm64_user_thread_exit();
     }
 
-    arm64_user_thread_exit();
+    panic("arm64 user image kind was not initialized");
   }
 }
 
@@ -368,8 +475,51 @@ extern "C" [[noreturn]] void arm64_unhandled_exception()
 
 extern "C" bool arm64_handle_syscall(void* frame)
 {
-  (void) frame;
-  panic("arm64 hardware syscall path is disabled while the x64 emulator backend is active");
+  if (frame == nullptr)
+  {
+    panic("arm64 syscall frame was null");
+  }
+
+  if (g_initial_user_runtime_platform.get_user_image_kind() == arm64_user_image_kind::X64_PE64)
+  {
+    panic("arm64 hardware syscall path is disabled while the x64 emulator backend is active");
+  }
+
+  if (g_initial_user_runtime_platform.get_user_image_kind() != arm64_user_image_kind::NATIVE_ARM64_PE64)
+  {
+    panic("arm64 syscall path was entered without a native arm64 user image");
+  }
+
+  arm64_syscall_frame* const syscall_frame = static_cast<arm64_syscall_frame*>(frame);
+  const uint64_t exception_class = (syscall_frame->esr >> ESR_EXCEPTION_CLASS_SHIFT) & ESR_EXCEPTION_CLASS_MASK;
+
+  if (exception_class != ESR_EXCEPTION_CLASS_SVC64)
+  {
+    panic("arm64 lower-el sync was not an svc64 syscall");
+  }
+
+  user_runtime& runtime = get_kernel_user_runtime();
+  thread* current_thread = runtime.get_current_thread();
+
+  if (current_thread == nullptr)
+  {
+    panic("arm64 syscall without current thread");
+  }
+
+  const thread_context user_context {
+    static_cast<uintptr_t>(syscall_frame->elr),
+    static_cast<uintptr_t>(syscall_frame->sp_el0),
+    static_cast<uintptr_t>(syscall_frame->spsr),
+  };
+  current_thread->set_user_context(user_context);
+
+  const user_syscall_context syscall_context {
+    syscall_frame->x8, syscall_frame->x0, syscall_frame->x1,
+    syscall_frame->x2, syscall_frame->x3, static_cast<uintptr_t>(syscall_frame->sp_el0),
+  };
+  const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
+  syscall_frame->x0 = static_cast<uint64_t>(static_cast<int64_t>(syscall_status));
+  return runtime.is_current_thread_runnable();
 }
 
 extern "C" [[noreturn]] void arm64_user_thread_exit()
@@ -391,4 +541,3 @@ extern "C" [[noreturn]] void arm64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
-

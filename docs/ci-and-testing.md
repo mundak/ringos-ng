@@ -26,7 +26,7 @@ Use these layers:
 3. `CTest` also runs host-side emulator unit tests for the x64 interpreter backend.
 4. `scripts/*.sh` contains QEMU launch and output assertion logic.
 5. `scripts/docker-*.bat` wraps the Windows container workflow.
-6. `.github/workflows/ci.yml` installs dependencies and runs the same presets.
+6. `.github/workflows/*.yml` installs dependencies and runs the same presets.
 
 The workflow file should stay thin. If a command matters for local users, it
 should exist in the repository first.
@@ -37,25 +37,24 @@ Configure presets:
 
 - `x64-debug`
 - `arm64-debug`
-- `x64-ci`
-- `arm64-ci`
 
 Build presets:
 
 - `build-x64-debug`
 - `build-arm64-debug`
-- `build-x64-ci`
-- `build-arm64-ci`
 
 Test presets:
 
-- `test-x64-debug`
-- `test-arm64-debug`
-- `test-x64-ci`
-- `test-arm64-ci`
+- `x64_emulator_unit`
+- `x64_win32_loader_unit`
+- `smoke_x64_native`
+- `smoke_x64_ansi_c`
+- `smoke_arm64_native`
+- `smoke_arm64_ansi_c`
+- `smoke_arm64_x64_emulator`
 
-Debug presets are intended for direct local iteration. CI presets should remain
-deterministic and automation-friendly.
+Each test preset maps to exactly one distinct CI scenario and stops on the
+first failure.
 
 ## Local Workflows
 
@@ -94,11 +93,16 @@ cmake --preset arm64-debug
 cmake --build --preset build-arm64-debug
 ```
 
-Run smoke tests:
+Run tests:
 
 ```bash
-ctest --preset test-x64-debug
-ctest --preset test-arm64-debug
+ctest --preset x64_emulator_unit
+ctest --preset x64_win32_loader_unit
+ctest --preset smoke_x64_native
+ctest --preset smoke_x64_ansi_c
+ctest --preset smoke_arm64_native
+ctest --preset smoke_arm64_ansi_c
+ctest --preset smoke_arm64_x64_emulator
 ```
 
 Run QEMU directly:
@@ -142,32 +146,33 @@ Each smoke test script should:
 4. Assert the expected output appears.
 5. Return a non-zero exit code on timeout, early crash, or missing output.
 
-The debugger launch wrappers should also stay under test. Their contract is to:
-
-1. launch the correct QEMU binary for the active architecture
-2. expose a GDB stub on the configured port
-3. pause execution at startup with `-S`
-4. preserve the same host-side debug sink configuration used by local debugging
-
 The x64 emulator unit test binary should stay architecture-independent and run
-as a host executable under every CTest preset. Add new instruction coverage
+as a host executable under its dedicated CTest preset. Add new instruction coverage
 there before expanding the interpreter or introducing a JIT backend.
+
+The x64 Win32 loader unit test binary should also run as a host executable
+under its own dedicated CTest preset so PE import-resolution coverage remains
+independent from the smoke tests.
 
 Keep raw QEMU command lines inside scripts so the same execution path is used by
 developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions workflow should continue to:
+The current GitHub Actions setup should continue to expose seven separately
+tracked workflows:
 
-1. install the Linux dependency set
-2. configure x64
-3. build x64
-4. run the x64 smoke test preset
-5. configure arm64
-6. build arm64
-7. run the arm64 smoke test preset
+1. `x64_emulator_unit`
+2. `x64_win32_loader_unit`
+3. `smoke_x64_native`
+4. `smoke_x64_ansi_c`
+5. `smoke_arm64_native`
+6. `smoke_arm64_ansi_c`
+7. `smoke_arm64_x64_emulator`
+
+Each workflow installs the Linux dependency set, configures and builds the
+matching target, and then runs exactly one scenario-specific CTest preset.
 
 If the dependency stack changes, update `docker/Dockerfile` and
-`.github/workflows/ci.yml` together so local container runs and CI stay in
-sync.
+the workflow files under `.github/workflows/` together so local container runs
+and CI stay in sync.

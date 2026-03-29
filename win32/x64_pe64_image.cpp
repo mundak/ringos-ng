@@ -1,97 +1,13 @@
 #include "x64_pe64_image.h"
 
 #include "memory.h"
+#include "pe_image.h"
 #include "x64_win32_emulation.h"
 
 namespace
 {
-  constexpr uint16_t PE_DOS_SIGNATURE = 0x5A4D;
-  constexpr uint32_t PE_NT_SIGNATURE = 0x00004550;
-  constexpr uint16_t PE_MACHINE_X64 = 0x8664;
-  constexpr uint16_t PE32_PLUS_MAGIC = 0x20B;
-  constexpr uint32_t PE_IMPORT_DIRECTORY_INDEX = 1;
-  constexpr uint32_t PE_BASE_RELOCATION_DIRECTORY_INDEX = 5;
   constexpr uint64_t PE_IMPORT_BY_ORDINAL_MASK64 = 1ULL << 63;
   constexpr size_t X64_WINDOWS_IMPORT_STUB_SIZE = 8;
-
-  struct [[gnu::packed]] pe_dos_header
-  {
-    uint16_t e_magic;
-    uint8_t unused[58];
-    int32_t e_lfanew;
-  };
-
-  struct [[gnu::packed]] pe_file_header
-  {
-    uint16_t machine;
-    uint16_t number_of_sections;
-    uint32_t time_date_stamp;
-    uint32_t pointer_to_symbol_table;
-    uint32_t number_of_symbols;
-    uint16_t size_of_optional_header;
-    uint16_t characteristics;
-  };
-
-  struct [[gnu::packed]] pe_data_directory
-  {
-    uint32_t virtual_address;
-    uint32_t size;
-  };
-
-  struct [[gnu::packed]] pe_optional_header64
-  {
-    uint16_t magic;
-    uint8_t major_linker_version;
-    uint8_t minor_linker_version;
-    uint32_t size_of_code;
-    uint32_t size_of_initialized_data;
-    uint32_t size_of_uninitialized_data;
-    uint32_t address_of_entry_point;
-    uint32_t base_of_code;
-    uint64_t image_base;
-    uint32_t section_alignment;
-    uint32_t file_alignment;
-    uint16_t major_operating_system_version;
-    uint16_t minor_operating_system_version;
-    uint16_t major_image_version;
-    uint16_t minor_image_version;
-    uint16_t major_subsystem_version;
-    uint16_t minor_subsystem_version;
-    uint32_t win32_version_value;
-    uint32_t size_of_image;
-    uint32_t size_of_headers;
-    uint32_t check_sum;
-    uint16_t subsystem;
-    uint16_t dll_characteristics;
-    uint64_t size_of_stack_reserve;
-    uint64_t size_of_stack_commit;
-    uint64_t size_of_heap_reserve;
-    uint64_t size_of_heap_commit;
-    uint32_t loader_flags;
-    uint32_t number_of_rva_and_sizes;
-    pe_data_directory data_directories[16];
-  };
-
-  struct [[gnu::packed]] pe_nt_headers64
-  {
-    uint32_t signature;
-    pe_file_header file_header;
-    pe_optional_header64 optional_header;
-  };
-
-  struct [[gnu::packed]] pe_section_header
-  {
-    uint8_t name[8];
-    uint32_t virtual_size;
-    uint32_t virtual_address;
-    uint32_t size_of_raw_data;
-    uint32_t pointer_to_raw_data;
-    uint32_t pointer_to_relocations;
-    uint32_t pointer_to_linenumbers;
-    uint16_t number_of_relocations;
-    uint16_t number_of_linenumbers;
-    uint32_t characteristics;
-  };
 
   struct [[gnu::packed]] pe_import_descriptor
   {
@@ -108,27 +24,7 @@ namespace
     char name[1];
   };
 
-  static_assert(sizeof(pe_dos_header) == 64);
-  static_assert(sizeof(pe_optional_header64) == 240);
-  static_assert(sizeof(pe_section_header) == 40);
   static_assert(sizeof(pe_import_descriptor) == 20);
-
-  bool copy_embedded_record(
-    void* record, size_t record_size, const uint8_t* image_bytes, size_t image_size, size_t offset)
-  {
-    if (record == nullptr || image_bytes == nullptr)
-    {
-      return false;
-    }
-
-    if (offset > image_size || record_size > image_size - offset)
-    {
-      return false;
-    }
-
-    memcpy(record, image_bytes + offset, record_size);
-    return true;
-  }
 
   size_t align_up(size_t value, size_t alignment)
   {
@@ -187,6 +83,57 @@ namespace
     }
 
     return loaded_image + rva;
+  }
+
+  x64_pe64_image_load_status map_common_load_status(pe_image_load_status status)
+  {
+    switch (status)
+    {
+    case pe_image_load_status::OK:
+      return x64_pe64_image_load_status::ok;
+    case pe_image_load_status::INVALID_ARGUMENT:
+      return x64_pe64_image_load_status::invalid_argument;
+    case pe_image_load_status::MISSING_DOS_HEADER:
+      return x64_pe64_image_load_status::missing_dos_header;
+    case pe_image_load_status::INVALID_DOS_HEADER:
+      return x64_pe64_image_load_status::invalid_dos_header;
+    case pe_image_load_status::MISSING_NT_HEADERS:
+      return x64_pe64_image_load_status::missing_nt_headers;
+    case pe_image_load_status::INVALID_NT_SIGNATURE:
+      return x64_pe64_image_load_status::invalid_nt_signature;
+    case pe_image_load_status::WRONG_MACHINE:
+      return x64_pe64_image_load_status::wrong_machine;
+    case pe_image_load_status::MISSING_SECTIONS:
+      return x64_pe64_image_load_status::missing_sections;
+    case pe_image_load_status::UNSUPPORTED_OPTIONAL_HEADER:
+      return x64_pe64_image_load_status::unsupported_optional_header;
+    case pe_image_load_status::UNSUPPORTED_MAGIC:
+      return x64_pe64_image_load_status::unsupported_magic;
+    case pe_image_load_status::UNEXPECTED_IMAGE_BASE:
+      return x64_pe64_image_load_status::unexpected_image_base;
+    case pe_image_load_status::UNSUPPORTED_ALIGNMENT:
+      return x64_pe64_image_load_status::unsupported_alignment;
+    case pe_image_load_status::IMAGE_TOO_LARGE:
+      return x64_pe64_image_load_status::image_too_large;
+    case pe_image_load_status::HEADERS_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::headers_out_of_range;
+    case pe_image_load_status::ENTRY_POINT_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::entry_point_out_of_range;
+    case pe_image_load_status::INVALID_IMPORT_DIRECTORY:
+      return x64_pe64_image_load_status::invalid_import_directory;
+    case pe_image_load_status::UNEXPECTED_IMPORTS:
+      return x64_pe64_image_load_status::unexpected_imports;
+    case pe_image_load_status::UNEXPECTED_RELOCATIONS:
+      return x64_pe64_image_load_status::unexpected_relocations;
+    case pe_image_load_status::TRUNCATED_SECTION_TABLE:
+      return x64_pe64_image_load_status::truncated_section_table;
+    case pe_image_load_status::SECTION_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::section_out_of_range;
+    case pe_image_load_status::SECTION_DATA_OUT_OF_RANGE:
+      return x64_pe64_image_load_status::section_data_out_of_range;
+    }
+
+    return x64_pe64_image_load_status::invalid_argument;
   }
 
   bool read_loaded_ascii_string(
@@ -349,176 +296,50 @@ x64_pe64_image_load_status load_x64_pe64_image(
     return x64_pe64_image_load_status::INVALID_ARGUMENT;
   }
 
-  memset(loaded_image, 0, loaded_image_size);
   out_image_info->entry_point = 0;
   out_image_info->image_size = 0;
   out_image_info->import_count = 0;
+  pe_image_load_result load_result {};
+  const pe_image_load_config load_config {
+    .expected_machine = PE_MACHINE_X64,
+    .expected_image_base = expected_image_base,
+    .expected_section_alignment = X64_USER_IMAGE_PAGE_SIZE,
+    .expected_file_alignment = X64_USER_IMAGE_PAGE_SIZE,
+    .loaded_image_size = loaded_image_size,
+    .allow_imports = true,
+    .allow_relocations = false,
+  };
+  const x64_pe64_image_load_status base_load_status
+    = map_common_load_status(load_pe32_plus_image(image_bytes, image_size, loaded_image, load_config, &load_result));
 
-  pe_dos_header dos_header {};
-
-  if (!copy_embedded_record(&dos_header, sizeof(dos_header), image_bytes, image_size, 0))
+  if (base_load_status != x64_pe64_image_load_status::ok)
   {
-    return x64_pe64_image_load_status::MISSING_DOS_HEADER;
+    return base_load_status;
   }
 
-  if (dos_header.e_magic != PE_DOS_SIGNATURE || dos_header.e_lfanew < 0)
-  {
-    return x64_pe64_image_load_status::INVALID_DOS_HEADER;
-  }
-
-  const size_t nt_offset = static_cast<size_t>(dos_header.e_lfanew);
-  pe_nt_headers64 nt_headers {};
-
-  if (!copy_embedded_record(&nt_headers, sizeof(nt_headers), image_bytes, image_size, nt_offset))
-  {
-    return x64_pe64_image_load_status::MISSING_NT_HEADERS;
-  }
-
-  if (nt_headers.signature != PE_NT_SIGNATURE)
-  {
-    return x64_pe64_image_load_status::INVALID_NT_SIGNATURE;
-  }
-
-  if (nt_headers.file_header.machine != PE_MACHINE_X64)
-  {
-    return x64_pe64_image_load_status::WRONG_MACHINE;
-  }
-
-  if (nt_headers.file_header.number_of_sections == 0)
-  {
-    return x64_pe64_image_load_status::MISSING_SECTIONS;
-  }
-
-  if (nt_headers.file_header.size_of_optional_header != sizeof(pe_optional_header64))
-  {
-    return x64_pe64_image_load_status::UNSUPPORTED_OPTIONAL_HEADER;
-  }
-
-  const pe_optional_header64& optional_header = nt_headers.optional_header;
   const uint32_t loaded_image_size32 = static_cast<uint32_t>(loaded_image_size);
 
-  if (optional_header.magic != PE32_PLUS_MAGIC)
-  {
-    return x64_pe64_image_load_status::UNSUPPORTED_MAGIC;
-  }
-
-  if (optional_header.image_base != expected_image_base)
-  {
-    return x64_pe64_image_load_status::UNEXPECTED_IMAGE_BASE;
-  }
-
-  if (
-    optional_header.section_alignment != X64_USER_IMAGE_PAGE_SIZE
-    || optional_header.file_alignment != X64_USER_IMAGE_PAGE_SIZE)
-  {
-    return x64_pe64_image_load_status::UNSUPPORTED_ALIGNMENT;
-  }
-
-  if (optional_header.size_of_image == 0 || optional_header.size_of_image > loaded_image_size)
-  {
-    return x64_pe64_image_load_status::IMAGE_TOO_LARGE;
-  }
-
-  if (optional_header.size_of_headers > optional_header.size_of_image || optional_header.size_of_headers > image_size)
-  {
-    return x64_pe64_image_load_status::HEADERS_OUT_OF_RANGE;
-  }
-
-  if (optional_header.address_of_entry_point >= optional_header.size_of_image)
-  {
-    return x64_pe64_image_load_status::ENTRY_POINT_OUT_OF_RANGE;
-  }
-
-  if (optional_header.number_of_rva_and_sizes > PE_BASE_RELOCATION_DIRECTORY_INDEX)
-  {
-    const pe_data_directory& relocation_directory
-      = optional_header.data_directories[PE_BASE_RELOCATION_DIRECTORY_INDEX];
-
-    if (relocation_directory.virtual_address != 0 || relocation_directory.size != 0)
-    {
-      return x64_pe64_image_load_status::UNEXPECTED_RELOCATIONS;
-    }
-  }
-
-  const pe_data_directory* import_directory = nullptr;
-
-  if (optional_header.number_of_rva_and_sizes > PE_IMPORT_DIRECTORY_INDEX)
-  {
-    import_directory = &optional_header.data_directories[PE_IMPORT_DIRECTORY_INDEX];
-
-    if ((import_directory->virtual_address == 0) != (import_directory->size == 0))
-    {
-      return x64_pe64_image_load_status::INVALID_IMPORT_DIRECTORY;
-    }
-  }
-
-  memcpy(loaded_image, image_bytes, optional_header.size_of_headers);
-
-  const size_t section_headers_offset
-    = nt_offset + sizeof(uint32_t) + sizeof(pe_file_header) + nt_headers.file_header.size_of_optional_header;
-
-  for (uint16_t section_index = 0; section_index < nt_headers.file_header.number_of_sections; ++section_index)
-  {
-    pe_section_header section_header {};
-    const size_t current_section_offset
-      = section_headers_offset + (static_cast<size_t>(section_index) * sizeof(section_header));
-
-    if (!copy_embedded_record(&section_header, sizeof(section_header), image_bytes, image_size, current_section_offset))
-    {
-      return x64_pe64_image_load_status::TRUNCATED_SECTION_TABLE;
-    }
-
-    const uint32_t mapped_section_size = section_header.virtual_size > section_header.size_of_raw_data
-      ? section_header.virtual_size
-      : section_header.size_of_raw_data;
-
-    if (
-      section_header.virtual_address > optional_header.size_of_image
-      || mapped_section_size > optional_header.size_of_image - section_header.virtual_address)
-    {
-      return x64_pe64_image_load_status::SECTION_OUT_OF_RANGE;
-    }
-
-    if (section_header.size_of_raw_data == 0)
-    {
-      continue;
-    }
-
-    if (
-      section_header.pointer_to_raw_data > image_size
-      || section_header.size_of_raw_data > image_size - section_header.pointer_to_raw_data)
-    {
-      return x64_pe64_image_load_status::SECTION_DATA_OUT_OF_RANGE;
-    }
-
-    memcpy(
-      loaded_image + section_header.virtual_address,
-      image_bytes + section_header.pointer_to_raw_data,
-      section_header.size_of_raw_data);
-  }
-
-  if (import_directory != nullptr && import_directory->virtual_address != 0)
+  if (load_result.import_directory.virtual_address != 0)
   {
     if (
-      import_directory->virtual_address > optional_header.size_of_image
-      || import_directory->size > optional_header.size_of_image - import_directory->virtual_address)
+      load_result.import_directory.virtual_address > load_result.image_size
+      || load_result.import_directory.size > load_result.image_size - load_result.import_directory.virtual_address)
     {
       return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
     }
 
-    size_t next_stub_offset = optional_header.size_of_image;
+    size_t next_stub_offset = load_result.image_size;
 
     bool saw_terminator = false;
-    const uint32_t descriptor_limit = import_directory->virtual_address + import_directory->size;
+    const uint32_t descriptor_limit = load_result.import_directory.virtual_address + load_result.import_directory.size;
 
-    for (uint32_t descriptor_rva = import_directory->virtual_address;
+    for (uint32_t descriptor_rva = load_result.import_directory.virtual_address;
          descriptor_rva + sizeof(pe_import_descriptor) <= descriptor_limit;
          descriptor_rva += sizeof(pe_import_descriptor))
     {
       pe_import_descriptor descriptor {};
 
-      if (!copy_loaded_record(
-            &descriptor, sizeof(descriptor), loaded_image, optional_header.size_of_image, descriptor_rva))
+      if (!copy_loaded_record(&descriptor, sizeof(descriptor), loaded_image, load_result.image_size, descriptor_rva))
       {
         return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
       }
@@ -534,10 +355,9 @@ x64_pe64_image_load_status load_x64_pe64_image(
       uint32_t lookup_table_rva = 0;
 
       if (
-        !try_resolve_import_table_rva(
-          descriptor.name, expected_image_base, optional_header.size_of_image, &dll_name_rva)
+        !try_resolve_import_table_rva(descriptor.name, expected_image_base, load_result.image_size, &dll_name_rva)
         || !try_resolve_import_table_rva(
-          descriptor.first_thunk, expected_image_base, optional_header.size_of_image, &first_thunk_rva))
+          descriptor.first_thunk, expected_image_base, load_result.image_size, &first_thunk_rva))
       {
         return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
       }
@@ -545,7 +365,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
       if (descriptor.original_first_thunk != 0)
       {
         if (!try_resolve_import_table_rva(
-              descriptor.original_first_thunk, expected_image_base, optional_header.size_of_image, &lookup_table_rva))
+              descriptor.original_first_thunk, expected_image_base, load_result.image_size, &lookup_table_rva))
         {
           return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
         }
@@ -557,8 +377,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
       char dll_name[64] {};
 
-      if (!read_loaded_ascii_string(
-            loaded_image, optional_header.size_of_image, dll_name_rva, dll_name, sizeof(dll_name)))
+      if (!read_loaded_ascii_string(loaded_image, load_result.image_size, dll_name_rva, dll_name, sizeof(dll_name)))
       {
         return x64_pe64_image_load_status::IMPORT_NAME_OUT_OF_RANGE;
       }
@@ -570,13 +389,13 @@ x64_pe64_image_load_status load_x64_pe64_image(
         uint64_t lookup_entry = 0;
 
         if (!copy_loaded_record(
-              &lookup_entry, sizeof(lookup_entry), loaded_image, optional_header.size_of_image, lookup_entry_rva))
+              &lookup_entry, sizeof(lookup_entry), loaded_image, load_result.image_size, lookup_entry_rva))
         {
           return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
         }
 
         uint8_t* address_entry
-          = translate_loaded_rva(loaded_image, optional_header.size_of_image, address_entry_rva, sizeof(uint64_t));
+          = translate_loaded_rva(loaded_image, load_result.image_size, address_entry_rva, sizeof(uint64_t));
 
         if (address_entry == nullptr)
         {
@@ -597,7 +416,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
         uint32_t import_name_rva = 0;
 
         if (!try_resolve_import_name_rva(
-              raw_name_reference, expected_image_base, optional_header.size_of_image, &import_name_rva))
+              raw_name_reference, expected_image_base, load_result.image_size, &import_name_rva))
         {
           return x64_pe64_image_load_status::IMPORT_TABLE_OUT_OF_RANGE;
         }
@@ -606,7 +425,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
         if (!read_loaded_ascii_string(
               loaded_image,
-              optional_header.size_of_image,
+              load_result.image_size,
               import_name_rva + sizeof(uint16_t),
               function_name,
               sizeof(function_name)))
@@ -641,8 +460,8 @@ x64_pe64_image_load_status load_x64_pe64_image(
     }
   }
 
-  out_image_info->entry_point = expected_image_base + optional_header.address_of_entry_point;
-  out_image_info->image_size = optional_header.size_of_image;
+  out_image_info->entry_point = load_result.entry_point;
+  out_image_info->image_size = load_result.image_size;
   return x64_pe64_image_load_status::OK;
 }
 
