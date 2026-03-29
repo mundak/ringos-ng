@@ -112,8 +112,7 @@ function(
                 /entry:user_start
                 /subsystem:console
                 /nodefaultlib
-                /fixed
-                /dynamicbase:no
+                /fixed:no
                 /base:0x400000
                 /filealign:4096
                 /out:${ARM64_TEST_APP_IMAGE}
