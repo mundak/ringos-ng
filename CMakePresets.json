@@ -114,6 +114,21 @@
       }
     },
     {
+      "name": "smoke_x64_ansi_c",
+      "configurePreset": "x64-ci",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^smoke_x64_ansi_c$"
+        }
+      }
+    },
+    {
       "name": "smoke_arm64_native",
       "configurePreset": "arm64-ci",
       "output": {
@@ -125,6 +140,21 @@
       "filter": {
         "include": {
           "name": "^smoke_arm64_native$"
+        }
+      }
+    },
+    {
+      "name": "smoke_arm64_ansi_c",
+      "configurePreset": "arm64-ci",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^smoke_arm64_ansi_c$"
         }
       }
     },

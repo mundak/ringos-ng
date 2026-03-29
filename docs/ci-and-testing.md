@@ -52,7 +52,9 @@ Test presets:
 - `x64_emulator_unit`
 - `x64_win32_loader_unit`
 - `smoke_x64_native`
+- `smoke_x64_ansi_c`
 - `smoke_arm64_native`
+- `smoke_arm64_ansi_c`
 - `smoke_arm64_x64_emulator`
 
 Each test preset maps to exactly one distinct CI scenario and stops on the
@@ -101,7 +103,9 @@ Run tests:
 ctest --preset x64_emulator_unit
 ctest --preset x64_win32_loader_unit
 ctest --preset smoke_x64_native
+ctest --preset smoke_x64_ansi_c
 ctest --preset smoke_arm64_native
+ctest --preset smoke_arm64_ansi_c
 ctest --preset smoke_arm64_x64_emulator
 ```
 
@@ -159,14 +163,16 @@ developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose five separately
+The current GitHub Actions setup should continue to expose seven separately
 tracked workflows:
 
 1. `x64_emulator_unit`
 2. `x64_win32_loader_unit`
 3. `smoke_x64_native`
-4. `smoke_arm64_native`
-5. `smoke_arm64_x64_emulator`
+4. `smoke_x64_ansi_c`
+5. `smoke_arm64_native`
+6. `smoke_arm64_ansi_c`
+7. `smoke_arm64_x64_emulator`
 
 Each workflow installs the Linux dependency set, configures and builds the
 matching target, and then runs exactly one scenario-specific CTest preset.

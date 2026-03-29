@@ -4,6 +4,9 @@
 
 * **C++20** (`-std=c++20`). Use modern features (structured bindings, concepts,
   `std::format`, `constexpr`, etc.) where they improve clarity.
+* Freestanding user-space runtime, libc, and sample app sources under `user/`
+  may use ANSI C when the goal is to validate the C ABI or the staged C
+  library surface.
 * Compile with `-Wall -Wextra -Wpedantic` (GCC/Clang) or `/W4` (MSVC).
   **Zero warnings policy.**
 
@@ -71,6 +74,8 @@ if (condition)
 
 * **All function definitions** must live in `.cpp` files. Headers contain only
   declarations.
+  Freestanding ANSI C sources under `user/` are the exception: keep their
+  definitions in `.c` files so the staged C runtime and sample apps stay pure C.
 * Return type stays on the same line as the function name.
 
 ```cpp
@@ -256,7 +261,7 @@ static void helper() { }
 
 ## File Layout
 
-Each module lives in its own subdirectory under `src/`:
+Each C++ module lives in its own subdirectory under `src/`:
 
 ```
 src/
