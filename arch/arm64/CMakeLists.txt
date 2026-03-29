@@ -13,7 +13,8 @@ ringos_add_embedded_x64_test_app(
   ringos_arm64_x64_test_app
   elf64-littleaarch64
   aarch64
-  X64_TEST_APP_IMAGE_OBJECT)
+  X64_TEST_APP_IMAGE_OBJECT
+  SOURCE_PATH ${CMAKE_SOURCE_DIR}/user/samples/x64_emulator_test_app.S)
 
 set(ARM64_KERNEL_COMPILE_OPTIONS
   -mgeneral-regs-only

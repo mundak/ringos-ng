@@ -43,6 +43,20 @@
     {
       "name": "build-arm64-debug",
       "configurePreset": "arm64-debug"
+    },
+    {
+      "name": "stage-x64-sdk-sysroot",
+      "configurePreset": "x64-debug",
+      "targets": [
+        "ringos_sdk_sysroot"
+      ]
+    },
+    {
+      "name": "stage-arm64-sdk-sysroot",
+      "configurePreset": "arm64-debug",
+      "targets": [
+        "ringos_sdk_sysroot"
+      ]
     }
   ],
   "testPresets": [
