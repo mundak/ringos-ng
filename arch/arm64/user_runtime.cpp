@@ -195,7 +195,13 @@ namespace
     const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage)
   {
     const pe_image_load_config load_config {
-      PE_MACHINE_ARM64, USER_REGION_VIRTUAL_ADDRESS, PAGE_SIZE, PAGE_SIZE, USER_REGION_SIZE, false, false,
+      .expected_machine = PE_MACHINE_ARM64,
+      .expected_image_base = USER_REGION_VIRTUAL_ADDRESS,
+      .expected_section_alignment = PAGE_SIZE,
+      .expected_file_alignment = PAGE_SIZE,
+      .loaded_image_size = USER_REGION_SIZE,
+      .allow_imports = false,
+      .allow_relocations = false,
     };
     pe_image_load_result load_result {};
     const pe_image_load_status load_status

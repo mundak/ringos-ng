@@ -301,8 +301,13 @@ x64_pe64_image_load_status load_x64_pe64_image(
   out_image_info->import_count = 0;
   pe_image_load_result load_result {};
   const pe_image_load_config load_config {
-    PE_MACHINE_X64, expected_image_base, X64_USER_IMAGE_PAGE_SIZE, X64_USER_IMAGE_PAGE_SIZE, loaded_image_size, true,
-    false,
+    .expected_machine = PE_MACHINE_X64,
+    .expected_image_base = expected_image_base,
+    .expected_section_alignment = X64_USER_IMAGE_PAGE_SIZE,
+    .expected_file_alignment = X64_USER_IMAGE_PAGE_SIZE,
+    .loaded_image_size = loaded_image_size,
+    .allow_imports = true,
+    .allow_relocations = false,
   };
   const x64_pe64_image_load_status base_load_status
     = map_common_load_status(load_pe32_plus_image(image_bytes, image_size, loaded_image, load_config, &load_result));
