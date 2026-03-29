@@ -318,7 +318,7 @@ void user_runtime::set_current_thread(thread* current_thread)
 
   if (m_current_thread != nullptr)
   {
-    m_current_thread->set_state(user_thread_state::running);
+    m_current_thread->set_state(user_thread_state::RUNNING);
   }
 }
 
@@ -363,7 +363,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case STAGE1_SYSCALL_THREAD_EXIT:
   {
-    active_thread->set_state(user_thread_state::exited);
+    active_thread->set_state(user_thread_state::EXITED);
     active_thread->set_exit_status(syscall_context.argument0);
     return STATUS_OK;
   }
@@ -435,7 +435,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case STAGE2_SYSCALL_WINDOWS_EXIT_PROCESS:
   {
-    active_thread->set_state(user_thread_state::exited);
+    active_thread->set_state(user_thread_state::EXITED);
     active_thread->set_exit_status(syscall_context.argument0);
     return STATUS_OK;
   }
@@ -454,7 +454,7 @@ bool user_runtime::is_current_thread_runnable() const
     return false;
   }
 
-  return m_current_thread->get_state() != user_thread_state::exited;
+  return m_current_thread->get_state() != user_thread_state::EXITED;
 }
 
 void user_runtime::grant_process_access(kernel_object& object)

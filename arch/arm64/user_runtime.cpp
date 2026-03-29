@@ -167,7 +167,7 @@ namespace
       &INITIAL_WINDOWS_IMPORT_RESOLVER,
       &image_info);
 
-    if (load_status != x64_pe64_image_load_status::ok)
+    if (load_status != x64_pe64_image_load_status::OK)
     {
       panic(describe_x64_pe64_image_load_status(load_status));
     }
@@ -247,18 +247,18 @@ namespace
 
     const thread_context user_context {
       state.instruction_pointer,
-      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]),
+      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]),
       static_cast<uintptr_t>(state.flags),
     };
     current_thread->set_user_context(user_context);
 
     const user_syscall_context syscall_context {
-      state.general_registers[static_cast<uint32_t>(x64_general_register::rax)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::rdi)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::rdx)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::r8)],
-      state.general_registers[static_cast<uint32_t>(x64_general_register::r9)],
-      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]),
+      state.general_registers[static_cast<uint32_t>(x64_general_register::RAX)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::RDI)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::RDX)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::R8)],
+      state.general_registers[static_cast<uint32_t>(x64_general_register::R9)],
+      static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]),
     };
     const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
     *out_should_continue = runtime.is_current_thread_runnable();
@@ -323,7 +323,7 @@ namespace
     x64_emulator_state emulated_state {};
     emulated_state.instruction_pointer = initial_thread.get_user_context().instruction_pointer;
     emulated_state.flags = static_cast<uint64_t>(initial_thread.get_user_context().flags);
-    emulated_state.general_registers[static_cast<uint32_t>(x64_general_register::rsp)]
+    emulated_state.general_registers[static_cast<uint32_t>(x64_general_register::RSP)]
       = initial_thread.get_user_context().stack_pointer;
     const x64_emulator_memory memory {
       X64_USER_IMAGE_VIRTUAL_ADDRESS,
@@ -335,7 +335,7 @@ namespace
       &arm64_initial_user_runtime_platform::dispatch_x64_syscall,
     };
     const x64_emulator_options options {
-      x64_emulator_engine::interpreter,
+      x64_emulator_engine::INTERPRETER,
       X64_EMULATOR_INSTRUCTION_BUDGET,
     };
     x64_emulator_result result {};
@@ -347,7 +347,7 @@ namespace
       panic("arm64 failed to launch the x64 emulator backend");
     }
 
-    if (result.completion != x64_emulator_completion::thread_exited)
+    if (result.completion != x64_emulator_completion::THREAD_EXITED)
     {
       panic(describe_x64_emulator_completion(result.completion));
     }

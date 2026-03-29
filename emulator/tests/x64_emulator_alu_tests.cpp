@@ -20,7 +20,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::thread_exited, "xor_and_add", "expected thread exit")
+             result.completion == x64_emulator_completion::THREAD_EXITED, "xor_and_add", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "xor_and_add", "expected one syscall");
   }
 }

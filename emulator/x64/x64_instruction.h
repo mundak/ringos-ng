@@ -10,9 +10,9 @@ class x64_execution_context;
 
 enum class x64_instruction_outcome : uint32_t
 {
-  continue_running = 0,
-  retire_and_stop = 1,
-  stop_running = 2,
+  CONTINUE_RUNNING = 0,
+  RETIRE_AND_STOP = 1,
+  STOP_RUNNING = 2,
 };
 
 struct x64_decoded_instruction

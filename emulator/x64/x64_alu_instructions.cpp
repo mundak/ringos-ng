@@ -7,15 +7,15 @@ x64_instruction_outcome execute_x64_xor_register(
   if (instruction.rex_w)
   {
     context.set_unsupported_instruction(instruction.opcode);
-    return x64_instruction_outcome::stop_running;
+    return x64_instruction_outcome::STOP_RUNNING;
   }
 
   uint8_t modrm = 0;
 
   if (!context.read_u8(instruction.next_address, &modrm))
   {
-    context.get_result().completion = x64_emulator_completion::invalid_memory_access;
-    return x64_instruction_outcome::stop_running;
+    context.get_result().completion = x64_emulator_completion::INVALID_MEMORY_ACCESS;
+    return x64_instruction_outcome::STOP_RUNNING;
   }
 
   const uint8_t mod = static_cast<uint8_t>((modrm >> 6) & 0x3);
@@ -25,14 +25,14 @@ x64_instruction_outcome execute_x64_xor_register(
   if (mod != 3)
   {
     context.set_unsupported_instruction(instruction.opcode);
-    return x64_instruction_outcome::stop_running;
+    return x64_instruction_outcome::STOP_RUNNING;
   }
 
   const uint32_t result_value = context.get_register32(destination_register) ^ context.get_register32(source_register);
   context.set_register32(destination_register, result_value);
   context.set_logic_flags(result_value, false);
   context.get_state().instruction_pointer = instruction.next_address + 1;
-  return x64_instruction_outcome::continue_running;
+  return x64_instruction_outcome::CONTINUE_RUNNING;
 }
 
 x64_instruction_outcome execute_x64_group83(x64_execution_context& context, const x64_decoded_instruction& instruction)
@@ -42,8 +42,8 @@ x64_instruction_outcome execute_x64_group83(x64_execution_context& context, cons
 
   if (!context.read_u8(instruction.next_address, &modrm) || !context.read_i8(instruction.next_address + 1, &immediate))
   {
-    context.get_result().completion = x64_emulator_completion::invalid_memory_access;
-    return x64_instruction_outcome::stop_running;
+    context.get_result().completion = x64_emulator_completion::INVALID_MEMORY_ACCESS;
+    return x64_instruction_outcome::STOP_RUNNING;
   }
 
   const uint8_t mod = static_cast<uint8_t>((modrm >> 6) & 0x3);
@@ -53,7 +53,7 @@ x64_instruction_outcome execute_x64_group83(x64_execution_context& context, cons
   if (mod != 3)
   {
     context.set_unsupported_instruction(instruction.opcode);
-    return x64_instruction_outcome::stop_running;
+    return x64_instruction_outcome::STOP_RUNNING;
   }
 
   if (instruction.rex_w)
@@ -81,7 +81,7 @@ x64_instruction_outcome execute_x64_group83(x64_execution_context& context, cons
     else
     {
       context.set_unsupported_instruction(instruction.opcode);
-      return x64_instruction_outcome::stop_running;
+      return x64_instruction_outcome::STOP_RUNNING;
     }
   }
   else
@@ -109,11 +109,11 @@ x64_instruction_outcome execute_x64_group83(x64_execution_context& context, cons
     else
     {
       context.set_unsupported_instruction(instruction.opcode);
-      return x64_instruction_outcome::stop_running;
+      return x64_instruction_outcome::STOP_RUNNING;
     }
   }
 
   context.get_state().instruction_pointer = instruction.next_address + 2;
-  return x64_instruction_outcome::continue_running;
+  return x64_instruction_outcome::CONTINUE_RUNNING;
 }
 

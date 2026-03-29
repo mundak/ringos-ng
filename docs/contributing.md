@@ -179,10 +179,14 @@ Follow the **C++ Standard Library naming convention** (`snake_case` everywhere).
 | Non-type template parameters | `snake_case` | `capacity`, `index_bits` |
 | Getter / accessor methods | `get_`, `is_`, `has_` prefixes | `get_handle()`, `is_ready()`, `has_messages()` |
 | Private class members | `m_` prefix | `m_window`, `m_vk_ctx` |
+| Enum values | `UPPER_SNAKE_CASE` | `READY`, `MAP_MEMORY` |
 | Constants / macros | `UPPER_SNAKE_CASE` | `VK_NULL_HANDLE`, `MAI_DEBUG` |
 
 Use `m_` only for private class members. Public struct fields, including ABI or
 plain-data carrier types, use unprefixed `snake_case`.
+
+Enum type names still follow `snake_case`. Only the individual enum values use
+`UPPER_SNAKE_CASE`.
 
 Getter-style accessors should use a `get_` prefix. Boolean accessors should use
 `is_` or `has_` as appropriate. Do not name getters with a `_value` suffix.

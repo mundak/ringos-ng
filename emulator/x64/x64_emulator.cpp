@@ -14,10 +14,10 @@ bool run_x64_emulator(
     return false;
   }
 
-  if (options.engine != x64_emulator_engine::interpreter)
+  if (options.engine != x64_emulator_engine::INTERPRETER)
   {
     *out_result = {
-      x64_emulator_completion::unsupported_engine,
+      x64_emulator_completion::UNSUPPORTED_ENGINE,
       0,
       state.instruction_pointer,
       0,
@@ -33,19 +33,20 @@ const char* describe_x64_emulator_completion(x64_emulator_completion completion)
 {
   switch (completion)
   {
-  case x64_emulator_completion::thread_exited:
+  case x64_emulator_completion::THREAD_EXITED:
     return "x64 emulator thread exited cleanly";
-  case x64_emulator_completion::instruction_limit_reached:
+  case x64_emulator_completion::INSTRUCTION_LIMIT_REACHED:
     return "x64 emulator hit the instruction budget";
-  case x64_emulator_completion::invalid_memory_access:
+  case x64_emulator_completion::INVALID_MEMORY_ACCESS:
     return "x64 emulator touched unmapped guest memory";
-  case x64_emulator_completion::unsupported_instruction:
+  case x64_emulator_completion::UNSUPPORTED_INSTRUCTION:
     return "x64 emulator hit an unsupported instruction";
-  case x64_emulator_completion::invalid_argument:
+  case x64_emulator_completion::INVALID_ARGUMENT:
     return "x64 emulator received an invalid argument";
-  case x64_emulator_completion::unsupported_engine:
+  case x64_emulator_completion::UNSUPPORTED_ENGINE:
     return "x64 emulator backend is not implemented";
   }
 
   return "x64 emulator failed with an unknown completion state";
 }
+
