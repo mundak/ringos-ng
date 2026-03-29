@@ -17,7 +17,7 @@ if %errorlevel% neq 0 (
 echo.
 echo === Launching x64 OS in QEMU (%IMAGE_NAME%) ===
 echo Press Ctrl+C to stop QEMU.
-docker run --rm -it %IMAGE_NAME% bash -lc "cmake --preset x64-ci && cmake --build --preset build-x64-ci && scripts/run-x64.sh build/x64-ci/arch/x64/ringos_x64"
+docker run --rm -it %IMAGE_NAME% bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && scripts/run-x64.sh build/x64-debug/arch/x64/ringos_x64"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%

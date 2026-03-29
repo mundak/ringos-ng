@@ -16,6 +16,7 @@ set(RINGOS_X64_WIN32_TEST_BINARY ${CMAKE_BINARY_DIR}/x64_win32_loader_unit_tests
 set(RINGOS_X64_WIN32_TEST_SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/x64_win32_loader_tests.cpp
   ${CMAKE_SOURCE_DIR}/win32/generated/x64_win32_dll_exports.cpp
+  ${CMAKE_SOURCE_DIR}/win32/pe_image.cpp
   ${CMAKE_SOURCE_DIR}/win32/x64_pe64_image.cpp
   ${CMAKE_SOURCE_DIR}/win32/x64_win32_emulation.cpp
 )
@@ -40,6 +41,7 @@ add_custom_command(
     ${CMAKE_SOURCE_DIR}/win32/definitions/kernel32.yaml
     ${CMAKE_SOURCE_DIR}/win32/generate_win32_emulation.py
     ${CMAKE_SOURCE_DIR}/win32/generated/x64_win32_dll_exports.h
+    ${CMAKE_SOURCE_DIR}/win32/include/pe_image.h
     ${CMAKE_SOURCE_DIR}/win32/include/x64_pe64_image.h
     ${CMAKE_SOURCE_DIR}/win32/include/x64_win32_emulation.h
     ${RINGOS_X64_WIN32_TEST_SOURCES}

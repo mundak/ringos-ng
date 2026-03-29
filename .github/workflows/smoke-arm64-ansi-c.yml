@@ -31,10 +31,10 @@ jobs:
             qemu-system-x86
 
       - name: Configure arm64
-        run: cmake --preset arm64-ci
+        run: cmake --preset arm64-debug
 
       - name: Build arm64
-        run: cmake --build --preset build-arm64-ci
+        run: cmake --build --preset build-arm64-debug
 
       - name: Run ANSI C arm64 smoke test
         run: ctest --preset smoke_arm64_ansi_c

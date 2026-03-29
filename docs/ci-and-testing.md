@@ -37,15 +37,11 @@ Configure presets:
 
 - `x64-debug`
 - `arm64-debug`
-- `x64-ci`
-- `arm64-ci`
 
 Build presets:
 
 - `build-x64-debug`
 - `build-arm64-debug`
-- `build-x64-ci`
-- `build-arm64-ci`
 
 Test presets:
 
