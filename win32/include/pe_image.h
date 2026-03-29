@@ -1,12 +1,7 @@
 #pragma once
 
-#if defined(__STDC_HOSTED__) && __STDC_HOSTED__
-#include <cstddef>
-#include <cstdint>
-#else
 #include <stddef.h>
 #include <stdint.h>
-#endif
 
 inline constexpr uint16_t PE_DOS_SIGNATURE = 0x5A4D;
 inline constexpr uint32_t PE_NT_SIGNATURE = 0x00004550;
