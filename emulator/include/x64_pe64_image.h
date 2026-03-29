@@ -55,6 +55,7 @@ struct x64_pe64_image_info
 {
   uintptr_t entry_point;
   uint32_t image_size;
+  uint32_t import_count;
 };
 
 x64_pe64_image_load_status load_x64_pe64_image(
@@ -66,4 +67,3 @@ x64_pe64_image_load_status load_x64_pe64_image(
   const x64_pe64_import_resolver* import_resolver,
   x64_pe64_image_info* out_image_info);
 const char* describe_x64_pe64_image_load_status(x64_pe64_image_load_status status);
-

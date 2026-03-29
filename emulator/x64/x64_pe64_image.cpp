@@ -1,6 +1,7 @@
 #include "x64_pe64_image.h"
 
 #include "memory.h"
+#include "x64_win32_emulation.h"
 
 namespace
 {
@@ -10,7 +11,7 @@ namespace
   constexpr uint16_t PE32_PLUS_MAGIC = 0x20B;
   constexpr uint32_t PE_IMPORT_DIRECTORY_INDEX = 1;
   constexpr uint32_t PE_BASE_RELOCATION_DIRECTORY_INDEX = 5;
-  constexpr uint64_t PE_IMPORT_BY_ORDINAL_FLAG64 = 1ULL << 63;
+  constexpr uint64_t PE_IMPORT_BY_ORDINAL_MASK64 = 1ULL << 63;
   constexpr size_t X64_WINDOWS_IMPORT_STUB_SIZE = 8;
 
   struct [[gnu::packed]] pe_dos_header
@@ -217,6 +218,42 @@ namespace
     return false;
   }
 
+  bool try_resolve_import_name_rva(
+    uint64_t raw_name_reference, uintptr_t expected_image_base, uint32_t image_size, uint32_t* out_name_rva)
+  {
+    if (out_name_rva == nullptr)
+    {
+      return false;
+    }
+
+    if (raw_name_reference <= 0xFFFFFFFFULL && raw_name_reference < image_size)
+    {
+      *out_name_rva = static_cast<uint32_t>(raw_name_reference);
+      return true;
+    }
+
+    if (raw_name_reference < expected_image_base)
+    {
+      return false;
+    }
+
+    const uint64_t relative_reference = raw_name_reference - expected_image_base;
+
+    if (relative_reference > 0xFFFFFFFFULL || relative_reference >= image_size)
+    {
+      return false;
+    }
+
+    *out_name_rva = static_cast<uint32_t>(relative_reference);
+    return true;
+  }
+
+  bool try_resolve_import_table_rva(
+    uint32_t raw_rva_or_va, uintptr_t expected_image_base, uint32_t image_size, uint32_t* out_rva)
+  {
+    return try_resolve_import_name_rva(static_cast<uint64_t>(raw_rva_or_va), expected_image_base, image_size, out_rva);
+  }
+
   bool is_empty_import_descriptor(const pe_import_descriptor& descriptor)
   {
     return descriptor.original_first_thunk == 0 && descriptor.time_date_stamp == 0 && descriptor.forwarder_chain == 0
@@ -230,6 +267,71 @@ namespace
     destination[5] = 0x0F;
     destination[6] = 0x05;
     destination[7] = 0xC3;
+  }
+
+  x64_pe64_image_load_status resolve_x64_import(
+    const x64_pe64_import_resolver* import_resolver,
+    const char* dll_name,
+    const char* function_name,
+    uintptr_t expected_image_base,
+    uint8_t* loaded_image,
+    uint32_t loaded_image_size,
+    size_t* inout_next_stub_offset,
+    uint64_t* out_function_address)
+  {
+    if (loaded_image == nullptr || inout_next_stub_offset == nullptr || out_function_address == nullptr)
+    {
+      return x64_pe64_image_load_status::invalid_argument;
+    }
+
+    if (import_resolver != nullptr && import_resolver->resolve_import != nullptr)
+    {
+      uint32_t syscall_number = 0;
+
+      if (!import_resolver->resolve_import(import_resolver->context, dll_name, function_name, &syscall_number))
+      {
+        return x64_pe64_image_load_status::unsupported_import;
+      }
+
+      const uint32_t stub_rva = static_cast<uint32_t>(align_up(*inout_next_stub_offset, sizeof(uint64_t)));
+      uint8_t* stub_bytes
+        = translate_loaded_rva(loaded_image, loaded_image_size, stub_rva, X64_WINDOWS_IMPORT_STUB_SIZE);
+
+      if (stub_bytes == nullptr)
+      {
+        return x64_pe64_image_load_status::import_stub_out_of_range;
+      }
+
+      write_x64_windows_import_stub(stub_bytes, syscall_number);
+      *out_function_address = expected_image_base + stub_rva;
+      *inout_next_stub_offset = stub_rva + X64_WINDOWS_IMPORT_STUB_SIZE;
+      return x64_pe64_image_load_status::ok;
+    }
+
+    const x64_win32_import_resolution_status resolution_status = resolve_x64_win32_import(
+      dll_name,
+      function_name,
+      expected_image_base,
+      loaded_image,
+      loaded_image_size,
+      inout_next_stub_offset,
+      out_function_address);
+
+    switch (resolution_status)
+    {
+    case x64_win32_import_resolution_status::ok:
+      return x64_pe64_image_load_status::ok;
+    case x64_win32_import_resolution_status::invalid_argument:
+      return x64_pe64_image_load_status::invalid_import_directory;
+    case x64_win32_import_resolution_status::dll_not_found:
+    case x64_win32_import_resolution_status::symbol_not_found:
+      return x64_pe64_image_load_status::unsupported_import;
+    case x64_win32_import_resolution_status::unsupported_syscall_number:
+    case x64_win32_import_resolution_status::stub_out_of_space:
+      return x64_pe64_image_load_status::import_stub_out_of_range;
+    }
+
+    return x64_pe64_image_load_status::invalid_import_directory;
   }
 }
 
@@ -246,6 +348,11 @@ x64_pe64_image_load_status load_x64_pe64_image(
   {
     return x64_pe64_image_load_status::invalid_argument;
   }
+
+  memset(loaded_image, 0, loaded_image_size);
+  out_image_info->entry_point = 0;
+  out_image_info->image_size = 0;
+  out_image_info->import_count = 0;
 
   pe_dos_header dos_header {};
 
@@ -392,11 +499,6 @@ x64_pe64_image_load_status load_x64_pe64_image(
 
   if (import_directory != nullptr && import_directory->virtual_address != 0)
   {
-    if (import_resolver == nullptr || import_resolver->resolve_import == nullptr)
-    {
-      return x64_pe64_image_load_status::unexpected_imports;
-    }
-
     if (
       import_directory->virtual_address > optional_header.size_of_image
       || import_directory->size > optional_header.size_of_image - import_directory->virtual_address)
@@ -404,12 +506,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
       return x64_pe64_image_load_status::import_table_out_of_range;
     }
 
-    uint32_t stub_rva = static_cast<uint32_t>(align_up(optional_header.size_of_image, sizeof(uint64_t)));
-
-    if (stub_rva > loaded_image_size32)
-    {
-      return x64_pe64_image_load_status::import_stub_out_of_range;
-    }
+    size_t next_stub_offset = optional_header.size_of_image;
 
     bool saw_terminator = false;
     const uint32_t descriptor_limit = import_directory->virtual_address + import_directory->size;
@@ -432,12 +529,36 @@ x64_pe64_image_load_status load_x64_pe64_image(
         break;
       }
 
-      const uint32_t lookup_table_rva
-        = descriptor.original_first_thunk != 0 ? descriptor.original_first_thunk : descriptor.first_thunk;
+      uint32_t dll_name_rva = 0;
+      uint32_t first_thunk_rva = 0;
+      uint32_t lookup_table_rva = 0;
+
+      if (
+        !try_resolve_import_table_rva(
+          descriptor.name, expected_image_base, optional_header.size_of_image, &dll_name_rva)
+        || !try_resolve_import_table_rva(
+          descriptor.first_thunk, expected_image_base, optional_header.size_of_image, &first_thunk_rva))
+      {
+        return x64_pe64_image_load_status::import_table_out_of_range;
+      }
+
+      if (descriptor.original_first_thunk != 0)
+      {
+        if (!try_resolve_import_table_rva(
+              descriptor.original_first_thunk, expected_image_base, optional_header.size_of_image, &lookup_table_rva))
+        {
+          return x64_pe64_image_load_status::import_table_out_of_range;
+        }
+      }
+      else
+      {
+        lookup_table_rva = first_thunk_rva;
+      }
+
       char dll_name[64] {};
 
       if (!read_loaded_ascii_string(
-            loaded_image, optional_header.size_of_image, descriptor.name, dll_name, sizeof(dll_name)))
+            loaded_image, optional_header.size_of_image, dll_name_rva, dll_name, sizeof(dll_name)))
       {
         return x64_pe64_image_load_status::import_name_out_of_range;
       }
@@ -445,7 +566,7 @@ x64_pe64_image_load_status load_x64_pe64_image(
       for (uint32_t thunk_index = 0;; ++thunk_index)
       {
         const uint32_t lookup_entry_rva = lookup_table_rva + (thunk_index * sizeof(uint64_t));
-        const uint32_t address_entry_rva = descriptor.first_thunk + (thunk_index * sizeof(uint64_t));
+        const uint32_t address_entry_rva = first_thunk_rva + (thunk_index * sizeof(uint64_t));
         uint64_t lookup_entry = 0;
 
         if (!copy_loaded_record(
@@ -467,44 +588,50 @@ x64_pe64_image_load_status load_x64_pe64_image(
           break;
         }
 
-        if ((lookup_entry & PE_IMPORT_BY_ORDINAL_FLAG64) != 0)
+        if ((lookup_entry & PE_IMPORT_BY_ORDINAL_MASK64) != 0)
         {
           return x64_pe64_image_load_status::unsupported_import_ordinal;
         }
 
-        if ((lookup_entry & 0xFFFFFFFF00000000ULL) != 0)
+        const uint64_t raw_name_reference = lookup_entry & ~PE_IMPORT_BY_ORDINAL_MASK64;
+        uint32_t import_name_rva = 0;
+
+        if (!try_resolve_import_name_rva(
+              raw_name_reference, expected_image_base, optional_header.size_of_image, &import_name_rva))
         {
           return x64_pe64_image_load_status::import_table_out_of_range;
         }
 
-        const uint32_t import_name_rva = static_cast<uint32_t>(lookup_entry) + sizeof(uint16_t);
         char function_name[64] {};
 
         if (!read_loaded_ascii_string(
-              loaded_image, optional_header.size_of_image, import_name_rva, function_name, sizeof(function_name)))
+              loaded_image,
+              optional_header.size_of_image,
+              import_name_rva + sizeof(uint16_t),
+              function_name,
+              sizeof(function_name)))
         {
           return x64_pe64_image_load_status::import_name_out_of_range;
         }
 
-        uint32_t syscall_number = 0;
+        uint64_t resolved_address = 0;
+        const x64_pe64_image_load_status resolution_status = resolve_x64_import(
+          import_resolver,
+          dll_name,
+          function_name,
+          expected_image_base,
+          loaded_image,
+          loaded_image_size32,
+          &next_stub_offset,
+          &resolved_address);
 
-        if (!import_resolver->resolve_import(import_resolver->context, dll_name, function_name, &syscall_number))
+        if (resolution_status != x64_pe64_image_load_status::ok)
         {
-          return x64_pe64_image_load_status::unsupported_import;
+          return resolution_status;
         }
 
-        uint8_t* stub_bytes
-          = translate_loaded_rva(loaded_image, loaded_image_size32, stub_rva, X64_WINDOWS_IMPORT_STUB_SIZE);
-
-        if (stub_bytes == nullptr)
-        {
-          return x64_pe64_image_load_status::import_stub_out_of_range;
-        }
-
-        write_x64_windows_import_stub(stub_bytes, syscall_number);
-        const uint64_t stub_virtual_address = expected_image_base + stub_rva;
-        memcpy(address_entry, &stub_virtual_address, sizeof(stub_virtual_address));
-        stub_rva += X64_WINDOWS_IMPORT_STUB_SIZE;
+        memcpy(address_entry, &resolved_address, sizeof(resolved_address));
+        ++out_image_info->import_count;
       }
     }
 
@@ -579,4 +706,3 @@ const char* describe_x64_pe64_image_load_status(x64_pe64_image_load_status statu
 
   return "x64 PE64 image loader failed with an unknown status";
 }
-
