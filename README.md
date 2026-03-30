@@ -18,9 +18,10 @@ code, and verifies the bring-up path with smoke tests for each architecture.
   boundaries, while keeping the kernel mapped in every process context.
 - Shared kernel code owns the boot handoff contract, debug-host logging path,
   and panic handling.
-- CI exposes four independently tracked workflows: one for the host-side x64
-  emulator unit test, one for native x64 smoke, one for native arm64 smoke,
-  and one for emulated x64-on-arm64 smoke.
+- CI exposes dedicated workflows for the x64 emulator unit tests, the x64 Win32
+  loader unit tests, the native and ANSI C smoke lanes for x64 and arm64, the
+  emulated x64-on-arm64 smoke lane, and the release-bundle-backed user sample
+  builds for both architectures.
 
 ## Supported Targets
 
@@ -203,6 +204,25 @@ pipelines can download the matching bundle instead of rebuilding it every run.
 When the expected release is not available yet, `tools/toolchain/ensure-toolchain-release.sh`
 can fall back to a local build with `--allow-build`, and it can publish the
 missing release with `--publish-if-missing` when `GH_TOKEN` is available.
+
+## User-Space Samples
+
+The user-facing sample entry points under `user/samples/` should consume only
+the published installed-toolchain bundle and its bundled sysroots. Do not point
+sample builds at repo-local `build/<preset>/sysroot` trees or arbitrary host
+compiler paths.
+
+Use the hosted C helper for standalone `.c` samples:
+
+```bash
+bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
+bash scripts/build-bootstrap-hosted-c.sh x64 user/samples/test_app.c
+bash scripts/build-bootstrap-hosted-c.sh arm64 user/samples/test_app.c
+```
+
+For the CMake-based hello-world sample, see
+`user/samples/hello_world/README.md` for the Windows and Linux configure
+commands that point directly at the downloaded toolchain bundle.
 
 ## Repository Layout
 

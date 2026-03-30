@@ -2,10 +2,10 @@
 
 This document freezes the first implementation contract for Stage 8.
 
-Stage 7 proved that ringos-ng can package a hosted C sysroot and compile user
-programs through external Clang invocations that rely on bootstrap config
-files. Stage 8 moves that knowledge into the compiler so ringos becomes a named
-target rather than an ad hoc cross-build recipe.
+Stage 7 proved that ringos-ng can package a hosted C sysroot and publish an
+installed toolchain bundle that compiles user programs through external Clang
+invocations. Stage 8 moves that knowledge into the compiler so ringos becomes a
+named target rather than an ad hoc cross-build recipe.
 
 ## Target Contract
 
@@ -65,8 +65,9 @@ The repository now carries two bootstrap scripts for this stage:
 - `tools/llvm/build-clang-toolchain.sh` builds a pinned `llvm-project` checkout,
   applies any in-repo ringos patch set from `tools/llvm/patches`, and installs
   host tools under `user/sysroot`
-- `scripts/build-bootstrap-hosted-c.sh` proves the current hosted C sysroot path
-  by building the staged sysroot and compiling a user-space C sample against it
+- `scripts/build-bootstrap-hosted-c.sh` resolves the published installed-toolchain
+  bundle and compiles a user-space C sample against the downloaded compiler
+  configs and sysroot for the selected target
 
 The first script starts the LLVM and Clang bring-up lane. The second script is
 the transition harness that the future ringos-aware compiler should replace.

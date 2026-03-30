@@ -1,0 +1,58 @@
+name: user_samples
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  user_samples:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        target_arch:
+          - x64
+          - arm64
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake \
+            ninja-build \
+            clang \
+            curl \
+            gdb-multiarch \
+            lld \
+            llvm \
+            qemu-system-arm \
+            qemu-system-misc \
+            qemu-system-x86
+
+      - name: Ensure shared toolchain bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build
+
+      - name: Build hosted C sample
+        run: bash scripts/build-bootstrap-hosted-c.sh "${{ matrix.target_arch }}" user/samples/test_app.c
+
+      - name: Configure hello world sample
+        run: |
+          cmake \
+            -S user/samples/hello_world \
+            -B "build/user-samples/hello_world-${{ matrix.target_arch }}" \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/.cache/ringos/toolchain/cmake/ringos-toolchain.cmake" \
+            -DRINGOS_TARGET_ARCH="${{ matrix.target_arch }}"
+
+      - name: Build hello world sample
+        run: cmake --build "build/user-samples/hello_world-${{ matrix.target_arch }}"
