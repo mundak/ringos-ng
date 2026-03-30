@@ -23,12 +23,18 @@ jobs:
             cmake \
             ninja-build \
             clang \
+            curl \
             gdb-multiarch \
             lld \
             llvm \
             qemu-system-arm \
             qemu-system-misc \
             qemu-system-x86
+
+      - name: Ensure shared toolchain bundle
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build
 
       - name: Configure arm64
         run: cmake --preset arm64-debug

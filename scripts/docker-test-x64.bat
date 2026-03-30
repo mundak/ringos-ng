@@ -7,6 +7,23 @@ setlocal
 set IMAGE_NAME=ringos-ci
 set CONTEXT_DIR=%~dp0..
 
+if defined LOCALAPPDATA (
+    set HOST_RINGOS_CACHE=%LOCALAPPDATA%\ringos
+) else (
+    set HOST_RINGOS_CACHE=%CONTEXT_DIR%\build\ringos-cache
+)
+
+if not exist "%HOST_RINGOS_CACHE%" (
+    mkdir "%HOST_RINGOS_CACHE%"
+)
+
+set TOOLCHAIN_TOKEN_ARG=
+if defined GH_TOKEN (
+    set TOOLCHAIN_TOKEN_ARG=-e GH_TOKEN
+) else if defined GITHUB_TOKEN (
+    set TOOLCHAIN_TOKEN_ARG=-e GITHUB_TOKEN
+)
+
 echo === Building Docker image: %IMAGE_NAME% ===
 docker build -f "%CONTEXT_DIR%\docker\Dockerfile" -t %IMAGE_NAME% "%CONTEXT_DIR%"
 if %errorlevel% neq 0 (
@@ -16,7 +33,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo === Running x64 tests in %IMAGE_NAME% container ===
-docker run --rm %IMAGE_NAME% bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset x64_win32_loader_unit && ctest --preset smoke_x64_native && ctest --preset smoke_x64_ansi_c"
+docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build && cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset x64_win32_loader_unit && ctest --preset smoke_x64_native && ctest --preset smoke_x64_ansi_c"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%
