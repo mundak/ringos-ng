@@ -1,2 +1,10 @@
 # Build output
 build/
+
+# Generated LLVM toolchain trees
+tools/llvm/build/
+tools/llvm/src/
+
+# Installed RingOS-aware host toolchain
+user/sysroot/*
+!user/sysroot/.gitignore
