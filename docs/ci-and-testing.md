@@ -10,6 +10,9 @@ entry points.
 - CI runs on `ubuntu-latest`.
 - Windows users are expected to use the Docker-based wrappers in `scripts/`.
 - Native Linux is supported for direct shell iteration and GDB-based debugging.
+- Shared installed-toolchain consumers should prefer the published
+	`ringos-toolchain-<bundle-id>.zip` release asset when the expected
+	bundle already exists.
 
 The repository should keep one canonical build and test interface even when it
 is executed through different shells.
@@ -27,6 +30,8 @@ Use these layers:
 4. `scripts/*.sh` contains QEMU launch and output assertion logic.
 5. `scripts/docker-*.bat` wraps the Windows container workflow.
 6. `.github/workflows/*.yml` installs dependencies and runs the same presets.
+7. `tools/toolchain/ensure-toolchain-release.sh` resolves, downloads, or
+	publishes the shared installed-toolchain bundle.
 
 The workflow file should stay thin. If a command matters for local users, it
 should exist in the repository first.
@@ -93,10 +98,28 @@ sample against it. The generated compiler is not ringos-aware yet, so this path
 still relies on the staged bootstrap config files until the Stage 8 driver work
 lands.
 
+Before configuring, each wrapper now mounts a host-side cache directory into the
+container and runs `tools/toolchain/ensure-toolchain-release.sh` so the
+installed-toolchain bundle is normally fetched from GitHub Releases instead of
+being rebuilt in every container invocation.
+
+When the repository is private, pass `GH_TOKEN` or `GITHUB_TOKEN` through the
+wrapper environment so the container can authenticate release downloads.
+
 ### Native Linux
 
 Install the same core packages used by `docker/Dockerfile`, including
 `gdb-multiarch` for the debugger-launch and debug-host test surface.
+
+If you want the native Linux flow to reuse the published installed-toolchain
+bundle, run:
+
+```bash
+bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build
+```
+
+For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` before invoking
+the helper so release downloads can authenticate successfully.
 
 Configure and build:
 
@@ -191,3 +214,6 @@ matching target, and then runs exactly one scenario-specific CTest preset.
 If the dependency stack changes, update `docker/Dockerfile` and
 the workflow files under `.github/workflows/` together so local container runs
 and CI stay in sync.
+
+The dedicated `toolchain_release` workflow is responsible for publishing a new
+release asset when the combined installed-toolchain manifest ID changes.

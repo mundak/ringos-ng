@@ -1,16 +1,23 @@
-name: smoke_x64_ansi_c
+name: toolchain_release
 
 on:
-  pull_request:
   push:
     branches:
       - main
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: toolchain-release
+  cancel-in-progress: false
 
 jobs:
-  smoke_x64_ansi_c:
+  toolchain_release:
+    if: github.repository == 'mundak/ringos-ng'
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
 
     steps:
       - name: Check out repository
@@ -31,16 +38,7 @@ jobs:
             qemu-system-misc \
             qemu-system-x86
 
-      - name: Ensure shared toolchain bundle
+      - name: Publish shared toolchain release when missing
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build
-
-      - name: Configure x64
-        run: cmake --preset x64-debug
-
-      - name: Build x64
-        run: cmake --build --preset build-x64-debug
-
-      - name: Run ANSI C x64 smoke test
-        run: ctest --preset smoke_x64_ansi_c
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build --publish-if-missing

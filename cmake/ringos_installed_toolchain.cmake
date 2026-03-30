@@ -79,6 +79,43 @@ function(ringos_resolve_tool_program tool_name out_path)
   set(${out_path} ${tool_path} PARENT_SCOPE)
 endfunction()
 
+function(ringos_read_installed_toolchain_manifest_value manifest_file key out_value)
+  if(NOT EXISTS ${manifest_file})
+    message(FATAL_ERROR "Installed toolchain manifest does not exist: ${manifest_file}")
+  endif()
+
+  file(STRINGS ${manifest_file} manifest_line REGEX "\"${key}\": \"[^\"]+\"" LIMIT_COUNT 1)
+
+  if(NOT manifest_line)
+    message(FATAL_ERROR "Unable to find '${key}' in installed toolchain manifest: ${manifest_file}")
+  endif()
+
+  string(REGEX REPLACE ".*\"${key}\": \"([^\"]+)\".*" "\\1" manifest_value "${manifest_line}")
+  set(${out_value} ${manifest_value} PARENT_SCOPE)
+endfunction()
+
+function(ringos_existing_toolchain_matches_bundle bundle_root target_arch expected_toolchain_id out_matches out_toolchain_file)
+  set(bundle_toolchain_file ${bundle_root}/cmake/ringos-${target_arch}-toolchain.cmake)
+  set(bundle_manifest_file ${bundle_root}/share/ringos/toolchain-manifest-${target_arch}.json)
+
+  if(NOT EXISTS ${bundle_toolchain_file} OR NOT EXISTS ${bundle_manifest_file})
+    set(${out_matches} FALSE PARENT_SCOPE)
+    set(${out_toolchain_file} ${bundle_toolchain_file} PARENT_SCOPE)
+    return()
+  endif()
+
+  ringos_read_installed_toolchain_manifest_value(${bundle_manifest_file} toolchain_id actual_toolchain_id)
+
+  if(actual_toolchain_id STREQUAL expected_toolchain_id)
+    set(bundle_matches TRUE)
+  else()
+    set(bundle_matches FALSE)
+  endif()
+
+  set(${out_matches} ${bundle_matches} PARENT_SCOPE)
+  set(${out_toolchain_file} ${bundle_toolchain_file} PARENT_SCOPE)
+endfunction()
+
 function(ringos_generate_installed_toolchain_bundle target_arch out_target out_bundle_root out_toolchain_file)
   if(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "ringos-native" AND NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
     message(FATAL_ERROR
@@ -330,6 +367,24 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   file(WRITE ${manifest_file_source} ${manifest_contents})
   file(WRITE ${runtime_manifest_source} ${runtime_manifest_contents})
   file(WRITE ${generic_toolchain_source} ${generic_toolchain_contents})
+
+  ringos_existing_toolchain_matches_bundle(
+    ${bundle_root}
+    ${target_arch}
+    ${toolchain_id_prefix}
+    bundle_matches_existing
+    existing_bundle_toolchain_file)
+
+  if(bundle_matches_existing)
+    if(NOT TARGET ${target_name})
+      add_custom_target(${target_name})
+    endif()
+
+    set(${out_target} ${target_name} PARENT_SCOPE)
+    set(${out_bundle_root} ${bundle_root} PARENT_SCOPE)
+    set(${out_toolchain_file} ${existing_bundle_toolchain_file} PARENT_SCOPE)
+    return()
+  endif()
 
   file(GLOB_RECURSE clang_resource_files LIST_DIRECTORIES FALSE ${clang_resource_dir}/*)
 

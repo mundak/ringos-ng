@@ -64,6 +64,15 @@ scripts\docker-test-x64.bat
 scripts\docker-test-arm64.bat
 ```
 
+These wrappers now resolve the expected versioned toolchain release asset
+(`ringos-toolchain-<bundle-id>.zip`) before configuring the tree. The
+extracted bundle is cached under the host-side
+`%LOCALAPPDATA%\ringos` directory and mounted into the container so repeated
+local Docker runs reuse the published toolchain instead of rebuilding it.
+If the repository is private, set `GH_TOKEN` or `GITHUB_TOKEN` in the host
+environment so the container can authenticate release downloads instead of
+falling back to a local rebuild.
+
 Build the shared external toolchain package ZIP from Windows:
 
 ```bat
@@ -90,6 +99,7 @@ sudo apt-get install -y \
   cmake \
   ninja-build \
   clang \
+  curl \
   lld \
   llvm \
   qemu-system-arm \
@@ -97,6 +107,17 @@ sudo apt-get install -y \
   qemu-system-x86 \
   gdb-multiarch
 ```
+
+Resolve the shared toolchain bundle before configuring if you want the build to
+reuse the published release rather than regenerating the installed toolchain
+bundle locally:
+
+```bash
+bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build
+```
+
+For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` first so the
+helper can authenticate release downloads.
 
 Configure and build:
 
@@ -165,6 +186,23 @@ ctest --preset smoke_arm64_x64_emulator
 
 More detail on the local and CI verification contract lives in
 [docs/ci-and-testing.md](docs/ci-and-testing.md).
+
+## Shared Toolchain Release
+
+The installed-toolchain flow publishes a shared GitHub release asset named
+`ringos-toolchain-<bundle-id>.zip`, where `<bundle-id>` is one combined hash for
+the full x64+arm64 bundle. The archive also carries
+`share/ringos/toolchain-bundle-id.txt` and
+`share/ringos/toolchain-bundle-manifest.json` so the extracted package keeps the
+same single public identity while still recording the underlying per-target
+manifest IDs. The
+dedicated `toolchain_release` workflow publishes the release on `main`, on
+manual dispatch, and on a daily schedule so canonical CI and Docker-based local
+pipelines can download the matching bundle instead of rebuilding it every run.
+
+When the expected release is not available yet, `tools/toolchain/ensure-toolchain-release.sh`
+can fall back to a local build with `--allow-build`, and it can publish the
+missing release with `--publish-if-missing` when `GH_TOKEN` is available.
 
 ## Repository Layout
 

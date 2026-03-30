@@ -7,6 +7,23 @@ setlocal
 set IMAGE_NAME=ringos-ci
 set CONTEXT_DIR=%~dp0..
 
+if defined LOCALAPPDATA (
+    set HOST_RINGOS_CACHE=%LOCALAPPDATA%\ringos
+) else (
+    set HOST_RINGOS_CACHE=%CONTEXT_DIR%\build\ringos-cache
+)
+
+if not exist "%HOST_RINGOS_CACHE%" (
+    mkdir "%HOST_RINGOS_CACHE%"
+)
+
+set TOOLCHAIN_TOKEN_ARG=
+if defined GH_TOKEN (
+    set TOOLCHAIN_TOKEN_ARG=-e GH_TOKEN
+) else if defined GITHUB_TOKEN (
+    set TOOLCHAIN_TOKEN_ARG=-e GITHUB_TOKEN
+)
+
 echo === Building Docker image: %IMAGE_NAME% ===
 docker build -f "%CONTEXT_DIR%\docker\Dockerfile" -t %IMAGE_NAME% "%CONTEXT_DIR%"
 if %errorlevel% neq 0 (
@@ -17,7 +34,7 @@ if %errorlevel% neq 0 (
 echo.
 echo === Launching x64 OS in QEMU (%IMAGE_NAME%) ===
 echo Press Ctrl+C to stop QEMU.
-docker run --rm -it %IMAGE_NAME% bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && scripts/run-x64.sh build/x64-debug/arch/x64/ringos_x64"
+docker run --rm -it %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build && cmake --preset x64-debug && cmake --build --preset build-x64-debug && scripts/run-x64.sh build/x64-debug/arch/x64/ringos_x64"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%
