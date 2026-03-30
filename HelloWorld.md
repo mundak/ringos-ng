@@ -197,14 +197,17 @@ Goal:
 
 Deliverables:
 
-- target definitions, driver behavior, and default search paths for the sysroot
+- target definitions for `x86_64-unknown-ringos-msvc` and
+  `aarch64-unknown-ringos-msvc`
+- driver behavior and compiler-relative default search paths for the sysroot
 - automated builds of the Clang toolchain against the ringos target
 - at least one end-to-end C build that uses the generated compiler and sysroot
 
 Exit criteria:
 
 - the project can self-host simple user-space C programs with the ringos-aware
-  Clang build
+  Clang build without relying on bootstrap config files for the common hosted C
+  path
 
 ## Stage 9: Hosted C++ Runtime Stack
 

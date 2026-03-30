@@ -78,6 +78,21 @@ These wrappers rebuild the shared `ringos-ci` image from
 `docker/Dockerfile`, then run the requested configure, build, and test or run
 sequence inside the container.
 
+Stage 8 toolchain bring-up currently starts from the Linux shell inside that
+same container image:
+
+```bash
+scripts/build-clang-toolchain.sh
+scripts/build-bootstrap-hosted-c.sh x64
+scripts/build-bootstrap-hosted-c.sh arm64
+```
+
+The first script builds the repo-owned host Clang toolchain scaffolding. The
+second script exercises the current staged sysroot by compiling a hosted C
+sample against it. The generated compiler is not ringos-aware yet, so this path
+still relies on the staged bootstrap config files until the Stage 8 driver work
+lands.
+
 ### Native Linux
 
 Install the same core packages used by `docker/Dockerfile`, including

@@ -310,6 +310,13 @@ C++ behind a C ABI, a bootstrap compiler-rt builtins archive, and toolchain
 metadata under `share/ringos/` so external build tooling can discover the
 provisional target triple and runtime layout.
 
+Stage 8 now freezes the first ringos-specific compiler contract in
+[docs/stage8-clang-bringup.md](docs/stage8-clang-bringup.md). The planned
+ringos-aware compiler surface adopts `x86_64-unknown-ringos-msvc` and
+`aarch64-unknown-ringos-msvc`, keeps the current PE or COFF bootstrap path, and
+replaces bootstrap config-file discovery with compiler-owned target and sysroot
+defaults.
+
 In the current bootstrap cut, the libc archive is intentionally small: console
 output and basic string routines are present, the malloc family is stubbed out
 until later work, and the arm64-hosted x64-emulator smoke payload still uses a
