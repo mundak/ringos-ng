@@ -21,7 +21,8 @@ ringos_add_embedded_arm64_test_app(
   aarch64
   ARM64_ANSI_C_TEST_APP_IMAGE_OBJECT
   BINARY_STEM ringos_ansi_c_test_app_arm64_pe64_image
-  SOURCE_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world.c)
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
+  PROJECT_TARGET hello_world)
 
 set(ARM64_KERNEL_COMPILE_OPTIONS
   -mgeneral-regs-only

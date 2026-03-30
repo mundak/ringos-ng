@@ -64,6 +64,12 @@ scripts\docker-test-x64.bat
 scripts\docker-test-arm64.bat
 ```
 
+Build the shared external toolchain package ZIP from Windows:
+
+```bat
+tools\toolchain\docker-build-toolchain.bat
+```
+
 If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
@@ -100,6 +106,12 @@ cmake --build --preset build-x64-debug
 
 cmake --preset arm64-debug
 cmake --build --preset build-arm64-debug
+```
+
+Build the shared external toolchain package ZIP:
+
+```bash
+tools/toolchain/build-toolchain.sh
 ```
 
 Run the kernels directly:
@@ -309,6 +321,53 @@ presets. Each packaged sysroot now carries bootstrap Clang config files, a
 C++ behind a C ABI, a bootstrap compiler-rt builtins archive, and toolchain
 metadata under `share/ringos/` so external build tooling can discover the
 provisional target triple and runtime layout.
+
+The next step toward the real ringos compiler flow is a distributable shared
+toolchain package. The repository now exposes
+`build-x64-installed-toolchain` and `build-arm64-installed-toolchain` build
+presets. Together they populate one shared package root that contains one copy
+of the host compiler tools plus both target sysroots, and the packaging scripts
+archive that root into a ZIP file for distribution.
+
+Inside the ZIP, the shared package exports these toolchain files under one root:
+
+```text
+ringos-toolchain/cmake/ringos-x64-toolchain.cmake
+ringos-toolchain/cmake/ringos-arm64-toolchain.cmake
+ringos-toolchain/cmake/ringos-toolchain.cmake
+```
+
+Those installed toolchain files expose the long-term ringos-native triples
+`x86_64-unknown-ringos` and `aarch64-unknown-ringos` to downstream projects,
+while still supporting the current Stage 7 bootstrap driver flow through the
+default `RINGOS_TOOLCHAIN_DRIVER_MODE=bootstrap-compat`. Once a previous-stage
+ringos-aware compiler exists, point `RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT` at
+that install tree and switch `RINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native` to
+stop relying on the provisional Windows-targeted bootstrap driver path.
+
+The sample under `user/samples/hello_world/` is intentionally self-contained:
+it contains only its own `CMakeLists.txt` and source file, and it builds
+against the installed toolchain bundle without including any other repository
+CMake modules. That is the same contract a downstream Ring OS application
+should use.
+
+For example, after building and extracting the shared toolchain package, a downstream developer
+can run:
+
+```bash
+tools/toolchain/build-toolchain.sh
+cmake -S user/samples/hello_world \
+  -B build/samples/hello_world-x64 \
+  -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=/path/to/ringos-toolchain/cmake/ringos-x64-toolchain.cmake
+cmake --build build/samples/hello_world-x64
+```
+
+
+The same extracted package also contains
+`/path/to/ringos-toolchain/cmake/ringos-arm64-toolchain.cmake` for arm64,
+or the generic dispatcher file `ringos-toolchain.cmake` if you also pass
+`-DRINGOS_TARGET_ARCH=x64` or `-DRINGOS_TARGET_ARCH=arm64`.
 
 In the current bootstrap cut, the libc archive is intentionally small: console
 output and basic string routines are present, the malloc family is stubbed out

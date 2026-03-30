@@ -14,7 +14,8 @@ ringos_add_embedded_x64_test_app(
   i386:x86-64
   X64_ANSI_C_TEST_APP_IMAGE_OBJECT
   BINARY_STEM ringos_ansi_c_test_app_x64_pe64_image
-  SOURCE_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world.c)
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
+  PROJECT_TARGET hello_world)
 
 function(ringos_add_x64_kernel_target target_name dependency_target image_object runtime_mode)
   add_executable(${target_name}
