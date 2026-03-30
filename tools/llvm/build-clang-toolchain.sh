@@ -3,20 +3,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 LLVM_REPO_URL="${RINGOS_LLVM_REPO_URL:-https://github.com/llvm/llvm-project.git}"
 LLVM_REF="${RINGOS_LLVM_REF:-llvmorg-18.1.8}"
-LLVM_ROOT="${RINGOS_LLVM_ROOT:-${REPO_ROOT}/build/toolchain}"
+LLVM_ROOT="${RINGOS_LLVM_ROOT:-${REPO_ROOT}/tools/llvm}"
 LLVM_SOURCE_DIR="${RINGOS_LLVM_SOURCE_DIR:-${LLVM_ROOT}/src/llvm-project}"
 LLVM_BUILD_DIR="${RINGOS_LLVM_BUILD_DIR:-${LLVM_ROOT}/build}"
-LLVM_INSTALL_DIR="${RINGOS_LLVM_INSTALL_DIR:-${LLVM_ROOT}/install}"
-LLVM_PATCH_DIR="${RINGOS_LLVM_PATCH_DIR:-${REPO_ROOT}/toolchains/llvm-project/patches}"
+LLVM_INSTALL_DIR="${RINGOS_LLVM_INSTALL_DIR:-${REPO_ROOT}/user/sysroot}"
+LLVM_PATCH_DIR="${RINGOS_LLVM_PATCH_DIR:-${LLVM_ROOT}/patches}"
 LLVM_PROJECTS="${RINGOS_LLVM_ENABLE_PROJECTS:-clang;lld}"
 LLVM_RUNTIMES="${RINGOS_LLVM_ENABLE_RUNTIMES:-compiler-rt}"
 LLVM_TARGETS="${RINGOS_LLVM_TARGETS_TO_BUILD:-AArch64;X86}"
 
-mkdir -p "${LLVM_ROOT}" "$(dirname "${LLVM_SOURCE_DIR}")"
+mkdir -p "${LLVM_ROOT}" "$(dirname "${LLVM_SOURCE_DIR}")" "$(dirname "${LLVM_INSTALL_DIR}")"
 
 if [[ ! -d "${LLVM_SOURCE_DIR}/.git" ]]; then
   git clone "${LLVM_REPO_URL}" "${LLVM_SOURCE_DIR}"
@@ -58,3 +58,4 @@ cmake --build "${LLVM_BUILD_DIR}" --target install
 echo "Installed LLVM toolchain under ${LLVM_INSTALL_DIR}"
 echo "clang: ${LLVM_INSTALL_DIR}/bin/clang"
 echo "lld-link: ${LLVM_INSTALL_DIR}/bin/lld-link"
+echo "ringos sysroot root: ${LLVM_INSTALL_DIR}/sysroot"

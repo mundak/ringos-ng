@@ -30,10 +30,10 @@ new kernel ABI. The ringos-aware compiler should keep using:
 
 The staged sysroot layout remains the source of truth:
 
-- `sysroot/<triple>/include` for headers
-- `sysroot/<triple>/lib` for `crt0.obj`, `ringos_c.lib`, `ringos_sdk.lib`, and
+- `user/sysroot/sysroot/<triple>/include` for headers
+- `user/sysroot/sysroot/<triple>/lib` for `crt0.obj`, `ringos_c.lib`, `ringos_sdk.lib`, and
   `clang_rt.builtins.lib`
-- `sysroot/<triple>/share/ringos` for metadata
+- `user/sysroot/sysroot/<triple>/share/ringos` for metadata
 
 The generated compiler should accept an explicit `--sysroot`, but the normal
 hosted path should also work through a compiler-relative default sysroot.
@@ -62,9 +62,9 @@ the existing x64 and arm64 LLVM targets.
 
 The repository now carries two bootstrap scripts for this stage:
 
-- `scripts/build-clang-toolchain.sh` builds a pinned `llvm-project` checkout,
-  applies any in-repo ringos patch set, and installs host tools under
-  `build/toolchain/install`
+- `tools/llvm/build-clang-toolchain.sh` builds a pinned `llvm-project` checkout,
+  applies any in-repo ringos patch set from `tools/llvm/patches`, and installs
+  host tools under `user/sysroot`
 - `scripts/build-bootstrap-hosted-c.sh` proves the current hosted C sysroot path
   by building the staged sysroot and compiling a user-space C sample against it
 

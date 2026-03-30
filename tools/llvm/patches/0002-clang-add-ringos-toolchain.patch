@@ -1,0 +1,381 @@
+diff --git a/clang/lib/Driver/CMakeLists.txt b/clang/lib/Driver/CMakeLists.txt
+index 58427e3f83c4201f4b6e7b996c5175aa1ffc2638..fe8fc88600fbbf224d85706119e5a75ff96ed3f8 100644
+--- a/clang/lib/Driver/CMakeLists.txt
++++ b/clang/lib/Driver/CMakeLists.txt
+@@ -75,6 +75,7 @@ add_clang_library(clangDriver
+   ToolChains/OpenBSD.cpp
+   ToolChains/PS4CPU.cpp
+   ToolChains/RISCVToolchain.cpp
++  ToolChains/RingOS.cpp
+   ToolChains/Solaris.cpp
+   ToolChains/SPIRV.cpp
+   ToolChains/TCE.cpp
+diff --git a/clang/lib/Driver/Driver.cpp b/clang/lib/Driver/Driver.cpp
+index 93cddf742d521d25dc9ad397804cd829e44cbbd3..dc4b8c7c0763e861239aa360deceaf0551737b65 100644
+--- a/clang/lib/Driver/Driver.cpp
++++ b/clang/lib/Driver/Driver.cpp
+@@ -42,6 +42,7 @@
+ #include "ToolChains/PPCLinux.h"
+ #include "ToolChains/PS4CPU.h"
+ #include "ToolChains/RISCVToolchain.h"
++#include "ToolChains/RingOS.h"
+ #include "ToolChains/SPIRV.h"
+ #include "ToolChains/Solaris.h"
+ #include "ToolChains/TCE.h"
+@@ -6323,6 +6324,9 @@ const ToolChain &Driver::getToolChain(const ArgList &Args,
+     case llvm::Triple::Hurd:
+       TC = std::make_unique<toolchains::Hurd>(*this, Target, Args);
+       break;
++    case llvm::Triple::Ringos:
++      TC = std::make_unique<toolchains::RingOSToolChain>(*this, Target, Args);
++      break;
+     case llvm::Triple::LiteOS:
+       TC = std::make_unique<toolchains::OHOS>(*this, Target, Args);
+       break;
+diff --git a/clang/lib/Driver/ToolChains/RingOS.cpp b/clang/lib/Driver/ToolChains/RingOS.cpp
+new file mode 100644
+index 0000000000000000000000000000000000000000..56e97d3e7cc7f844cd2d05213a586c2fb44067ac
+--- /dev/null
++++ b/clang/lib/Driver/ToolChains/RingOS.cpp
+@@ -0,0 +1,221 @@
++//===--- RingOS.cpp - RingOS ToolChain Implementations -------------------===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#include "RingOS.h"
++#include "CommonArgs.h"
++#include "clang/Driver/Compilation.h"
++#include "clang/Driver/Driver.h"
++#include "clang/Driver/Options.h"
++#include "llvm/ADT/SmallString.h"
++#include "llvm/ADT/StringRef.h"
++#include "llvm/ADT/Twine.h"
++#include "llvm/Option/ArgList.h"
++#include "llvm/Support/Path.h"
++#include "llvm/Support/VirtualFileSystem.h"
++
++using namespace clang::driver;
++using namespace clang::driver::toolchains;
++
++using llvm::opt::Arg;
++using llvm::opt::ArgList;
++using llvm::opt::ArgStringList;
++using llvm::StringRef;
++
++static std::string appendPath(StringRef Base, StringRef A,
++                              StringRef B = StringRef()) {
++  llvm::SmallString<128> Path(Base);
++  llvm::sys::path::append(Path, A, B);
++  return std::string(Path);
++}
++
++static std::string getSysRootFile(StringRef SysRoot, StringRef Name) {
++  return appendPath(SysRoot, "lib", Name);
++}
++
++static StringRef getRingOSMachine(const llvm::Triple &Triple) {
++  switch (Triple.getArch()) {
++  case llvm::Triple::x86_64:
++    return "x64";
++  case llvm::Triple::aarch64:
++    return "arm64";
++  default:
++    return "";
++  }
++}
++
++void tools::ringos::Linker::ConstructJob(Compilation &C, const JobAction &JA,
++                                         const InputInfo &Output,
++                                         const InputInfoList &Inputs,
++                                         const ArgList &Args,
++                                         const char *LinkingOutput) const {
++  claimNoWarnArgs(Args);
++
++  const auto &TC =
++      static_cast<const toolchains::RingOSToolChain &>(getToolChain());
++  const Driver &D = TC.getDriver();
++  const StringRef Machine = getRingOSMachine(TC.getTriple());
++  std::string SysRoot = TC.computeSysRoot();
++  ArgStringList CmdArgs;
++
++  if (Machine.empty()) {
++    D.Diag(diag::err_target_unknown_triple) << TC.getTriple().str();
++    return;
++  }
++
++  if (Output.isFilename())
++    CmdArgs.push_back(
++        Args.MakeArgString(std::string("/out:") + Output.getFilename()));
++
++  CmdArgs.push_back(Args.MakeArgString((Twine("/machine:") + Machine).str()));
++  CmdArgs.push_back("/subsystem:native");
++  CmdArgs.push_back("/nologo");
++
++  if (!SysRoot.empty()) {
++    CmdArgs.push_back(
++        Args.MakeArgString(std::string("/libpath:") + appendPath(SysRoot, "lib")));
++  }
++
++  for (const Arg *A : Args.filtered(options::OPT_L))
++    CmdArgs.push_back(
++        Args.MakeArgString(std::string("/libpath:") + A->getValue()));
++
++  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles)) {
++    CmdArgs.push_back("/entry:user_start");
++    if (!SysRoot.empty()) {
++      std::string Crt0 = getSysRootFile(SysRoot, "crt0.obj");
++      if (TC.getVFS().exists(Crt0))
++        CmdArgs.push_back(Args.MakeArgString(Crt0));
++    }
++  }
++
++  for (const auto &Input : Inputs) {
++    if (Input.isFilename()) {
++      CmdArgs.push_back(Input.getFilename());
++      continue;
++    }
++
++    const Arg &A = Input.getInputArg();
++    if (A.getOption().matches(options::OPT_l)) {
++      StringRef Lib = A.getValue();
++      CmdArgs.push_back(
++          Args.MakeArgString(Lib.ends_with(".lib") ? Lib.str() : (Lib + ".lib").str()));
++      continue;
++    }
++
++    A.renderAsInput(Args, CmdArgs);
++  }
++
++  if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs) &&
++      !SysRoot.empty()) {
++    for (StringRef Lib : {"ringos_sdk.lib", "ringos_c.lib",
++                          "clang_rt.builtins.lib"}) {
++      std::string LibPath = getSysRootFile(SysRoot, Lib);
++      if (TC.getVFS().exists(LibPath))
++        CmdArgs.push_back(Args.MakeArgString(Lib.str()));
++    }
++  }
++
++  const char *Exec = Args.MakeArgString(TC.GetProgramPath(TC.getDefaultLinker()));
++  C.addCommand(std::make_unique<Command>(JA, *this,
++                                         ResponseFileSupport::AtFileUTF8(),
++                                         Exec, CmdArgs, Inputs, Output));
++}
++
++RingOSToolChain::RingOSToolChain(const Driver &D, const llvm::Triple &Triple,
++                                 const llvm::opt::ArgList &Args)
++    : ToolChain(D, Triple, Args) {
++  getProgramPaths().push_back(getDriver().getInstalledDir());
++  if (getDriver().getInstalledDir() != getDriver().Dir)
++    getProgramPaths().push_back(getDriver().Dir);
++}
++
++ToolChain::UnwindTableLevel
++RingOSToolChain::getDefaultUnwindTableLevel(const ArgList &Args) const {
++  return getArch() == llvm::Triple::x86_64 ? UnwindTableLevel::Asynchronous
++                                           : UnwindTableLevel::None;
++}
++
++bool RingOSToolChain::isPICDefault() const { return false; }
++
++bool RingOSToolChain::isPIEDefault(const llvm::opt::ArgList &Args) const {
++  return false;
++}
++
++bool RingOSToolChain::isPICDefaultForced() const { return false; }
++
++std::string RingOSToolChain::computeSysRoot() const {
++  if (!getDriver().SysRoot.empty())
++    return getDriver().SysRoot;
++
++  auto Probe = [&](StringRef Base) -> std::optional<std::string> {
++    llvm::SmallString<128> Path(Base);
++    llvm::sys::path::append(Path, "sysroot");
++    return getTargetSubDirPath(Path);
++  };
++
++  llvm::SmallString<128> InstalledRoot(
++      llvm::sys::path::parent_path(getDriver().getInstalledDir()));
++  if (auto Path = Probe(InstalledRoot))
++    return *Path;
++
++  llvm::SmallString<128> DriverRoot(llvm::sys::path::parent_path(getDriver().Dir));
++  if (auto Path = Probe(DriverRoot))
++    return *Path;
++
++  llvm::SmallString<128> Parent(DriverRoot);
++  llvm::sys::path::append(Parent, "..");
++  llvm::sys::path::remove_dots(Parent, true);
++  if (auto Path = Probe(Parent))
++    return *Path;
++
++  return std::string();
++}
++
++void RingOSToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
++                                                ArgStringList &CC1Args) const {
++  auto AddSystemAfterIncludes = [&]() {
++    for (const auto &P : DriverArgs.getAllArgValues(options::OPT_isystem_after))
++      addSystemInclude(DriverArgs, CC1Args, P);
++  };
++
++  if (DriverArgs.hasArg(options::OPT_nostdinc)) {
++    AddSystemAfterIncludes();
++    return;
++  }
++
++  std::string SysRoot = computeSysRoot();
++  if (!SysRoot.empty())
++    addSystemInclude(DriverArgs, CC1Args, appendPath(SysRoot, "include"));
++
++  if (!DriverArgs.hasArg(options::OPT_nobuiltininc)) {
++    llvm::SmallString<128> ResourceDir(getDriver().ResourceDir);
++    llvm::sys::path::append(ResourceDir, "include");
++    addSystemInclude(DriverArgs, CC1Args, ResourceDir);
++  }
++
++  AddSystemAfterIncludes();
++}
++
++void RingOSToolChain::AddClangCXXStdlibIncludeArgs(
++    const llvm::opt::ArgList &DriverArgs,
++    llvm::opt::ArgStringList &CC1Args) const {
++  if (DriverArgs.hasArg(options::OPT_nostdinc) ||
++      DriverArgs.hasArg(options::OPT_nostdincxx))
++    return;
++
++  std::string SysRoot = computeSysRoot();
++  if (SysRoot.empty() || GetCXXStdlibType(DriverArgs) != ToolChain::CST_Libcxx)
++    return;
++
++  addSystemInclude(DriverArgs, CC1Args,
++                   appendPath(SysRoot, "include", "c++/v1"));
++}
++
++Tool *RingOSToolChain::buildLinker() const {
++  return new tools::ringos::Linker(*this);
++}
+diff --git a/clang/lib/Driver/ToolChains/RingOS.h b/clang/lib/Driver/ToolChains/RingOS.h
+new file mode 100644
+index 0000000000000000000000000000000000000000..91942f6fb76ced046e9ecda5086e327c156e9286
+--- /dev/null
++++ b/clang/lib/Driver/ToolChains/RingOS.h
+@@ -0,0 +1,87 @@
++//===--- RingOS.h - RingOS ToolChain Implementations ------------*- C++ -*-===//
++//
++// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
++// See https://llvm.org/LICENSE.txt for license information.
++// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
++//
++//===----------------------------------------------------------------------===//
++
++#ifndef LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_RINGOS_H
++#define LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_RINGOS_H
++
++#include "clang/Basic/LangOptions.h"
++#include "clang/Driver/Tool.h"
++#include "clang/Driver/ToolChain.h"
++
++namespace clang {
++namespace driver {
++namespace tools {
++
++namespace ringos {
++class LLVM_LIBRARY_VISIBILITY Linker final : public Tool {
++public:
++  Linker(const ToolChain &TC) : Tool("ringos::Linker", "ld", TC) {}
++
++  bool hasIntegratedCPP() const override { return false; }
++  bool isLinkJob() const override { return true; }
++
++  void ConstructJob(Compilation &C, const JobAction &JA,
++                    const InputInfo &Output, const InputInfoList &Inputs,
++                    const llvm::opt::ArgList &TCArgs,
++                    const char *LinkingOutput) const override;
++};
++} // end namespace ringos
++
++} // end namespace tools
++
++namespace toolchains {
++
++class LLVM_LIBRARY_VISIBILITY RingOSToolChain : public ToolChain {
++public:
++  RingOSToolChain(const Driver &D, const llvm::Triple &Triple,
++                  const llvm::opt::ArgList &Args);
++
++  UnwindTableLevel
++  getDefaultUnwindTableLevel(const llvm::opt::ArgList &Args) const override;
++  bool isPICDefault() const override;
++  bool isPIEDefault(const llvm::opt::ArgList &Args) const override;
++  bool isPICDefaultForced() const override;
++
++  LangOptions::StackProtectorMode
++  GetDefaultStackProtectorLevel(bool KernelOrKext) const override {
++    return LangOptions::SSPOff;
++  }
++
++  RuntimeLibType GetDefaultRuntimeLibType() const override {
++    return ToolChain::RLT_CompilerRT;
++  }
++
++  CXXStdlibType GetDefaultCXXStdlibType() const override {
++    return ToolChain::CST_Libcxx;
++  }
++
++  UnwindLibType GetDefaultUnwindLibType() const override {
++    return ToolChain::UNW_None;
++  }
++
++  const char *getDefaultLinker() const override { return "lld-link"; }
++
++  void
++  AddClangSystemIncludeArgs(const llvm::opt::ArgList &DriverArgs,
++                            llvm::opt::ArgStringList &CC1Args) const override;
++  void AddClangCXXStdlibIncludeArgs(
++      const llvm::opt::ArgList &DriverArgs,
++      llvm::opt::ArgStringList &CC1Args) const override;
++
++  std::string computeSysRoot() const override;
++  bool HasNativeLLVMSupport() const override { return true; }
++
++protected:
++  Tool *buildLinker() const override;
++};
++
++} // end namespace toolchains
++} // end namespace driver
++} // end namespace clang
++
++#endif // LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_RINGOS_H
+diff --git a/clang/test/Driver/ringos.c b/clang/test/Driver/ringos.c
+new file mode 100644
+index 0000000000000000000000000000000000000000..77e0b4603e28e74c4151175ce172e1d9555f0e4b
+--- /dev/null
++++ b/clang/test/Driver/ringos.c
+@@ -0,0 +1,21 @@
++// RUN: mkdir -p %t-sdk/include %t-sdk/lib
++// RUN: touch %t-sdk/lib/crt0.obj %t-sdk/lib/ringos_sdk.lib %t-sdk/lib/ringos_c.lib %t-sdk/lib/clang_rt.builtins.lib
++// RUN: %clang --target=x86_64-unknown-ringos-msvc --sysroot=%t-sdk -### %s 2>&1 | FileCheck %s --check-prefix=X64
++// RUN: %clang --target=aarch64-unknown-ringos-msvc --sysroot=%t-sdk -### %s 2>&1 | FileCheck %s --check-prefix=AARCH64
++// RUN: %clang --target=x86_64-unknown-ringos-msvc --sysroot=%t-sdk -### -c %s 2>&1 | FileCheck %s --check-prefix=CC1
++
++// X64: "lld-link"
++// X64: "/machine:x64"
++// X64: "/entry:user_start"
++// X64: "/subsystem:native"
++// X64: "{{.*}}crt0.obj"
++// X64: "/libpath:{{.*}}lib"
++// X64: "ringos_sdk.lib"
++// X64: "ringos_c.lib"
++// X64: "clang_rt.builtins.lib"
++
++// AARCH64: "lld-link"
++// AARCH64: "/machine:arm64"
++// AARCH64: "/entry:user_start"
++
++// CC1: "-isystem" "{{.*}}include"
