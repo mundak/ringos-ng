@@ -57,6 +57,20 @@
       "targets": [
         "ringos_sdk_sysroot"
       ]
+    },
+    {
+      "name": "build-x64-installed-toolchain",
+      "configurePreset": "x64-debug",
+      "targets": [
+        "ringos_installed_toolchain"
+      ]
+    },
+    {
+      "name": "build-arm64-installed-toolchain",
+      "configurePreset": "arm64-debug",
+      "targets": [
+        "ringos_installed_toolchain"
+      ]
     }
   ],
   "testPresets": [

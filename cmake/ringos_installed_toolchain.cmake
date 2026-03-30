@@ -1,0 +1,414 @@
+include_guard(GLOBAL)
+
+include(${CMAKE_SOURCE_DIR}/cmake/ringos_sdk_sysroot.cmake)
+
+function(ringos_get_native_target_triple target_arch out_target_triple)
+  if(target_arch STREQUAL "x64")
+    set(target_triple x86_64-unknown-ringos)
+  elseif(target_arch STREQUAL "arm64")
+    set(target_triple aarch64-unknown-ringos)
+  else()
+    message(FATAL_ERROR "Unsupported ringos native target architecture: ${target_arch}")
+  endif()
+
+  set(${out_target_triple} ${target_triple} PARENT_SCOPE)
+endfunction()
+
+function(ringos_get_default_toolchain_install_root out_install_root)
+  if(WIN32 AND DEFINED ENV{LOCALAPPDATA})
+    file(TO_CMAKE_PATH "$ENV{LOCALAPPDATA}/ringos/toolchain" install_root)
+  elseif(DEFINED ENV{HOME})
+    file(TO_CMAKE_PATH "$ENV{HOME}/.cache/ringos/toolchain" install_root)
+  else()
+    set(install_root ${CMAKE_BINARY_DIR}/installed-toolchain)
+  endif()
+
+  set(${out_install_root} ${install_root} PARENT_SCOPE)
+endfunction()
+
+function(ringos_collect_installed_toolchain_input_files target_arch out_input_files)
+  set(input_files
+    ${CMAKE_SOURCE_DIR}/cmake/ringos_sdk_sysroot.cmake
+    ${CMAKE_SOURCE_DIR}/cmake/ringos_installed_toolchain.cmake
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/debug.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/handle.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/process.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/sdk.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/status.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/syscalls.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/types.h
+    ${CMAKE_SOURCE_DIR}/user/libc/include/errno.h
+    ${CMAKE_SOURCE_DIR}/user/libc/include/stdio.h
+    ${CMAKE_SOURCE_DIR}/user/libc/include/stdlib.h
+    ${CMAKE_SOURCE_DIR}/user/libc/include/string.h
+    ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_debug.c
+    ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_process.c
+    ${CMAKE_SOURCE_DIR}/user/crt/src/crt0.c
+    ${CMAKE_SOURCE_DIR}/user/libc/src/errno.cpp
+    ${CMAKE_SOURCE_DIR}/user/libc/src/puts.cpp
+    ${CMAKE_SOURCE_DIR}/user/libc/src/stdio.cpp
+    ${CMAKE_SOURCE_DIR}/user/libc/src/exit.cpp
+    ${CMAKE_SOURCE_DIR}/user/libc/src/stdlib.cpp
+    ${CMAKE_SOURCE_DIR}/user/libc/src/string.cpp
+    ${CMAKE_SOURCE_DIR}/user/compiler_rt/src/builtins.c)
+
+  if(target_arch STREQUAL "x64")
+    list(APPEND input_files ${CMAKE_SOURCE_DIR}/user/sdk/x64/ringos_syscall.S)
+  elseif(target_arch STREQUAL "arm64")
+    list(APPEND input_files ${CMAKE_SOURCE_DIR}/user/sdk/arm64/ringos_syscall.S)
+  else()
+    message(FATAL_ERROR "Unsupported ringos native target architecture: ${target_arch}")
+  endif()
+
+  set(${out_input_files} ${input_files} PARENT_SCOPE)
+endfunction()
+
+function(ringos_resolve_tool_program tool_name out_path)
+  if(RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
+    set(tool_hints ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin)
+  else()
+    set(tool_hints)
+  endif()
+
+  find_program(tool_path NAMES ${ARGN} HINTS ${tool_hints})
+
+  if(NOT tool_path)
+    message(FATAL_ERROR "Unable to find required tool '${tool_name}'.")
+  endif()
+
+  set(${out_path} ${tool_path} PARENT_SCOPE)
+endfunction()
+
+function(ringos_generate_installed_toolchain_bundle target_arch out_target out_bundle_root out_toolchain_file)
+  if(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "ringos-native" AND NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
+    message(FATAL_ERROR
+      "RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT must point to an installed ringos-aware compiler "
+      "when RINGOS_TOOLCHAIN_DRIVER_MODE is 'ringos-native'.")
+  endif()
+
+  ringos_get_sdk_target_triple(${target_arch} bootstrap_target_triple)
+  ringos_get_native_target_triple(${target_arch} native_target_triple)
+
+  if(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "ringos-native")
+    set(driver_target_triple ${native_target_triple})
+  elseif(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "bootstrap-compat")
+    set(driver_target_triple ${bootstrap_target_triple})
+  else()
+    message(FATAL_ERROR "Unsupported RINGOS_TOOLCHAIN_DRIVER_MODE: ${RINGOS_TOOLCHAIN_DRIVER_MODE}")
+  endif()
+
+  ringos_add_sdk_sysroot(
+    ${target_arch}
+    RINGOS_SDK_SYSROOT_TARGET
+    RINGOS_SDK_TARGET_TRIPLE
+    RINGOS_SDK_SYSROOT_DIR
+    RINGOS_SDK_SYSROOT_INCLUDE_DIR
+    RINGOS_SDK_SYSROOT_LIB_DIR
+    RINGOS_SDK_SYSROOT_LIBRARY
+    RINGOS_SDK_COMPILE_CONFIG
+    RINGOS_SDK_LINK_CONFIG)
+
+  ringos_resolve_tool_program(clang RINGOS_TOOLCHAIN_CLANG clang clang-18 clang-17)
+  ringos_resolve_tool_program(clang++ RINGOS_TOOLCHAIN_CLANGXX clang++ clang++-18 clang++-17)
+  ringos_resolve_tool_program(lld-link RINGOS_TOOLCHAIN_LLD_LINK lld-link lld-link-18 lld-link-17)
+  ringos_resolve_tool_program(llvm-ar RINGOS_TOOLCHAIN_LLVM_AR llvm-ar llvm-ar-18 llvm-ar-17)
+  ringos_resolve_tool_program(llvm-ranlib RINGOS_TOOLCHAIN_LLVM_RANLIB llvm-ranlib llvm-ranlib-18 llvm-ranlib-17)
+  ringos_resolve_tool_program(llvm-objcopy RINGOS_TOOLCHAIN_LLVM_OBJCOPY llvm-objcopy llvm-objcopy-18 llvm-objcopy-17)
+
+  find_program(RINGOS_TOOLCHAIN_LD_LLD NAMES ld.lld ld.lld-18 ld.lld-17)
+  find_program(RINGOS_TOOLCHAIN_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17)
+
+  get_filename_component(toolchain_clang_name ${RINGOS_TOOLCHAIN_CLANG} NAME)
+  get_filename_component(toolchain_clangxx_name ${RINGOS_TOOLCHAIN_CLANGXX} NAME)
+  get_filename_component(toolchain_lld_link_name ${RINGOS_TOOLCHAIN_LLD_LINK} NAME)
+  get_filename_component(toolchain_llvm_ar_name ${RINGOS_TOOLCHAIN_LLVM_AR} NAME)
+  get_filename_component(toolchain_llvm_ranlib_name ${RINGOS_TOOLCHAIN_LLVM_RANLIB} NAME)
+  get_filename_component(toolchain_llvm_objcopy_name ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY} NAME)
+
+  if(RINGOS_TOOLCHAIN_LD_LLD)
+    get_filename_component(toolchain_ld_lld_name ${RINGOS_TOOLCHAIN_LD_LLD} NAME)
+  endif()
+
+  if(RINGOS_TOOLCHAIN_LLVM_LIB)
+    get_filename_component(toolchain_llvm_lib_name ${RINGOS_TOOLCHAIN_LLVM_LIB} NAME)
+  endif()
+
+  execute_process(
+    COMMAND ${RINGOS_TOOLCHAIN_CLANG} --version
+    OUTPUT_VARIABLE clang_version
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+  )
+
+  execute_process(
+    COMMAND ${RINGOS_TOOLCHAIN_LLD_LINK} --version
+    OUTPUT_VARIABLE lld_link_version
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+  )
+
+  execute_process(
+    COMMAND ${RINGOS_TOOLCHAIN_CLANG} -print-resource-dir
+    OUTPUT_VARIABLE clang_resource_dir
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    COMMAND_ERROR_IS_FATAL ANY
+  )
+
+  get_filename_component(clang_resource_version ${clang_resource_dir} NAME)
+
+  ringos_collect_installed_toolchain_input_files(${target_arch} toolchain_input_files)
+
+  set(toolchain_hash_material
+    "target_arch=${target_arch}\n"
+    "native_target_triple=${native_target_triple}\n"
+    "driver_target_triple=${driver_target_triple}\n"
+    "toolchain_mode=${RINGOS_TOOLCHAIN_DRIVER_MODE}\n"
+    "clang_version=${clang_version}\n"
+    "lld_link_version=${lld_link_version}\n"
+    "clang_resource_version=${clang_resource_version}\n")
+
+  foreach(input_file IN LISTS toolchain_input_files)
+    file(SHA256 ${input_file} current_hash)
+    string(APPEND toolchain_hash_material "${input_file}=${current_hash}\n")
+  endforeach()
+
+  string(SHA256 toolchain_id "${toolchain_hash_material}")
+  string(SUBSTRING ${toolchain_id} 0 20 toolchain_id_prefix)
+
+  set(target_name ringos_${target_arch}_installed_toolchain)
+  set(bundle_root ${RINGOS_TOOLCHAIN_INSTALL_ROOT})
+  set(bundle_bin_dir ${bundle_root}/bin)
+  set(bundle_lib_dir ${bundle_root}/lib)
+  set(bundle_resource_dir ${bundle_lib_dir}/clang/${clang_resource_version})
+  set(bundle_sysroot_dir ${bundle_root}/sysroots/${native_target_triple})
+  set(bundle_share_dir ${bundle_root}/share/ringos)
+  set(bundle_cmake_dir ${bundle_root}/cmake)
+  set(bundle_toolchain_file ${bundle_cmake_dir}/ringos-${target_arch}-toolchain.cmake)
+  set(bundle_manifest_file ${bundle_share_dir}/toolchain-manifest-${target_arch}.json)
+  set(bundle_runtime_manifest_file ${bundle_share_dir}/runtime-manifest-${target_arch}.txt)
+  set(bundle_compile_config ${bundle_share_dir}/compile-${target_arch}.cfg)
+  set(bundle_link_config ${bundle_share_dir}/link-${target_arch}.cfg)
+  set(bundle_stamp_file ${bundle_share_dir}/toolchain-${target_arch}.stamp)
+  set(bundle_generic_toolchain_file ${bundle_cmake_dir}/ringos-toolchain.cmake)
+
+  set(generated_root ${CMAKE_BINARY_DIR}/generated/installed_toolchain/${target_arch})
+  set(toolchain_file_source ${generated_root}/ringos-${target_arch}-toolchain.cmake)
+  set(manifest_file_source ${generated_root}/toolchain-manifest-${target_arch}.json)
+  set(runtime_manifest_source ${generated_root}/runtime-manifest-${target_arch}.txt)
+  set(compile_config_source ${generated_root}/compile-${target_arch}.cfg)
+  set(link_config_source ${generated_root}/link-${target_arch}.cfg)
+  set(generic_toolchain_source ${generated_root}/ringos-toolchain.cmake)
+
+  file(MAKE_DIRECTORY ${generated_root})
+
+  if(target_arch STREQUAL "x64")
+    set(system_processor x86_64)
+  elseif(target_arch STREQUAL "arm64")
+    set(system_processor aarch64)
+  else()
+    message(FATAL_ERROR "Unsupported ringos native target architecture: ${target_arch}")
+  endif()
+
+  set(compile_config_lines
+    --target=${driver_target_triple}
+    -fno-stack-protector
+    -resource-dir
+    <CFGDIR>/../../lib/clang/${clang_resource_version}
+    -I
+    <CFGDIR>/../../sysroots/${native_target_triple}/include)
+  string(JOIN "\n" compile_config_contents ${compile_config_lines})
+  string(APPEND compile_config_contents "\n")
+
+  ringos_append_sdk_link_flags(${target_arch} link_config_lines)
+  list(INSERT link_config_lines 0 --target=${driver_target_triple})
+  list(APPEND link_config_lines
+    -resource-dir
+    <CFGDIR>/../../lib/clang/${clang_resource_version}
+    <CFGDIR>/../../sysroots/${native_target_triple}/lib/crt0.obj
+    <CFGDIR>/../../sysroots/${native_target_triple}/lib/ringos_c.lib
+    <CFGDIR>/../../sysroots/${native_target_triple}/lib/ringos_sdk.lib
+    <CFGDIR>/../../sysroots/${native_target_triple}/lib/clang_rt.builtins.lib)
+  string(JOIN "\n" link_config_contents ${link_config_lines})
+  string(APPEND link_config_contents "\n")
+
+  ringos_append_sdk_link_flags(${target_arch} toolchain_link_flags)
+  string(JOIN " " toolchain_link_flags_string ${toolchain_link_flags})
+
+  string(CONCAT toolchain_contents
+    "get_filename_component(RINGOS_TOOLCHAIN_ROOT \"\${CMAKE_CURRENT_LIST_DIR}/..\" ABSOLUTE)\n"
+    "get_filename_component(RINGOS_SHARE_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/share/ringos\" ABSOLUTE)\n"
+    "get_filename_component(RINGOS_SYSROOT_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/sysroots/${native_target_triple}\" ABSOLUTE)\n"
+    "set(RINGOS_TARGET_ARCH \"${target_arch}\")\n"
+    "set(RINGOS_TARGET_TRIPLE \"${native_target_triple}\")\n"
+    "set(RINGOS_DRIVER_TARGET_TRIPLE \"${driver_target_triple}\")\n"
+    "set(RINGOS_BOOTSTRAP_TARGET_TRIPLE \"${bootstrap_target_triple}\")\n"
+    "set(RINGOS_TOOLCHAIN_MODE \"${RINGOS_TOOLCHAIN_DRIVER_MODE}\")\n"
+    "set(RINGOS_CLANG_RESOURCE_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/lib/clang/${clang_resource_version}\")\n"
+    "set(RINGOS_SYSROOT_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include\")\n"
+    "set(RINGOS_SYSROOT_LIB_DIR \"\${RINGOS_SYSROOT_DIR}/lib\")\n"
+    "set(RINGOS_SYSROOT_CRT0_OBJECT \"\${RINGOS_SYSROOT_LIB_DIR}/crt0.obj\")\n"
+    "set(RINGOS_SYSROOT_SDK_LIBRARY \"\${RINGOS_SYSROOT_LIB_DIR}/ringos_sdk.lib\")\n"
+    "set(RINGOS_SYSROOT_LIBC_LIBRARY \"\${RINGOS_SYSROOT_LIB_DIR}/ringos_c.lib\")\n"
+    "set(RINGOS_SYSROOT_COMPILER_RT_LIBRARY \"\${RINGOS_SYSROOT_LIB_DIR}/clang_rt.builtins.lib\")\n"
+    "set(RINGOS_CLANG_COMPILE_CONFIG \"\${RINGOS_SHARE_DIR}/compile-${target_arch}.cfg\")\n"
+    "set(RINGOS_CLANG_LINK_CONFIG \"\${RINGOS_SHARE_DIR}/link-${target_arch}.cfg\")\n"
+    "set(CMAKE_SYSTEM_NAME Generic)\n"
+    "set(CMAKE_SYSTEM_PROCESSOR ${system_processor})\n"
+    "set(CMAKE_TRY_COMPILE_TARGET_TYPE EXECUTABLE)\n"
+    "set(CMAKE_EXECUTABLE_SUFFIX \".exe\")\n"
+    "set(CMAKE_C_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clang_name}\")\n"
+    "set(CMAKE_CXX_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clangxx_name}\")\n"
+    "set(CMAKE_ASM_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clang_name}\")\n"
+    "set(CMAKE_C_COMPILER_TARGET \"\${RINGOS_DRIVER_TARGET_TRIPLE}\")\n"
+    "set(CMAKE_CXX_COMPILER_TARGET \"\${RINGOS_DRIVER_TARGET_TRIPLE}\")\n"
+    "set(CMAKE_ASM_COMPILER_TARGET \"\${RINGOS_DRIVER_TARGET_TRIPLE}\")\n"
+    "set(CMAKE_AR \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ar_name}\")\n"
+    "set(CMAKE_RANLIB \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ranlib_name}\")\n"
+    "set(CMAKE_C_COMPILER_AR \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ar_name}\")\n"
+    "set(CMAKE_C_COMPILER_RANLIB \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ranlib_name}\")\n"
+    "set(CMAKE_CXX_COMPILER_AR \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ar_name}\")\n"
+    "set(CMAKE_CXX_COMPILER_RANLIB \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ranlib_name}\")\n"
+    "set(CMAKE_OBJCOPY \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_objcopy_name}\")\n"
+    "set(CMAKE_FIND_ROOT_PATH \"\${RINGOS_SYSROOT_DIR}\")\n"
+    "set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)\n"
+    "set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)\n"
+    "set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)\n"
+    "set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)\n"
+    "set(CMAKE_C_STANDARD_LIBRARIES_INIT \"\")\n"
+    "set(CMAKE_CXX_STANDARD_LIBRARIES_INIT \"\")\n"
+    "set(CMAKE_ASM_STANDARD_LIBRARIES_INIT \"\")\n"
+    "set(CMAKE_C_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_CXX_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_ASM_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_EXE_LINKER_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" ${toolchain_link_flags_string} \\\"\${RINGOS_SYSROOT_CRT0_OBJECT}\\\" \\\"\${RINGOS_SYSROOT_LIBC_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_SDK_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_COMPILER_RT_LIBRARY}\\\"\")\n")
+
+  string(CONCAT runtime_manifest_contents
+    "toolchain_id=${toolchain_id_prefix}\n"
+    "toolchain_mode=${RINGOS_TOOLCHAIN_DRIVER_MODE}\n"
+    "target_arch=${target_arch}\n"
+    "target_triple=${native_target_triple}\n"
+    "driver_target_triple=${driver_target_triple}\n"
+    "bootstrap_target_triple=${bootstrap_target_triple}\n"
+    "sysroot=sysroots/${native_target_triple}\n"
+    "crt0=sysroots/${native_target_triple}/lib/crt0.obj\n"
+    "sdk=sysroots/${native_target_triple}/lib/ringos_sdk.lib\n"
+    "libc=sysroots/${native_target_triple}/lib/ringos_c.lib\n"
+    "compiler_rt=sysroots/${native_target_triple}/lib/clang_rt.builtins.lib\n")
+
+  string(CONCAT manifest_contents
+    "{\n"
+    "  \"toolchain_id\": \"${toolchain_id_prefix}\",\n"
+    "  \"toolchain_mode\": \"${RINGOS_TOOLCHAIN_DRIVER_MODE}\",\n"
+    "  \"target_arch\": \"${target_arch}\",\n"
+    "  \"target_triple\": \"${native_target_triple}\",\n"
+    "  \"driver_target_triple\": \"${driver_target_triple}\",\n"
+    "  \"bootstrap_target_triple\": \"${bootstrap_target_triple}\",\n"
+    "  \"clang_version\": \"${clang_version}\",\n"
+    "  \"lld_link_version\": \"${lld_link_version}\",\n"
+    "  \"sysroot\": \"sysroots/${native_target_triple}\"\n"
+    "}\n")
+
+  string(CONCAT generic_toolchain_contents
+    "if(NOT DEFINED RINGOS_TARGET_ARCH AND DEFINED CACHE{RINGOS_TARGET_ARCH})\n"
+    "  set(RINGOS_TARGET_ARCH \"$CACHE{RINGOS_TARGET_ARCH}\")\n"
+    "endif()\n"
+    "list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES RINGOS_TARGET_ARCH)\n"
+    "if(NOT DEFINED RINGOS_TARGET_ARCH)\n"
+    "  message(FATAL_ERROR \"Set RINGOS_TARGET_ARCH to 'x64' or 'arm64' before loading ringos-toolchain.cmake.\")\n"
+    "endif()\n"
+    "if(RINGOS_TARGET_ARCH STREQUAL \"x64\")\n"
+    "  include(\"\${CMAKE_CURRENT_LIST_DIR}/ringos-x64-toolchain.cmake\")\n"
+    "elseif(RINGOS_TARGET_ARCH STREQUAL \"arm64\")\n"
+    "  include(\"\${CMAKE_CURRENT_LIST_DIR}/ringos-arm64-toolchain.cmake\")\n"
+    "else()\n"
+    "  message(FATAL_ERROR \"Unsupported RINGOS_TARGET_ARCH: \${RINGOS_TARGET_ARCH}\")\n"
+    "endif()\n")
+
+  file(WRITE ${compile_config_source} ${compile_config_contents})
+  file(WRITE ${link_config_source} ${link_config_contents})
+  file(WRITE ${toolchain_file_source} ${toolchain_contents})
+  file(WRITE ${manifest_file_source} ${manifest_contents})
+  file(WRITE ${runtime_manifest_source} ${runtime_manifest_contents})
+  file(WRITE ${generic_toolchain_source} ${generic_toolchain_contents})
+
+  file(GLOB_RECURSE clang_resource_files LIST_DIRECTORIES FALSE ${clang_resource_dir}/*)
+
+  if(NOT TARGET ${target_name})
+    add_custom_command(
+      OUTPUT ${bundle_stamp_file}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_root}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_bin_dir}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_lib_dir}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_lib_dir}/clang
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_share_dir}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_cmake_dir}
+      COMMAND ${CMAKE_COMMAND} -E remove_directory ${bundle_sysroot_dir}
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${RINGOS_SDK_SYSROOT_DIR} ${bundle_sysroot_dir}
+      COMMAND ${CMAKE_COMMAND} -E copy_directory ${clang_resource_dir} ${bundle_resource_dir}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_CLANG} ${bundle_bin_dir}/${toolchain_clang_name}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_CLANGXX} ${bundle_bin_dir}/${toolchain_clangxx_name}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLD_LINK} ${bundle_bin_dir}/${toolchain_lld_link_name}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLVM_AR} ${bundle_bin_dir}/${toolchain_llvm_ar_name}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLVM_RANLIB} ${bundle_bin_dir}/${toolchain_llvm_ranlib_name}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY} ${bundle_bin_dir}/${toolchain_llvm_objcopy_name}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${compile_config_source} ${bundle_compile_config}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${link_config_source} ${bundle_link_config}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${toolchain_file_source} ${bundle_toolchain_file}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${manifest_file_source} ${bundle_manifest_file}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${runtime_manifest_source} ${bundle_runtime_manifest_file}
+      COMMAND ${CMAKE_COMMAND} -E touch ${bundle_stamp_file}
+      DEPENDS
+        ${RINGOS_SDK_SYSROOT_TARGET}
+        ${RINGOS_SDK_SYSROOT_LIBRARY}
+        ${RINGOS_SDK_COMPILE_CONFIG}
+        ${RINGOS_SDK_LINK_CONFIG}
+        ${toolchain_input_files}
+        ${RINGOS_TOOLCHAIN_CLANG}
+        ${RINGOS_TOOLCHAIN_CLANGXX}
+        ${RINGOS_TOOLCHAIN_LLD_LINK}
+        ${RINGOS_TOOLCHAIN_LLVM_AR}
+        ${RINGOS_TOOLCHAIN_LLVM_RANLIB}
+        ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY}
+        ${clang_resource_files}
+        ${compile_config_source}
+        ${link_config_source}
+        ${toolchain_file_source}
+        ${manifest_file_source}
+        ${runtime_manifest_source}
+      BYPRODUCTS
+        ${bundle_toolchain_file}
+        ${bundle_manifest_file}
+        ${bundle_runtime_manifest_file}
+      COMMENT "Installing cached ringos ${target_arch} toolchain bundle under ${bundle_root}"
+      VERBATIM
+    )
+
+    add_custom_target(${target_name} DEPENDS ${bundle_stamp_file})
+  endif()
+
+  if(target_arch STREQUAL "x64")
+    set(dispatch_target ringos_installed_toolchain_dispatcher)
+    set(dispatch_stamp_file ${bundle_share_dir}/toolchain-dispatcher.stamp)
+
+    if(NOT TARGET ${dispatch_target})
+      add_custom_command(
+        OUTPUT ${dispatch_stamp_file}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_cmake_dir}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${generic_toolchain_source} ${bundle_generic_toolchain_file}
+        COMMAND ${CMAKE_COMMAND} -E touch ${dispatch_stamp_file}
+        DEPENDS ${generic_toolchain_source}
+        BYPRODUCTS ${bundle_generic_toolchain_file}
+        COMMENT "Installing shared ringos toolchain dispatcher under ${bundle_cmake_dir}"
+        VERBATIM
+      )
+
+      add_custom_target(${dispatch_target} DEPENDS ${dispatch_stamp_file})
+    endif()
+
+    add_dependencies(${target_name} ${dispatch_target})
+  endif()
+
+  set(${out_target} ${target_name} PARENT_SCOPE)
+  set(${out_bundle_root} ${bundle_root} PARENT_SCOPE)
+  set(${out_toolchain_file} ${bundle_toolchain_file} PARENT_SCOPE)
+endfunction()

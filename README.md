@@ -64,6 +64,12 @@ scripts\docker-test-x64.bat
 scripts\docker-test-arm64.bat
 ```
 
+Build the shared external toolchain package ZIP from Windows:
+
+```bat
+tools\toolchain\docker-build-toolchain.bat
+```
+
 If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
@@ -100,6 +106,12 @@ cmake --build --preset build-x64-debug
 
 cmake --preset arm64-debug
 cmake --build --preset build-arm64-debug
+```
+
+Build the shared external toolchain package ZIP:
+
+```bash
+tools/toolchain/build-toolchain.sh
 ```
 
 Run the kernels directly:
