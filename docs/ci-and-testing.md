@@ -93,10 +93,10 @@ scripts/build-bootstrap-hosted-c.sh arm64
 ```
 
 The first script builds the repo-owned host Clang toolchain scaffolding. The
-second script exercises the current staged sysroot by compiling a hosted C
-sample against it. The generated compiler is not ringos-aware yet, so this path
-still relies on the staged bootstrap config files until the Stage 8 driver work
-lands.
+second script resolves the published installed-toolchain bundle and compiles a
+hosted C sample against the downloaded compiler configs and sysroot for the
+selected target. That sample lane no longer depends on repo-local staged
+bootstrap config files or arbitrary host compiler paths.
 
 Before configuring, each wrapper now mounts a host-side cache directory into the
 container and runs `tools/toolchain/ensure-toolchain-release.sh` so the
@@ -197,7 +197,7 @@ developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose seven separately
+The current GitHub Actions setup should continue to expose eight separately
 tracked workflows:
 
 1. `x64_emulator_unit`
@@ -207,9 +207,16 @@ tracked workflows:
 5. `smoke_arm64_native`
 6. `smoke_arm64_ansi_c`
 7. `smoke_arm64_x64_emulator`
+8. `user_samples`
 
-Each workflow installs the Linux dependency set, configures and builds the
-matching target, and then runs exactly one scenario-specific CTest preset.
+Each workflow installs the Linux dependency set and builds the matching target.
+Most workflows then run exactly one scenario-specific CTest preset.
+
+The `user_samples` workflow is the exception to the CTest-only rule: it
+resolves the published installed-toolchain bundle, builds the hosted C sample
+through `scripts/build-bootstrap-hosted-c.sh`, and then configures and builds
+the CMake-based hello-world sample directly against the downloaded
+`ringos-toolchain.cmake` bundle for both `x64` and `arm64`.
 
 If the dependency stack changes, update `docker/Dockerfile` and
 the workflow files under `.github/workflows/` together so local container runs
