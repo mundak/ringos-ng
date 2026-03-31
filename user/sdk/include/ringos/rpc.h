@@ -1,6 +1,5 @@
 #pragma once
 
-#include <ringos/handle.h>
 #include <ringos/types.h>
 
 #ifdef __cplusplus
@@ -26,8 +25,11 @@ typedef struct ringos_rpc_response
   uintptr_t value3;
 } ringos_rpc_response;
 
-int32_t ringos_rpc_call(uint64_t rpc_handle, const ringos_rpc_request* request, ringos_rpc_response* response);
+int32_t ringos_rpc_call(const ringos_rpc_request* request, ringos_rpc_response* response);
+int32_t ringos_rpc_wait(ringos_rpc_request* request);
+int32_t ringos_rpc_reply(const ringos_rpc_response* response);
 
 #ifdef __cplusplus
 }
 #endif
+

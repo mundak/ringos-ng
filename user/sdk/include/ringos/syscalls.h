@@ -11,6 +11,9 @@ enum ringos_syscall
   RINGOS_SYSCALL_DEBUG_LOG = 1,
   RINGOS_SYSCALL_THREAD_EXIT = 2,
   RINGOS_SYSCALL_RPC_CALL = 3,
+  RINGOS_SYSCALL_RPC_WAIT = 4,
+  RINGOS_SYSCALL_RPC_REPLY = 5,
+  RINGOS_SYSCALL_DEVICE_MEMORY_MAP = 6,
 };
 
 int32_t ringos_syscall0(uint64_t syscall_number);

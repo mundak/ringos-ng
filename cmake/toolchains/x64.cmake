@@ -21,9 +21,9 @@ find_program(RINGOS_LLD NAMES ld.lld ld.lld-18 ld.lld-17 REQUIRED)
 # -nostdlib/-nostartfiles are compiler-driver flags that prevent libc and CRT
 # objects from being linked automatically. When invoking lld directly, those
 # defaults are never applied, so the flags are not needed.
-set(CMAKE_C_LINK_EXECUTABLE "${RINGOS_LLD} <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-set(CMAKE_CXX_LINK_EXECUTABLE "${RINGOS_LLD} <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
-set(CMAKE_ASM_LINK_EXECUTABLE "${RINGOS_LLD} <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+set(CMAKE_C_LINK_EXECUTABLE "\"${RINGOS_LLD}\" <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+set(CMAKE_CXX_LINK_EXECUTABLE "\"${RINGOS_LLD}\" <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
+set(CMAKE_ASM_LINK_EXECUTABLE "\"${RINGOS_LLD}\" <LINK_FLAGS> <OBJECTS> -o <TARGET> <LINK_LIBRARIES>")
 
 # Bare-metal flags applied globally
 add_compile_options(-ffreestanding -fno-exceptions -fno-rtti -Wall -Wextra -Wpedantic)

@@ -3,6 +3,14 @@ set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
 include(${CMAKE_SOURCE_DIR}/cmake/x64_test_app_image.cmake)
 
 ringos_add_embedded_x64_test_app(
+  ringos_x64_console_driver
+  elf64-x86-64
+  i386:x86-64
+  X64_CONSOLE_DRIVER_IMAGE_OBJECT
+  BINARY_STEM ringos_console_driver_x64_pe64_image
+  SOURCE_PATH ${CMAKE_SOURCE_DIR}/drivers/x64/console_driver.cpp)
+
+ringos_add_embedded_x64_test_app(
   ringos_x64_test_app
   elf64-x86-64
   i386:x86-64
@@ -17,17 +25,26 @@ ringos_add_embedded_x64_test_app(
   PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
   PROJECT_TARGET hello_world)
 
-function(ringos_add_x64_kernel_target target_name dependency_target image_object runtime_mode)
+function(
+  ringos_add_x64_kernel_target
+  target_name
+  driver_dependency_target
+  client_dependency_target
+  driver_image_object
+  client_image_object
+  driver_runtime_mode
+  client_runtime_mode)
   add_executable(${target_name}
     boot.S
     debug.cpp
     entry.cpp
-    ${image_object}
+    ${driver_image_object}
+    ${client_image_object}
     user_runtime.cpp
     user_runtime.S
   )
 
-  add_dependencies(${target_name} ${dependency_target})
+  add_dependencies(${target_name} ${driver_dependency_target} ${client_dependency_target})
 
   target_compile_options(${target_name}
     PRIVATE
@@ -38,8 +55,12 @@ function(ringos_add_x64_kernel_target target_name dependency_target image_object
   target_link_options(${target_name}
     PRIVATE
       -T ${LINKER_SCRIPT}
-      --defsym=_binary_ringos_test_app_image_start=_binary_${runtime_mode}_start
-      --defsym=_binary_ringos_test_app_image_end=_binary_${runtime_mode}_end
+      --defsym=_binary_ringos_console_driver_image_start=_binary_${driver_runtime_mode}_start
+      --defsym=_binary_ringos_console_driver_image_end=_binary_${driver_runtime_mode}_end
+      --defsym=_binary_ringos_console_client_image_start=_binary_${client_runtime_mode}_start
+      --defsym=_binary_ringos_console_client_image_end=_binary_${client_runtime_mode}_end
+      --defsym=_binary_ringos_test_app_image_start=_binary_${client_runtime_mode}_start
+      --defsym=_binary_ringos_test_app_image_end=_binary_${client_runtime_mode}_end
   )
 
   target_link_libraries(${target_name}
@@ -66,12 +87,18 @@ endfunction()
 
 ringos_add_x64_kernel_target(
   ringos_x64
+  ringos_x64_console_driver
   ringos_x64_test_app
+  ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
   ${X64_TEST_APP_IMAGE_OBJECT}
+  ringos_console_driver_x64_pe64_image
   ringos_test_app_x64_pe64_image)
 
 ringos_add_x64_kernel_target(
   ringos_x64_ansi_c
+  ringos_x64_console_driver
   ringos_x64_ansi_c_test_app
+  ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
   ${X64_ANSI_C_TEST_APP_IMAGE_OBJECT}
+  ringos_console_driver_x64_pe64_image
   ringos_ansi_c_test_app_x64_pe64_image)

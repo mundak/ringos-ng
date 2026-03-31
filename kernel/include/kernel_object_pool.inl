@@ -102,6 +102,28 @@ const object_t* kernel_object_pool<object_t, capacity>::find_by_handle(handle_t 
 }
 
 template<typename object_t, uint32_t capacity>
+object_t* kernel_object_pool<object_t, capacity>::get_by_index(uint32_t index)
+{
+  if (index >= capacity || !m_items[index].is_occupied)
+  {
+    return nullptr;
+  }
+
+  return get_item_at(index);
+}
+
+template<typename object_t, uint32_t capacity>
+const object_t* kernel_object_pool<object_t, capacity>::get_by_index(uint32_t index) const
+{
+  if (index >= capacity || !m_items[index].is_occupied)
+  {
+    return nullptr;
+  }
+
+  return get_item_at(index);
+}
+
+template<typename object_t, uint32_t capacity>
 object_t* kernel_object_pool<object_t, capacity>::get_item_at(uint32_t index)
 {
   return reinterpret_cast<object_t*>(&m_items[index].storage[0]);
@@ -133,4 +155,3 @@ handle_t kernel_object_pool<object_t, capacity>::allocate_handle_value()
 {
   return __atomic_fetch_add(m_next_handle_value, static_cast<handle_t>(1), __ATOMIC_RELAXED);
 }
-

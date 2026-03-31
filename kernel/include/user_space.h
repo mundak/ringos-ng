@@ -29,6 +29,9 @@ static constexpr int32_t STATUS_NOT_FOUND = -12;
 static constexpr uint64_t STAGE1_SYSCALL_DEBUG_LOG = 1;
 static constexpr uint64_t STAGE1_SYSCALL_THREAD_EXIT = 2;
 static constexpr uint64_t STAGE1_SYSCALL_RPC_CALL = 3;
+static constexpr uint64_t STAGE1_SYSCALL_RPC_WAIT = 4;
+static constexpr uint64_t STAGE1_SYSCALL_RPC_REPLY = 5;
+static constexpr uint64_t STAGE1_SYSCALL_DEVICE_MEMORY_MAP = 6;
 
 // Stage 2B widens the proof path just enough to emulate a tiny Windows console
 // surface for imported x64 PE entry points.

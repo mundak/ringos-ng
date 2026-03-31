@@ -63,9 +63,9 @@ _start:
   // ---- Load the boot GDT ----
   lgdt (boot_gdt_ptr)
 
-  // ---- Enable PAE (CR4 bit 5) ----
+  // ---- Enable PAE (CR4 bit 5) and SSE support (CR4.OSFXSR/OSXMMEXCPT) ----
   movl %cr4, %eax
-  orl  $(1 << 5), %eax
+  orl  $((1 << 5) | (1 << 9) | (1 << 10)), %eax
   movl %eax, %cr4
 
   // ---- Point CR3 at the PML4 ----
@@ -78,9 +78,10 @@ _start:
   orl  $(1 << 8), %eax
   wrmsr
 
-  // ---- Enable paging (CR0.PG, bit 31) ----
+  // ---- Enable paging and x87/SSE execution (CR0.PG, CR0.MP, clear CR0.EM) ----
   movl %cr0, %eax
-  orl  $(1 << 31), %eax
+  andl $~(1 << 2), %eax
+  orl  $((1 << 1) | (1 << 31)), %eax
   movl %eax, %cr0
 
   // ---- Far jump into the 64-bit code segment ----

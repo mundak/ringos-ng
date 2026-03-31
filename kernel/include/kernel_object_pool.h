@@ -20,6 +20,8 @@ public:
 
   object_t* find_by_handle(handle_t handle_value);
   const object_t* find_by_handle(handle_t handle_value) const;
+  object_t* get_by_index(uint32_t index);
+  const object_t* get_by_index(uint32_t index) const;
 
 private:
   struct slot

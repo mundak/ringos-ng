@@ -133,6 +133,38 @@ function(
       COMMENT "Building embedded x64 PE64 test app against the staged ringos sysroot"
       VERBATIM
     )
+  elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".cpp")
+    add_custom_command(
+      OUTPUT ${X64_TEST_APP_IMAGE_OBJECT}
+      COMMAND ${CMAKE_CXX_COMPILER}
+              --config=${RINGOS_SDK_COMPILE_CONFIG}
+              --config=${RINGOS_SDK_LINK_CONFIG}
+              -O2
+              -Wall
+              -Wextra
+              -Wpedantic
+              ${X64_TEST_APP_SOURCE}
+              -o ${X64_TEST_APP_WINDOWS_EXE}
+      COMMAND ${CMAKE_COMMAND} -E copy ${X64_TEST_APP_WINDOWS_EXE} ${X64_TEST_APP_IMAGE}
+      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}
+              ${CMAKE_OBJCOPY}
+              -I binary
+              -O ${output_format}
+              -B ${output_architecture}
+              ${RINGOS_TEST_APP_BINARY_STEM}
+              ${RINGOS_TEST_APP_BINARY_STEM}.o
+      DEPENDS
+        ${RINGOS_SDK_SYSROOT_TARGET}
+        ${RINGOS_SDK_SYSROOT_LIBRARY}
+        ${RINGOS_SDK_COMPILE_CONFIG}
+        ${RINGOS_SDK_LINK_CONFIG}
+        ${X64_TEST_APP_SOURCE}
+      BYPRODUCTS
+        ${X64_TEST_APP_IMAGE}
+        ${X64_TEST_APP_WINDOWS_EXE}
+      COMMENT "Building embedded x64 PE64 C++ test app against the staged ringos sysroot"
+      VERBATIM
+    )
   else()
     add_custom_command(
       OUTPUT ${X64_TEST_APP_IMAGE_OBJECT}

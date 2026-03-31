@@ -55,11 +55,11 @@ namespace
 
       int8_t displacement = 0;
 
-      if (!context.read_i8(instruction.next_address + 1, &displacement))
-      {
+            if (!context.read_i8(instruction.next_address + 1, &displacement))
+            {
         context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
         return false;
-      }
+            }
 
       *out_next_instruction = instruction.next_address + 2;
       *out_address
@@ -76,11 +76,11 @@ namespace
 
       int32_t displacement = 0;
 
-      if (!context.read_i32(instruction.next_address + 1, &displacement))
-      {
+            if (!context.read_i32(instruction.next_address + 1, &displacement))
+            {
         context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
         return false;
-      }
+            }
 
       *out_next_instruction = instruction.next_address + 5;
       *out_address
@@ -192,21 +192,21 @@ x64_instruction_outcome execute_x64_mov_register(
   {
     if (instruction.opcode == 0x89)
     {
-      if (!context.write_u64(memory_address, context.get_register64(register_index)))
-      {
+            if (!context.write_u64(memory_address, context.get_register64(register_index)))
+            {
         context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
         return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
-      }
+            }
     }
     else if (instruction.opcode == 0x8B)
     {
       uint64_t value = 0;
 
-      if (!context.read_u64(memory_address, &value))
-      {
+            if (!context.read_u64(memory_address, &value))
+            {
         context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
         return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
-      }
+            }
 
       context.get_register64(register_index) = value;
     }
@@ -220,21 +220,21 @@ x64_instruction_outcome execute_x64_mov_register(
   {
     if (instruction.opcode == 0x89)
     {
-      if (!context.write_u32(memory_address, context.get_register32(register_index)))
-      {
+            if (!context.write_u32(memory_address, context.get_register32(register_index)))
+            {
         context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
         return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
-      }
+            }
     }
     else if (instruction.opcode == 0x8B)
     {
       uint32_t value = 0;
 
-      if (!context.read_u32(memory_address, &value))
-      {
+            if (!context.read_u32(memory_address, &value))
+            {
         context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
         return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
-      }
+            }
 
       context.set_register32(register_index, value);
     }

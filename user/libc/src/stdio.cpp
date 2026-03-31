@@ -1,10 +1,12 @@
-#include <stdio.h>
-
+#include <ringos/console.h>
 #include <ringos/debug.h>
+#include <ringos/rpc.h>
+#include <ringos/status.h>
 
 #include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define RINGOS_STDIO_LOG_BUFFER_CAPACITY ((size_t) 512)
 
@@ -46,12 +48,7 @@ namespace
   }
 
   void append_unsigned_value(
-    char** cursor,
-    size_t* remaining,
-    int* total_written,
-    uint64_t value,
-    uint32_t base,
-    bool uppercase)
+    char** cursor, size_t* remaining, int* total_written, uint64_t value, uint32_t base, bool uppercase)
   {
     char digits[32];
     size_t digit_count = 0;
@@ -174,6 +171,19 @@ int vprintf(const char* format, va_list arguments)
   va_end(argument_copy);
 
   if (result < 0)
+  {
+    return result;
+  }
+
+  ringos_rpc_request request {};
+  request.operation = RINGOS_CONSOLE_OPERATION_WRITE;
+  request.argument0 = reinterpret_cast<uintptr_t>(buffer);
+  request.argument1 = static_cast<uintptr_t>(result);
+
+  ringos_rpc_response response {};
+  const int32_t transport_status = ringos_rpc_call(&request, &response);
+
+  if (transport_status == RINGOS_STATUS_OK && response.status == RINGOS_STATUS_OK)
   {
     return result;
   }

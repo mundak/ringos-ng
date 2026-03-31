@@ -2,6 +2,7 @@
 add_library(ringos_kernel OBJECT
   kernel.cpp
   debug.cpp
+  device_memory_object.cpp
   kernel_object.cpp
   process.cpp
   thread.cpp

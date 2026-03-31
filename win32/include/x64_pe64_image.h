@@ -13,7 +13,11 @@ inline constexpr uintptr_t X64_USER_IMAGE_VIRTUAL_ADDRESS = 0x400000;
 inline constexpr size_t X64_USER_IMAGE_PAGE_COUNT = 8;
 inline constexpr uintptr_t X64_USER_STACK_VIRTUAL_ADDRESS
   = X64_USER_IMAGE_VIRTUAL_ADDRESS + (X64_USER_IMAGE_PAGE_COUNT * X64_USER_IMAGE_PAGE_SIZE);
-inline constexpr size_t X64_USER_REGION_SIZE = (X64_USER_IMAGE_PAGE_COUNT + 1) * X64_USER_IMAGE_PAGE_SIZE;
+inline constexpr uintptr_t X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS
+  = X64_USER_STACK_VIRTUAL_ADDRESS + X64_USER_IMAGE_PAGE_SIZE;
+inline constexpr uintptr_t X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS
+  = X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS + X64_USER_IMAGE_PAGE_SIZE;
+inline constexpr size_t X64_USER_REGION_SIZE = (X64_USER_IMAGE_PAGE_COUNT + 3) * X64_USER_IMAGE_PAGE_SIZE;
 
 struct x64_pe64_import_resolver
 {
@@ -67,4 +71,3 @@ x64_pe64_image_load_status load_x64_pe64_image(
   const x64_pe64_import_resolver* import_resolver,
   x64_pe64_image_info* out_image_info);
 const char* describe_x64_pe64_image_load_status(x64_pe64_image_load_status status);
-

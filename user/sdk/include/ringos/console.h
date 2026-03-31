@@ -27,6 +27,8 @@ enum ringos_console_kind
 {
   RINGOS_CONSOLE_KIND_UNKNOWN = 0,
   RINGOS_CONSOLE_KIND_SERIAL = 1,
+
+  RINGOS_CONSOLE_KIND_VIRTUAL = 2,
 };
 
 typedef struct ringos_console_get_info_response
