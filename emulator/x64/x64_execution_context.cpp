@@ -170,6 +170,19 @@ bool x64_execution_context::read_u64(uintptr_t guest_address, uint64_t* out_valu
   return true;
 }
 
+bool x64_execution_context::write_u32(uintptr_t guest_address, uint32_t value) const
+{
+  uint8_t* destination = nullptr;
+
+  if (!translate_guest_pointer(guest_address, sizeof(uint32_t), &destination))
+  {
+    return false;
+  }
+
+  memcpy(destination, &value, sizeof(uint32_t));
+  return true;
+}
+
 bool x64_execution_context::write_u64(uintptr_t guest_address, uint64_t value) const
 {
   uint8_t* destination = nullptr;

@@ -96,17 +96,17 @@ the Stage 0 contract.
 - Channels are the only Stage 0 kernel IPC primitive.
 - A channel is created as two connected endpoints.
 - IPC is synchronous at the semantic level: clients issue a request and receive exactly one reply.
-- A channel call is function-call-like: it names a target endpoint, an operation number, and a small set of scalar register arguments.
+- An RPC call is function-call-like: it names a target endpoint, an operation number, and a small set of scalar register arguments.
 - State that does not fit in registers must be passed indirectly through shared memory that both sides can map.
 
 ### RPC Shape
 
 The intended request path is:
 
-1. The client chooses a channel handle and an operation number.
+1. The client chooses an RPC endpoint handle and an operation number.
 2. The client places scalar arguments in registers.
 3. If more state is needed, the client passes a pointer into shared memory.
-4. The client traps into the kernel with a channel call operation.
+4. The client traps into the kernel with an RPC call operation.
 5. The kernel validates the handle and any user pointers, then routes the call to the server endpoint.
 6. The server replies exactly once.
 7. The kernel resumes the client with scalar return values in registers or larger results through shared memory, plus a final status code.

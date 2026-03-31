@@ -416,10 +416,6 @@ namespace
       bootstrap.thread_context.stack_pointer = X64_USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
       bootstrap.thread_context.flags = X64_INITIAL_RFLAGS;
     }
-
-    bootstrap.shared_memory_address = USER_REGION_VIRTUAL_ADDRESS;
-    bootstrap.shared_memory_size
-      = m_user_image_kind == arm64_user_image_kind::NATIVE_ARM64_PE64 ? USER_REGION_SIZE : X64_USER_REGION_SIZE;
   }
 
   void arm64_initial_user_runtime_platform::prepare_thread_launch(

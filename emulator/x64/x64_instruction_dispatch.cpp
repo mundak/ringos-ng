@@ -30,6 +30,7 @@ void x64_instruction_dispatch::initialize_opcode_handlers()
   }
 
   m_primary_opcode_handlers[0x89] = &execute_x64_mov_register;
+  m_primary_opcode_handlers[0x8B] = &execute_x64_mov_register;
   m_primary_opcode_handlers[0x31] = &execute_x64_xor_register;
   m_primary_opcode_handlers[0x85] = &execute_x64_test_register;
   m_primary_opcode_handlers[0x83] = &execute_x64_group83;

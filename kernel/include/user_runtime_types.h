@@ -48,7 +48,4 @@ struct initial_user_runtime_bootstrap
 {
   address_space address_space;
   thread_context thread_context;
-  uintptr_t shared_memory_address;
-  size_t shared_memory_size;
 };
-

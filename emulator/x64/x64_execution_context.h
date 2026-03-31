@@ -36,6 +36,7 @@ public:
   bool read_u32(uintptr_t guest_address, uint32_t* out_value) const;
   bool read_i32(uintptr_t guest_address, int32_t* out_value) const;
   bool read_u64(uintptr_t guest_address, uint64_t* out_value) const;
+  bool write_u32(uintptr_t guest_address, uint32_t value) const;
   bool write_u64(uintptr_t guest_address, uint64_t value) const;
 
   void set_logic_flags(uint64_t value, bool is_64_bit);
