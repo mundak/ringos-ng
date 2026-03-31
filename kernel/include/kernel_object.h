@@ -8,7 +8,7 @@ class kernel_object
 {
 public:
   uint32_t get_id() const;
-  handle_t get_handle_value() const;
+  handle_t get_handle() const;
   uint32_t get_process_reference_count() const;
 
 protected:
@@ -23,3 +23,4 @@ private:
   handle_t m_handle_value;
   uint32_t m_process_reference_count;
 };
+

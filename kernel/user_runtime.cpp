@@ -61,7 +61,7 @@ thread* user_runtime::create_thread(
   }
 
   grant_process_access(*current_thread);
-  *out_thread_handle = current_thread->get_handle_value();
+  *out_thread_handle = current_thread->get_handle();
   return current_thread;
 }
 
@@ -95,8 +95,8 @@ bool user_runtime::create_channel_pair(handle_t* out_first_handle, handle_t* out
 
   grant_process_access(*first_channel);
   grant_process_access(*second_channel);
-  *out_first_handle = first_channel->get_handle_value();
-  *out_second_handle = second_channel->get_handle_value();
+  *out_first_handle = first_channel->get_handle();
+  *out_second_handle = second_channel->get_handle();
   return true;
 }
 
@@ -116,7 +116,7 @@ shared_memory_object* user_runtime::create_shared_memory_object(
   }
 
   grant_process_access(*current_object);
-  *out_handle = current_object->get_handle_value();
+  *out_handle = current_object->get_handle();
   return current_object;
 }
 
@@ -319,7 +319,7 @@ void user_runtime::set_current_thread(thread* current_thread)
 
   if (m_current_thread != nullptr)
   {
-    m_current_thread->set_state(user_thread_state::RUNNING);
+    m_current_thread->set_state(USER_THREAD_STATE_RUNNING);
   }
 }
 
@@ -364,7 +364,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case STAGE1_SYSCALL_THREAD_EXIT:
   {
-    active_thread->set_state(user_thread_state::EXITED);
+    active_thread->set_state(USER_THREAD_STATE_EXITED);
     active_thread->set_exit_status(syscall_context.argument0);
     return STATUS_OK;
   }
@@ -483,7 +483,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case STAGE2_SYSCALL_WINDOWS_EXIT_PROCESS:
   {
-    active_thread->set_state(user_thread_state::EXITED);
+    active_thread->set_state(USER_THREAD_STATE_EXITED);
     active_thread->set_exit_status(syscall_context.argument0);
     return STATUS_OK;
   }
@@ -502,7 +502,7 @@ bool user_runtime::is_current_thread_runnable() const
     return false;
   }
 
-  return m_current_thread->get_state() != user_thread_state::EXITED;
+  return m_current_thread->get_state() != USER_THREAD_STATE_EXITED;
 }
 
 void user_runtime::grant_process_access(kernel_object& object)
@@ -543,3 +543,4 @@ user_runtime& get_kernel_user_runtime()
   platform.enter_user_thread(platform.context, *initial_process, *initial_thread);
   panic("initial user runtime platform returned unexpectedly");
 }
+

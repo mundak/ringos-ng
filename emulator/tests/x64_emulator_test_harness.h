@@ -32,7 +32,7 @@ bool run_x64_emulator_test_program(
   size_t program_size,
   x64_syscall_capture& capture,
   x64_emulator_result* out_result,
-  x64_emulator_engine engine = x64_emulator_engine::INTERPRETER,
+  x64_emulator_engine engine = X64_EMULATOR_ENGINE_INTERPRETER,
   uint64_t instruction_budget = 64,
   uint64_t initial_rax = 0);
 

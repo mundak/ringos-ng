@@ -71,7 +71,7 @@ object_t* kernel_object_pool<object_t, capacity>::find_by_handle(handle_t handle
 
     object_t* current_item = get_item_at(index);
 
-    if (current_item->get_handle_value() == handle_value)
+    if (current_item->get_handle() == handle_value)
     {
       return current_item;
     }
@@ -92,7 +92,7 @@ const object_t* kernel_object_pool<object_t, capacity>::find_by_handle(handle_t 
 
     const object_t* current_item = get_item_at(index);
 
-    if (current_item->get_handle_value() == handle_value)
+    if (current_item->get_handle() == handle_value)
     {
       return current_item;
     }
@@ -133,3 +133,4 @@ handle_t kernel_object_pool<object_t, capacity>::allocate_handle_value()
 {
   return __atomic_fetch_add(m_next_handle_value, static_cast<handle_t>(1), __ATOMIC_RELAXED);
 }
+

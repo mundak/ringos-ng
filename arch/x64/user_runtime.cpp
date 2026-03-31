@@ -208,7 +208,7 @@ namespace
       &INITIAL_WINDOWS_IMPORT_RESOLVER,
       &image_info);
 
-    if (load_status != x64_pe64_image_load_status::OK)
+    if (load_status != X64_PE64_IMAGE_LOAD_STATUS_OK)
     {
       panic(describe_x64_pe64_image_load_status(load_status));
     }
@@ -336,3 +336,4 @@ extern "C" [[noreturn]] void x64_user_thread_exit()
 {
   run_initial_user_runtime(g_x64_runtime_dispatch);
 }
+

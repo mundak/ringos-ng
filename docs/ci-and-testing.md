@@ -197,7 +197,7 @@ developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose eight separately
+The current GitHub Actions setup should continue to expose seven separately
 tracked workflows:
 
 1. `x64_emulator_unit`
@@ -211,6 +211,10 @@ tracked workflows:
 
 Each workflow installs the Linux dependency set and builds the matching target.
 Most workflows then run exactly one scenario-specific CTest preset.
+
+The `x64_emulator_unit` workflow also runs `bash scripts/check-enum-style.sh`
+before configure/build so CI rejects `enum class` and legacy SDK numeric
+`#define` blocks without needing a dedicated standalone workflow.
 
 The `user_samples` workflow is the exception to the CTest-only rule: it
 resolves the published installed-toolchain bundle, builds the hosted C sample

@@ -4,7 +4,7 @@
 
 int32_t ringos_rpc_call(uint64_t rpc_handle, const ringos_rpc_request* request, ringos_rpc_response* response)
 {
-  if (rpc_handle == RINGOS_INVALID_HANDLE || request == NULL || response == NULL)
+  if (rpc_handle == RINGOS_HANDLE_INVALID || request == NULL || response == NULL)
   {
     return RINGOS_STATUS_INVALID_ARGUMENT;
   }

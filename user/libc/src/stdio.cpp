@@ -10,12 +10,12 @@
 
 namespace
 {
-  enum class format_length : uint8_t
+  enum format_length : uint8_t
   {
-    default_value,
-    long_value,
-    long_long_value,
-    size_value
+    FORMAT_LENGTH_DEFAULT_VALUE,
+    FORMAT_LENGTH_LONG_VALUE,
+    FORMAT_LENGTH_LONG_LONG_VALUE,
+    FORMAT_LENGTH_SIZE_VALUE,
   };
 
   void append_character(char** cursor, size_t* remaining, int* total_written, char value)
@@ -46,7 +46,12 @@ namespace
   }
 
   void append_unsigned_value(
-    char** cursor, size_t* remaining, int* total_written, uint64_t value, uint32_t base, bool uppercase)
+    char** cursor,
+    size_t* remaining,
+    int* total_written,
+    uint64_t value,
+    uint32_t base,
+    bool uppercase)
   {
     char digits[32];
     size_t digit_count = 0;
@@ -94,32 +99,32 @@ namespace
       if (**format_cursor == 'l')
       {
         ++(*format_cursor);
-        return format_length::long_long_value;
+        return FORMAT_LENGTH_LONG_LONG_VALUE;
       }
 
-      return format_length::long_value;
+      return FORMAT_LENGTH_LONG_VALUE;
     }
 
     if (**format_cursor == 'z')
     {
       ++(*format_cursor);
-      return format_length::size_value;
+      return FORMAT_LENGTH_SIZE_VALUE;
     }
 
-    return format_length::default_value;
+    return FORMAT_LENGTH_DEFAULT_VALUE;
   }
 
   uint64_t read_unsigned_argument(va_list arguments, format_length length)
   {
     switch (length)
     {
-    case format_length::long_value:
+    case FORMAT_LENGTH_LONG_VALUE:
       return va_arg(arguments, unsigned long);
-    case format_length::long_long_value:
+    case FORMAT_LENGTH_LONG_LONG_VALUE:
       return va_arg(arguments, unsigned long long);
-    case format_length::size_value:
+    case FORMAT_LENGTH_SIZE_VALUE:
       return va_arg(arguments, size_t);
-    case format_length::default_value:
+    case FORMAT_LENGTH_DEFAULT_VALUE:
     default:
       return va_arg(arguments, unsigned int);
     }
@@ -129,13 +134,13 @@ namespace
   {
     switch (length)
     {
-    case format_length::long_value:
+    case FORMAT_LENGTH_LONG_VALUE:
       return va_arg(arguments, long);
-    case format_length::long_long_value:
+    case FORMAT_LENGTH_LONG_LONG_VALUE:
       return va_arg(arguments, long long);
-    case format_length::size_value:
+    case FORMAT_LENGTH_SIZE_VALUE:
       return static_cast<int64_t>(va_arg(arguments, ptrdiff_t));
-    case format_length::default_value:
+    case FORMAT_LENGTH_DEFAULT_VALUE:
     default:
       return va_arg(arguments, int);
     }
