@@ -24,6 +24,10 @@ After every source file modification (`.cpp`, `.h`, `.inl`):
   <file>` when the formatter is already on your `PATH`, on the entire modified
   file so it conforms to the project's `.clang-format` configuration.
 
+If the formatter output conflicts with any written formatting guidance in this
+repository, follow `.clang-format`. Never hand-adjust formatting away from the
+formatter's result.
+
 ---
 
 ## Formatting Overview
