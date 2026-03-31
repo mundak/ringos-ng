@@ -20,7 +20,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::THREAD_EXITED,
+             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
              "mov_register_and_syscall",
              "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "mov_register_and_syscall", "expected one syscall");
@@ -42,7 +42,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::THREAD_EXITED, "mov_and_syscall", "expected thread exit")
+             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED, "mov_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "mov_and_syscall", "expected one syscall");
   }
 
@@ -62,7 +62,7 @@ namespace
           program.size(),
           capture,
           &result,
-          x64_emulator_engine::INTERPRETER,
+          X64_EMULATOR_ENGINE_INTERPRETER,
           32,
           7))
     {
@@ -70,7 +70,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::THREAD_EXITED,
+             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
              "lea_rip_relative_string",
              "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "lea_rip_relative_string", "expected one syscall");
@@ -93,7 +93,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::THREAD_EXITED,
+             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
              "mov_memory_to_register_and_syscall",
              "expected thread exit")
       && expect_x64_emulator_test(
@@ -118,7 +118,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == x64_emulator_completion::THREAD_EXITED,
+             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
              "mov_register_to_memory_and_syscall",
              "expected thread exit")
       && expect_x64_emulator_test(

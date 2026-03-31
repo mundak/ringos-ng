@@ -6,9 +6,12 @@
 extern "C" {
 #endif
 
-#define RINGOS_SYSCALL_DEBUG_LOG ((uint64_t) 1)
-#define RINGOS_SYSCALL_THREAD_EXIT ((uint64_t) 2)
-#define RINGOS_SYSCALL_RPC_CALL ((uint64_t) 3)
+enum ringos_syscall
+{
+  RINGOS_SYSCALL_DEBUG_LOG = 1,
+  RINGOS_SYSCALL_THREAD_EXIT = 2,
+  RINGOS_SYSCALL_RPC_CALL = 3,
+};
 
 int32_t ringos_syscall0(uint64_t syscall_number);
 int32_t ringos_syscall1(uint64_t syscall_number, uintptr_t argument0);

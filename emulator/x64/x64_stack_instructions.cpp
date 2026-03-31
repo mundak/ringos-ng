@@ -20,7 +20,7 @@ x64_instruction_outcome execute_x64_push_register(
 {
   if (reject_rex_w(context, instruction))
   {
-    return x64_instruction_outcome::STOP_RUNNING;
+    return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
   }
 
   const uint32_t register_index = (instruction.opcode - 0x50) + (instruction.rex_b ? 8U : 0U);
@@ -28,12 +28,12 @@ x64_instruction_outcome execute_x64_push_register(
 
   if (!context.push_u64(value))
   {
-    context.get_result().completion = x64_emulator_completion::INVALID_MEMORY_ACCESS;
-    return x64_instruction_outcome::STOP_RUNNING;
+    context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
+    return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
   }
 
   context.get_state().instruction_pointer = instruction.next_address;
-  return x64_instruction_outcome::CONTINUE_RUNNING;
+  return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
 }
 
 x64_instruction_outcome execute_x64_pop_register(
@@ -41,7 +41,7 @@ x64_instruction_outcome execute_x64_pop_register(
 {
   if (reject_rex_w(context, instruction))
   {
-    return x64_instruction_outcome::STOP_RUNNING;
+    return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
   }
 
   const uint32_t register_index = (instruction.opcode - 0x58) + (instruction.rex_b ? 8U : 0U);
@@ -49,12 +49,12 @@ x64_instruction_outcome execute_x64_pop_register(
 
   if (!context.pop_u64(&value))
   {
-    context.get_result().completion = x64_emulator_completion::INVALID_MEMORY_ACCESS;
-    return x64_instruction_outcome::STOP_RUNNING;
+    context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
+    return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
   }
 
   context.get_register64(register_index) = value;
   context.get_state().instruction_pointer = instruction.next_address;
-  return x64_instruction_outcome::CONTINUE_RUNNING;
+  return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
 }
 

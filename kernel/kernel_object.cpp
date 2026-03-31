@@ -7,14 +7,16 @@ kernel_object::kernel_object(uint32_t object_id, handle_t handle_value)
   m_process_reference_count = 0;
 }
 
-kernel_object::~kernel_object() { }
+kernel_object::~kernel_object()
+{
+}
 
 uint32_t kernel_object::get_id() const
 {
   return m_id;
 }
 
-handle_t kernel_object::get_handle_value() const
+handle_t kernel_object::get_handle() const
 {
   return m_handle_value;
 }
@@ -28,3 +30,4 @@ void kernel_object::acquire_process_reference()
 {
   ++m_process_reference_count;
 }
+

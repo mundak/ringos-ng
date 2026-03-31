@@ -11,12 +11,12 @@ static constexpr uint32_t USER_RUNTIME_MAX_CHANNELS = 8;
 static constexpr uint32_t USER_RUNTIME_MAX_SHARED_MEMORY_OBJECTS = 4;
 static constexpr size_t USER_RUNTIME_KERNEL_STACK_SIZE = 4096;
 
-enum class user_thread_state : uint32_t
+enum user_thread_state : uint32_t
 {
-  EMPTY = 0,
-  READY = 1,
-  RUNNING = 2,
-  EXITED = 3,
+  USER_THREAD_STATE_EMPTY = 0,
+  USER_THREAD_STATE_READY = 1,
+  USER_THREAD_STATE_RUNNING = 2,
+  USER_THREAD_STATE_EXITED = 3,
 };
 
 struct address_space
@@ -49,3 +49,4 @@ struct initial_user_runtime_bootstrap
   address_space address_space;
   thread_context thread_context;
 };
+

@@ -8,11 +8,11 @@
 
 class x64_execution_context;
 
-enum class x64_instruction_outcome : uint32_t
+enum x64_instruction_outcome : uint32_t
 {
-  CONTINUE_RUNNING = 0,
-  RETIRE_AND_STOP = 1,
-  STOP_RUNNING = 2,
+  X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING = 0,
+  X64_INSTRUCTION_OUTCOME_RETIRE_AND_STOP = 1,
+  X64_INSTRUCTION_OUTCOME_STOP_RUNNING = 2,
 };
 
 struct x64_decoded_instruction

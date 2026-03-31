@@ -16,13 +16,13 @@ namespace
     x64_emulator_result result {};
 
     if (!run_x64_emulator_test_program(
-          "unsupported_engine", program.data(), program.size(), capture, &result, x64_emulator_engine::JIT, 8))
+          "unsupported_engine", program.data(), program.size(), capture, &result, X64_EMULATOR_ENGINE_JIT, 8))
     {
       return false;
     }
 
     return expect_x64_emulator_test(
-      result.completion == x64_emulator_completion::UNSUPPORTED_ENGINE,
+      result.completion == X64_EMULATOR_COMPLETION_UNSUPPORTED_ENGINE,
       "unsupported_engine",
       "expected unsupported engine completion");
   }

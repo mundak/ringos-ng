@@ -101,7 +101,7 @@ x64_win32_import_resolution_status resolve_x64_win32_import(
     dll_name == nullptr || symbol_name == nullptr || loaded_image == nullptr || inout_next_stub_offset == nullptr
     || out_function_address == nullptr)
   {
-    return x64_win32_import_resolution_status::INVALID_ARGUMENT;
+    return X64_WIN32_IMPORT_RESOLUTION_STATUS_INVALID_ARGUMENT;
   }
 
   size_t export_count = 0;
@@ -129,20 +129,20 @@ x64_win32_import_resolution_status resolve_x64_win32_import(
 
   if (resolved_export == nullptr)
   {
-    return saw_matching_dll ? x64_win32_import_resolution_status::SYMBOL_NOT_FOUND
-                            : x64_win32_import_resolution_status::DLL_NOT_FOUND;
+    return saw_matching_dll ? X64_WIN32_IMPORT_RESOLUTION_STATUS_SYMBOL_NOT_FOUND
+                            : X64_WIN32_IMPORT_RESOLUTION_STATUS_DLL_NOT_FOUND;
   }
 
   if (resolved_export->syscall_number > 0xFFFFFFFFULL)
   {
-    return x64_win32_import_resolution_status::UNSUPPORTED_SYSCALL_NUMBER;
+    return X64_WIN32_IMPORT_RESOLUTION_STATUS_UNSUPPORTED_SYSCALL_NUMBER;
   }
 
   const size_t stub_offset = align_up(*inout_next_stub_offset, 16);
 
   if (stub_offset > loaded_image_size || X64_WIN32_IMPORT_STUB_SIZE > loaded_image_size - stub_offset)
   {
-    return x64_win32_import_resolution_status::STUB_OUT_OF_SPACE;
+    return X64_WIN32_IMPORT_RESOLUTION_STATUS_STUB_OUT_OF_SPACE;
   }
 
   uint8_t* stub_bytes = loaded_image + stub_offset;
@@ -157,24 +157,24 @@ x64_win32_import_resolution_status resolve_x64_win32_import(
 
   *out_function_address = image_base + stub_offset;
   *inout_next_stub_offset = stub_offset + X64_WIN32_IMPORT_STUB_SIZE;
-  return x64_win32_import_resolution_status::OK;
+  return X64_WIN32_IMPORT_RESOLUTION_STATUS_OK;
 }
 
 const char* describe_x64_win32_import_resolution_status(x64_win32_import_resolution_status status)
 {
   switch (status)
   {
-  case x64_win32_import_resolution_status::OK:
+  case X64_WIN32_IMPORT_RESOLUTION_STATUS_OK:
     return "x64 Win32 import resolved";
-  case x64_win32_import_resolution_status::INVALID_ARGUMENT:
+  case X64_WIN32_IMPORT_RESOLUTION_STATUS_INVALID_ARGUMENT:
     return "x64 Win32 import resolver received an invalid argument";
-  case x64_win32_import_resolution_status::DLL_NOT_FOUND:
+  case X64_WIN32_IMPORT_RESOLUTION_STATUS_DLL_NOT_FOUND:
     return "x64 Win32 import DLL is not registered";
-  case x64_win32_import_resolution_status::SYMBOL_NOT_FOUND:
+  case X64_WIN32_IMPORT_RESOLUTION_STATUS_SYMBOL_NOT_FOUND:
     return "x64 Win32 import symbol is not registered";
-  case x64_win32_import_resolution_status::UNSUPPORTED_SYSCALL_NUMBER:
+  case X64_WIN32_IMPORT_RESOLUTION_STATUS_UNSUPPORTED_SYSCALL_NUMBER:
     return "x64 Win32 import maps to a syscall number that does not fit in the stub ABI";
-  case x64_win32_import_resolution_status::STUB_OUT_OF_SPACE:
+  case X64_WIN32_IMPORT_RESOLUTION_STATUS_STUB_OUT_OF_SPACE:
     return "x64 Win32 import stub region is exhausted";
   }
 

@@ -188,14 +188,24 @@ Follow the **C++ Standard Library naming convention** (`snake_case` everywhere).
 | Non-type template parameters | `snake_case` | `capacity`, `index_bits` |
 | Getter / accessor methods | `get_`, `is_`, `has_` prefixes | `get_handle()`, `is_ready()`, `has_messages()` |
 | Private class members | `m_` prefix | `m_window`, `m_vk_ctx` |
-| Enum values | `UPPER_SNAKE_CASE` | `READY`, `MAP_MEMORY` |
+| Enum values | `UPPER_SNAKE_CASE` | `USER_THREAD_STATE_READY`, `PE_IMAGE_LOAD_STATUS_OK` |
 | Constants / macros | `UPPER_SNAKE_CASE` | `VK_NULL_HANDLE`, `MAI_DEBUG` |
 
 Use `m_` only for private class members. Public struct fields, including ABI or
 plain-data carrier types, use unprefixed `snake_case`.
 
-Enum type names still follow `snake_case`. Only the individual enum values use
-`UPPER_SNAKE_CASE`.
+Enum type names still follow `snake_case`. Use regular enums, not `enum class`.
+In C++-only code, spell the underlying type explicitly on enum declarations.
+When a public header must stay C-compatible, do not add `#ifdef __cplusplus`
+branches solely to force an explicit enum storage type; use a plain enum
+declaration instead.
+
+Enum values use `UPPER_SNAKE_CASE` and must be prefixed with the enum type name
+converted to `UPPER_SNAKE_CASE`, followed by `_`. For example,
+`user_thread_state` uses values such as `USER_THREAD_STATE_READY`.
+
+Prefer enums over numeric `#define` constants when the values model a related
+closed set.
 
 Getter-style accessors should use a `get_` prefix. Boolean accessors should use
 `is_` or `has_` as appropriate. Do not name getters with a `_value` suffix.
