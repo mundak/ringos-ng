@@ -250,8 +250,6 @@ namespace
     bootstrap.thread_context.instruction_pointer = entry_point;
     bootstrap.thread_context.stack_pointer = USER_STACK_VIRTUAL_ADDRESS + PAGE_SIZE - sizeof(uint64_t);
     bootstrap.thread_context.flags = USER_THREAD_INITIAL_FLAGS;
-    bootstrap.shared_memory_address = USER_IMAGE_VIRTUAL_ADDRESS;
-    bootstrap.shared_memory_size = USER_REGION_SIZE;
   }
 
   void x64_initial_user_runtime_platform::prepare_thread_launch(
@@ -338,4 +336,3 @@ extern "C" [[noreturn]] void x64_user_thread_exit()
 {
   run_initial_user_runtime(g_x64_runtime_dispatch);
 }
-

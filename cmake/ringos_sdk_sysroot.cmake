@@ -67,9 +67,11 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
 
     set(sdk_include_dir ${CMAKE_SOURCE_DIR}/user/sdk/include)
     set(sdk_headers
+      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/console.h
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/debug.h
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/handle.h
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/process.h
+      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/rpc.h
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/sdk.h
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/status.h
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/syscalls.h
@@ -81,6 +83,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       ${CMAKE_SOURCE_DIR}/user/libc/include/stdlib.h
       ${CMAKE_SOURCE_DIR}/user/libc/include/string.h)
 
+    set(rpc_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_rpc.c)
     set(debug_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_debug.c)
     set(process_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_process.c)
     set(crt0_source ${CMAKE_SOURCE_DIR}/user/crt/src/crt0.c)
@@ -100,7 +103,10 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       message(FATAL_ERROR "Unsupported ringos SDK target architecture: ${target_arch}")
     endif()
 
+    set(sdk_early_compile_flags -mgeneral-regs-only)
+
     set(syscall_object ${staging_root}/ringos_syscall.obj)
+    set(rpc_object ${staging_root}/ringos_rpc.obj)
     set(debug_object ${staging_root}/ringos_debug.obj)
     set(process_object ${staging_root}/ringos_process.obj)
     set(crt0_object ${staging_root}/crt0.obj)
@@ -177,6 +183,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       set(sdk_archive_command
         COMMAND ${RINGOS_LLVM_LIB}
                 /out:${staging_library}
+                ${rpc_object}
                 ${syscall_object}
                 ${debug_object}
                 ${process_object})
@@ -198,6 +205,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         COMMAND ${RINGOS_LLVM_AR}
                 rcs
                 ${staging_library}
+                ${rpc_object}
                 ${syscall_object}
                 ${debug_object}
                 ${process_object})
@@ -236,6 +244,20 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -ffreestanding
             -fno-stack-protector
             -fno-builtin
+            ${sdk_early_compile_flags}
+            -Wall
+            -Wextra
+            -Wpedantic
+            -I ${sdk_include_dir}
+            -c ${rpc_source}
+            -o ${rpc_object}
+          COMMAND ${CMAKE_C_COMPILER}
+            --target=${target_triple}
+            -O2
+            -ffreestanding
+            -fno-stack-protector
+            -fno-builtin
+            ${sdk_early_compile_flags}
             -Wall
             -Wextra
             -Wpedantic
@@ -248,6 +270,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -ffreestanding
             -fno-stack-protector
             -fno-builtin
+            ${sdk_early_compile_flags}
             -Wall
             -Wextra
             -Wpedantic
@@ -260,6 +283,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -ffreestanding
             -fno-stack-protector
             -fno-builtin
+            ${sdk_early_compile_flags}
             -Wall
             -Wextra
             -Wpedantic
@@ -387,6 +411,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${sdk_headers}
         ${libc_headers}
         ${syscall_source}
+        ${rpc_source}
         ${debug_source}
         ${process_source}
         ${crt0_source}
@@ -402,6 +427,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${runtime_manifest_source}
       BYPRODUCTS
         ${syscall_object}
+        ${rpc_object}
         ${debug_object}
         ${process_object}
         ${crt0_object}

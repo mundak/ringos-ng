@@ -4,6 +4,7 @@
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
+#include "user_abi_layouts.h"
 #include "x64_windows_compat.h"
 
 namespace
@@ -368,6 +369,53 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_OK;
   }
 
+  case STAGE1_SYSCALL_RPC_CALL:
+  {
+    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0 || syscall_context.argument2 == 0)
+    {
+      return STATUS_INVALID_ARGUMENT;
+    }
+
+    channel* channel_object = find_channel_by_handle(static_cast<handle_t>(syscall_context.argument0));
+
+    if (channel_object == nullptr)
+    {
+      return STATUS_BAD_HANDLE;
+    }
+
+    if (channel_object->get_peer() == nullptr)
+    {
+      return STATUS_PEER_CLOSED;
+    }
+
+    user_rpc_request_layout request {};
+    const int32_t request_status
+      = copy_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument1), &request, sizeof(request));
+
+    if (request_status != STATUS_OK)
+    {
+      return request_status;
+    }
+
+    if (request.operation == 0)
+    {
+      return STATUS_INVALID_ARGUMENT;
+    }
+
+    const user_rpc_response_layout response {
+      STATUS_NOT_SUPPORTED, 0, 0, 0, 0, 0,
+    };
+    const int32_t response_status = write_user_bytes(
+      *owner_process, static_cast<uintptr_t>(syscall_context.argument2), &response, sizeof(response));
+
+    if (response_status != STATUS_OK)
+    {
+      return response_status;
+    }
+
+    return STATUS_OK;
+  }
+
   case STAGE2_SYSCALL_WINDOWS_GET_STD_HANDLE:
   {
     const int32_t standard_handle = static_cast<int32_t>(syscall_context.argument0);
@@ -490,31 +538,8 @@ user_runtime& get_kernel_user_runtime()
     panic("failed to create initial thread");
   }
 
-  handle_t first_channel_handle = 0;
-  handle_t second_channel_handle = 0;
-
-  if (!runtime.create_channel_pair(&first_channel_handle, &second_channel_handle))
-  {
-    panic("failed to create initial channel pair");
-  }
-
-  handle_t shared_memory_handle = 0;
-  shared_memory_object* shared_memory = runtime.create_shared_memory_object(
-    bootstrap.shared_memory_address, bootstrap.shared_memory_size, &shared_memory_handle);
-
-  if (shared_memory == nullptr || shared_memory_handle == 0)
-  {
-    panic("failed to create initial shared memory object");
-  }
-
-  if (first_channel_handle == 0 || second_channel_handle == 0)
-  {
-    panic("failed to install initial channel handles");
-  }
-
   runtime.set_current_thread(initial_thread);
   platform.prepare_thread_launch(platform.context, *initial_process, *initial_thread);
   platform.enter_user_thread(platform.context, *initial_process, *initial_thread);
   panic("initial user runtime platform returned unexpectedly");
 }
-

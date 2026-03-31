@@ -28,10 +28,10 @@ static constexpr int32_t STATUS_NOT_FOUND = -12;
 // the first user-mode bring-up, not the final SDK shape.
 static constexpr uint64_t STAGE1_SYSCALL_DEBUG_LOG = 1;
 static constexpr uint64_t STAGE1_SYSCALL_THREAD_EXIT = 2;
+static constexpr uint64_t STAGE1_SYSCALL_RPC_CALL = 3;
 
 // Stage 2B widens the proof path just enough to emulate a tiny Windows console
 // surface for imported x64 PE entry points.
 static constexpr uint64_t STAGE2_SYSCALL_WINDOWS_GET_STD_HANDLE = 0x100;
 static constexpr uint64_t STAGE2_SYSCALL_WINDOWS_WRITE_FILE = 0x101;
 static constexpr uint64_t STAGE2_SYSCALL_WINDOWS_EXIT_PROCESS = 0x102;
-
