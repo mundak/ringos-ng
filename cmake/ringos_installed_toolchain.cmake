@@ -66,6 +66,16 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
   set(${out_input_files} ${input_files} PARENT_SCOPE)
 endfunction()
 
+function(ringos_get_toolchain_hash_input_label input_file out_label)
+  file(RELATIVE_PATH input_file_label ${CMAKE_SOURCE_DIR} ${input_file})
+
+  if(input_file_label MATCHES "^\.\./")
+    message(FATAL_ERROR "Toolchain hash input is outside the source tree: ${input_file}")
+  endif()
+
+  set(${out_label} ${input_file_label} PARENT_SCOPE)
+endfunction()
+
 function(ringos_resolve_tool_program tool_name out_path)
   if(RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
     set(tool_hints ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin)
@@ -209,7 +219,8 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
 
   foreach(input_file IN LISTS toolchain_input_files)
     file(SHA256 ${input_file} current_hash)
-    string(APPEND toolchain_hash_material "${input_file}=${current_hash}\n")
+    ringos_get_toolchain_hash_input_label(${input_file} input_file_label)
+    string(APPEND toolchain_hash_material "${input_file_label}=${current_hash}\n")
   endforeach()
 
   string(SHA256 toolchain_id "${toolchain_hash_material}")
