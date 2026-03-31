@@ -6,11 +6,7 @@
 extern "C" {
 #endif
 
-#ifdef __cplusplus
-enum ringos_status : int32_t
-#else
 enum ringos_status
-#endif
 {
   RINGOS_STATUS_OK = 0,
   RINGOS_STATUS_INVALID_ARGUMENT = -1,
@@ -30,4 +26,3 @@ enum ringos_status
 #ifdef __cplusplus
 }
 #endif
-

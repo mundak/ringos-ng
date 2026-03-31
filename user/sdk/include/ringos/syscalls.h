@@ -6,11 +6,7 @@
 extern "C" {
 #endif
 
-#ifdef __cplusplus
-enum ringos_syscall : uint64_t
-#else
 enum ringos_syscall
-#endif
 {
   RINGOS_SYSCALL_DEBUG_LOG = 1,
   RINGOS_SYSCALL_THREAD_EXIT = 2,
@@ -42,4 +38,3 @@ int32_t ringos_syscall6(
 #ifdef __cplusplus
 }
 #endif
-

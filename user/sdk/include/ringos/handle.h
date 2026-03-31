@@ -6,11 +6,7 @@
 extern "C" {
 #endif
 
-#ifdef __cplusplus
-enum ringos_handle : uint64_t
-#else
 enum ringos_handle
-#endif
 {
   RINGOS_HANDLE_INVALID = 0,
 };
@@ -18,4 +14,3 @@ enum ringos_handle
 #ifdef __cplusplus
 }
 #endif
-

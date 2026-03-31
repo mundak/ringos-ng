@@ -195,9 +195,10 @@ Use `m_` only for private class members. Public struct fields, including ABI or
 plain-data carrier types, use unprefixed `snake_case`.
 
 Enum type names still follow `snake_case`. Use regular enums, not `enum class`.
-In C++ code, spell the underlying type explicitly on enum declarations. When a
-public header must stay C-compatible, use a C-compatible fallback declaration in
-the non-C++ branch.
+In C++-only code, spell the underlying type explicitly on enum declarations.
+When a public header must stay C-compatible, do not add `#ifdef __cplusplus`
+branches solely to force an explicit enum storage type; use a plain enum
+declaration instead.
 
 Enum values use `UPPER_SNAKE_CASE` and must be prefixed with the enum type name
 converted to `UPPER_SNAKE_CASE`, followed by `_`. For example,
