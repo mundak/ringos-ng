@@ -1,8 +1,6 @@
-#include <stdlib.h>
-
-#include <ringos/process.h>
-
 #include <errno.h>
+#include <ringos/process.h>
+#include <stdlib.h>
 
 void abort(void)
 {
@@ -68,4 +66,3 @@ void* realloc(void* pointer, size_t size)
   errno = ENOMEM;
   return nullptr;
 }
-

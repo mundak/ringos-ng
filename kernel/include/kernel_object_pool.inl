@@ -133,4 +133,3 @@ handle_t kernel_object_pool<object_t, capacity>::allocate_handle_value()
 {
   return __atomic_fetch_add(m_next_handle_value, static_cast<handle_t>(1), __ATOMIC_RELAXED);
 }
-

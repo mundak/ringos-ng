@@ -134,4 +134,3 @@ void append_x64_data_movement_tests(std::vector<x64_emulator_test_case>& tests)
   tests.push_back({ "mov_memory_to_register_and_syscall", &test_mov_memory_to_register_and_syscall });
   tests.push_back({ "mov_register_to_memory_and_syscall", &test_mov_register_to_memory_and_syscall });
 }
-

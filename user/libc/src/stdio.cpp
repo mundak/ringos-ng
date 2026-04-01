@@ -1,10 +1,8 @@
-#include <stdio.h>
-
-#include <ringos/debug.h>
-
 #include <errno.h>
+#include <ringos/debug.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #define RINGOS_STDIO_LOG_BUFFER_CAPACITY ((size_t) 512)
 
@@ -46,12 +44,7 @@ namespace
   }
 
   void append_unsigned_value(
-    char** cursor,
-    size_t* remaining,
-    int* total_written,
-    uint64_t value,
-    uint32_t base,
-    bool uppercase)
+    char** cursor, size_t* remaining, int* total_written, uint64_t value, uint32_t base, bool uppercase)
   {
     char digits[32];
     size_t digit_count = 0;
@@ -277,4 +270,3 @@ int vsnprintf(char* buffer, size_t buffer_size, const char* format, va_list argu
 
   return total_written;
 }
-

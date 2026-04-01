@@ -31,4 +31,3 @@ long labs(long value);
 #ifdef __cplusplus
 }
 #endif
-

@@ -27,4 +27,3 @@ x64_win32_import_resolution_status resolve_x64_win32_import(
   size_t* inout_next_stub_offset,
   uint64_t* out_function_address);
 const char* describe_x64_win32_import_resolution_status(x64_win32_import_resolution_status status);
-

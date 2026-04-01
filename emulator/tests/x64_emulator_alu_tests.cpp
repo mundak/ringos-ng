@@ -55,4 +55,3 @@ void append_x64_alu_tests(std::vector<x64_emulator_test_case>& tests)
   tests.push_back({ "xor_and_add", &test_xor_and_add });
   tests.push_back({ "test_register_sets_zero_flag_for_je", &test_test_register_sets_zero_flag_for_je });
 }
-

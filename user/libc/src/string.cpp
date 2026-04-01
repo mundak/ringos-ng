@@ -1,6 +1,5 @@
-#include <string.h>
-
 #include <stdint.h>
+#include <string.h>
 
 int memcmp(const void* left, const void* right, size_t length)
 {
@@ -83,4 +82,3 @@ size_t strlen(const char* string)
 
   return length;
 }
-

@@ -49,4 +49,3 @@ const char* describe_x64_emulator_completion(x64_emulator_completion completion)
 
   return "x64 emulator failed with an unknown completion state";
 }
-

@@ -39,7 +39,6 @@ The style is based on **WebKit** with significant customizations toward an
 * **Continuation indent:** 2 spaces
 * **Column limit:** 120 characters
 * **Access modifier offset:** -2 (aligned with the class keyword)
-* Source files must end with a blank line.
 
 ---
 
