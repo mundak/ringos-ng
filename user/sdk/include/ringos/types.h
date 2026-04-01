@@ -4,8 +4,7 @@
 #include <stdint.h>
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #if defined(__clang__) || defined(__GNUC__)
@@ -17,4 +16,3 @@ extern "C"
 #ifdef __cplusplus
 }
 #endif
-

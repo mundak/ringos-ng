@@ -47,4 +47,3 @@ bool x64_interpreter::run()
   m_context.get_result().completion = X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED;
   return true;
 }
-

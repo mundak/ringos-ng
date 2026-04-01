@@ -49,7 +49,7 @@ uintptr_t thread::get_initial_argument0() const
   return m_initial_argument0;
 }
 
-bool thread::should_deliver_initial_argument() const
+bool thread::has_initial_argument() const
 {
   return m_should_deliver_initial_argument;
 }

@@ -1,9 +1,8 @@
+#include <errno.h>
 #include <ringos/console.h>
 #include <ringos/debug.h>
 #include <ringos/rpc.h>
 #include <ringos/status.h>
-
-#include <errno.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -287,4 +286,3 @@ int vsnprintf(char* buffer, size_t buffer_size, const char* format, va_list argu
 
   return total_written;
 }
-

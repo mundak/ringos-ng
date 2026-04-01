@@ -80,4 +80,3 @@ bool run_x64_emulator(
   const x64_emulator_options& options,
   x64_emulator_result* out_result);
 const char* describe_x64_emulator_completion(x64_emulator_completion completion);
-

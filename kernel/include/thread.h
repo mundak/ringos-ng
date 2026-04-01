@@ -15,7 +15,7 @@ public:
   uint64_t get_exit_status() const;
   uintptr_t get_kernel_stack_top() const;
   uintptr_t get_initial_argument0() const;
-  bool should_deliver_initial_argument() const;
+  bool has_initial_argument() const;
   int32_t get_pending_syscall_status() const;
   const uintptr_t* get_arch_preserved_registers() const;
   uintptr_t* get_arch_preserved_registers();

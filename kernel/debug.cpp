@@ -29,4 +29,3 @@ void debug_break(const char* reason)
   debug_log(reason);
   debug_break();
 }
-

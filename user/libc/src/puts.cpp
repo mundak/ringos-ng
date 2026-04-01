@@ -2,7 +2,6 @@
 #include <ringos/debug.h>
 #include <ringos/rpc.h>
 #include <ringos/status.h>
-
 #include <stdio.h>
 #include <string.h>
 
@@ -43,4 +42,3 @@ int puts(const char* string)
 
   return write_console_message("\n", 1);
 }
-

@@ -192,4 +192,3 @@ x64_instruction_outcome execute_x64_jump_short_condition(
                                                         : instruction.next_address + sizeof(int8_t);
   return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
 }
-
