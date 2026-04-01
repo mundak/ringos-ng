@@ -216,8 +216,8 @@ Use the hosted C helper for standalone `.c` samples:
 
 ```bash
 bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
-bash scripts/build-bootstrap-hosted-c.sh x64 user/samples/test_app.c
-bash scripts/build-bootstrap-hosted-c.sh arm64 user/samples/test_app.c
+bash scripts/build-bootstrap-hosted-c.sh x64 user/samples/hello_world/hello_world.c
+bash scripts/build-bootstrap-hosted-c.sh arm64 user/samples/hello_world/hello_world.c
 ```
 
 For the CMake-based hello-world sample, see

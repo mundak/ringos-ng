@@ -45,7 +45,7 @@ jobs:
         run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build
 
       - name: Build hosted C sample
-        run: bash scripts/build-bootstrap-hosted-c.sh "${{ matrix.target_arch }}" user/samples/test_app.c
+        run: bash scripts/build-bootstrap-hosted-c.sh "${{ matrix.target_arch }}" user/samples/hello_world/hello_world.c
 
       - name: Configure hello world sample
         run: |
