@@ -49,8 +49,7 @@ IncludeCategories:
     Priority: 3
 IncludeIsMainRegex: "([-_](test|unittest))?$"
 IndentPPDirectives: None
-KeepEmptyLines:
-  AtEndOfFile: true
+InsertNewlineAtEOF: true
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: All
 
