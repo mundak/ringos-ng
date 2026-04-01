@@ -44,12 +44,14 @@ namespace
   constexpr uint64_t USER_THREAD_INITIAL_FLAGS = 0x2;
   constexpr uint16_t KERNEL_CODE_SELECTOR = 0x08;
   constexpr uint16_t USER_COMPAT_CODE_SELECTOR = 0x18;
-  constexpr uint32_t X64_PRESERVED_REGISTER_RBX_INDEX = 0;
-  constexpr uint32_t X64_PRESERVED_REGISTER_RBP_INDEX = 1;
-  constexpr uint32_t X64_PRESERVED_REGISTER_R12_INDEX = 2;
-  constexpr uint32_t X64_PRESERVED_REGISTER_R13_INDEX = 3;
-  constexpr uint32_t X64_PRESERVED_REGISTER_R14_INDEX = 4;
-  constexpr uint32_t X64_PRESERVED_REGISTER_R15_INDEX = 5;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RSI_INDEX = 0;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RDI_INDEX = 1;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RBX_INDEX = 2;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RBP_INDEX = 3;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R12_INDEX = 4;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R13_INDEX = 5;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R14_INDEX = 6;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R15_INDEX = 7;
 
   struct alignas(4096) page_table
   {
@@ -194,6 +196,8 @@ namespace
     frame->r11 = current_thread.get_user_context().flags;
     frame->user_rsp = current_thread.get_user_context().stack_pointer;
     const uintptr_t* const preserved_registers = current_thread.get_arch_preserved_registers();
+    frame->rsi = preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX];
+    frame->rdi = preserved_registers[X64_PRESERVED_REGISTER_RDI_INDEX];
     frame->rbx = preserved_registers[X64_PRESERVED_REGISTER_RBX_INDEX];
     frame->rbp = preserved_registers[X64_PRESERVED_REGISTER_RBP_INDEX];
     frame->r12 = preserved_registers[X64_PRESERVED_REGISTER_R12_INDEX];
@@ -421,6 +425,8 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
   };
   current_thread->set_user_context(user_context);
   uintptr_t* const preserved_registers = current_thread->get_arch_preserved_registers();
+  preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX] = static_cast<uintptr_t>(frame->rsi);
+  preserved_registers[X64_PRESERVED_REGISTER_RDI_INDEX] = static_cast<uintptr_t>(frame->rdi);
   preserved_registers[X64_PRESERVED_REGISTER_RBX_INDEX] = static_cast<uintptr_t>(frame->rbx);
   preserved_registers[X64_PRESERVED_REGISTER_RBP_INDEX] = static_cast<uintptr_t>(frame->rbp);
   preserved_registers[X64_PRESERVED_REGISTER_R12_INDEX] = static_cast<uintptr_t>(frame->r12);
