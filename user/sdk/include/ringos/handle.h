@@ -6,7 +6,9 @@
 extern "C" {
 #endif
 
-enum ringos_handle
+typedef uint64_t ringos_handle;
+
+enum ringos_handle_value
 {
   RINGOS_HANDLE_INVALID = 0,
 };

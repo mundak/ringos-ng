@@ -1,371 +1,169 @@
-# First User-Space Driver Proposal
+# First Platform Driver Proposal
 
-This document proposes the first real user-space driver path for ringos-ng.
-The concrete example is a serial console service that works on both x64 and
-arm64 while preserving the current microkernel direction: the kernel exposes
-mechanisms, while drivers and higher-level services live in user space.
+This document records the current direction for the first real user-space
+driver path in ringos-ng. The example is still the console service, but the
+design is no longer "one shared driver binary plus one shared MMIO helper".
 
-The immediate goal is to replace the current special-case user console path
-with a real service model that can later support stdout, stderr, logging, and
-other device-backed streams without adding more ad hoc kernel syscalls.
+The current rule set is:
+
+- drivers are architecture-specific
+- driver sources live under `drivers/`, not under `user/`
+- ordinary applications use the public SDK and RPC only
+- the public SDK does not expose an MMIO mapping helper
+- the kernel grants a trusted driver one architecture-defined device-memory
+  window, and the driver may ask the kernel to map that assignment into its
+  address space
+
+That keeps the application-facing console contract stable while letting each
+machine family choose its own hardware-facing driver implementation.
 
 ## Goals
 
-- make the serial console the first user-space driver-backed service
-- use the public SDK and the channel RPC model rather than a console-specific
-  kernel ABI
-- keep one client-facing console protocol across x64 and arm64
-- define the minimum process-launch and resource-capability APIs needed to
-  launch trusted drivers
-- create a sample app that writes to the console service through the same
-  public interface that libc can later use
+- make the console the first real user-space service backed by a driver
+- keep the client-facing console protocol shared across architectures
+- keep the hardware-facing implementation architecture-specific
+- move driver code under `drivers/arm64` and `drivers/x64`
+- keep hardware-mapping details out of the public SDK
 
 ## Non-Goals
 
-- full interrupt-driven serial I/O in the first cut
-- a general PCI bus manager in the first cut
-- a stable long-term device-discovery standard for every future subsystem
-- conflating application processes and driver processes into different runtime
-  models
+- a universal cross-architecture driver source file
+- exposing raw MMIO concepts as a public SDK convenience API
+- a full device-discovery framework in the first cut
+- interrupts in the first cut
 
-Driver space is still user space. The difference is capability, not process
-kind.
+## Design Rules
 
-## Design Direction
+### One Driver Per Architecture
 
-The intended split is:
+The console driver is not a generic app living beside samples. Each supported
+machine family gets its own driver source, build target, and hardware-facing
+layout.
 
-- the kernel owns protection, scheduling, handle management, channels, shared
-  memory, and resource mapping
-- trusted user-space drivers own hardware-facing register access
-- ordinary applications talk to services over channels
+Current layout:
 
-That gives ringos-ng one service model for both drivers and applications.
-Normal applications should not know whether the console is backed by a UART, a
-debug sink, or something else. They only know about a console service handle
-and a versioned RPC contract.
+- `drivers/arm64/console_driver.cpp`
+- `drivers/x64/console_driver.cpp`
 
-## Why The First Driver Should Be Serial Console
+The shared part is the client-visible RPC protocol, not the driver binary.
 
-Serial console is a good first driver because it is narrow, testable, and
-already useful:
+### Public SDK Boundary
 
-- both targets already have a concept of host-visible debug output
-- the protocol surface is small enough to validate the driver architecture
-- libc `puts` can later be redirected to it cleanly
-- the sample app can prove the entire stack end to end
+The public SDK remains application-focused. It exposes:
 
-The first implementation should stay polling-only. Interrupt delivery can be a
-later extension once the resource and RPC model exists.
+- debug logging
+- thread exit
+- named RPC endpoint open helpers
+- console-device enumeration helpers
+- RPC request and reply helpers
+- console protocol types
 
-## Kernel And User-Space Split
+It does not expose a public device-mapping helper anymore.
 
-The first serial stack should look like this:
+Applications should not know whether a console driver talks to a UART, a
+virtual transmit buffer, a debug console, or some later device model.
 
-1. The kernel boots an init process with a startup capability block.
-2. Init starts a device-manager process or performs the same role directly in
-   the early cut.
-3. The platform serial driver is launched as a normal user-space process with
-   only the resources it needs.
-4. The driver registers a console service endpoint.
-5. Client processes connect to that service and issue synchronous channel RPC
-   calls.
+### Driver-Kernel Boundary
 
-The key point is that client processes do not map UART registers directly.
-Only the driver does.
+Trusted drivers use a narrower, private contract:
 
-## Required SDK And ABI Additions
+1. the kernel identifies which early process is the driver
+2. the kernel assigns one driver-specific device-memory window to that process
+3. the driver asks the kernel to map that assigned device memory
+4. the driver interprets the returned region according to its architecture's
+   own device expectations
+5. clients talk to the driver through the assist RPC path
 
-The current SDK exposes raw syscall entry points, debug logging, and thread
-exit. That is not enough for a driver-backed service model. The following
-surfaces should be added next.
+This keeps the kernel interface generic at the transport level while avoiding a
+public SDK abstraction that bakes in one hardware-access model.
 
-### Process Entry Contract
+## Early Console Shape
 
-The first cut does not need a dedicated startup-info block. Keeping the entry
-contract at `main(void)` is enough while the console driver work is focused on
-channel RPCs and explicit resource grants.
+The early console path is now split into two layers.
 
-If process metadata or inherited capabilities become necessary later, they
-should be introduced only for a concrete use case rather than reserved in the
-ABI up front.
+### Client Layer
 
-### RPC Helpers
+Clients use only:
 
-The SDK should expose a stable RPC helper that matches the documented
-synchronous request-reply model.
+- `ringos_console_query_devices()`
+- `ringos_rpc_open()`
+- `ringos_console_get_info()`
+- `ringos_console_write()`
+- `ringos/console.h`
 
-At minimum:
+Libc `puts()` and `vprintf()` stay in this layer.
 
-- create or receive RPC endpoint handles
-- perform a blocking RPC call on an RPC endpoint handle
-- close RPC endpoint handles
+### Driver Layer
 
-The client-side helper should hide the register-level syscall calling
-convention from service code.
+Each architecture-specific driver:
 
-### Shared Memory Helpers
+- maps its assigned device memory through the raw device-memory syscall number
+- interprets that region with a private layout known only to that driver
+- answers `RINGOS_CONSOLE_OPERATION_GET_INFO`
+- answers `RINGOS_CONSOLE_OPERATION_WRITE`
 
-The SDK should expose:
+No public application header needs to know how that region is structured.
 
-- create shared-memory objects
-- map and unmap shared-memory objects
-- pass mapped buffers through channel RPCs
+## Kernel Plumbing
 
-This keeps larger request or reply payloads out of the fixed register budget.
+The kernel side is intentionally generic.
 
-### Driver Resource Helpers
+- the runtime binds the client and driver processes to an implicit assist
+  channel pair
+- the SDK enumerates console RPC endpoints and opens them by name
+- the runtime can assign a `device_memory_object` to the driver process
+- the stage-1 device-memory syscall returns the base and size of that assigned
+  window
 
-Trusted drivers need capability-scoped access to hardware resources. The first
-resource classes should be:
+The kernel does not need to tell the driver whether that region is "MMIO" in
+SDK terms. It only needs to say: this is the device-memory assignment for your
+process.
 
-- MMIO ranges
-- I/O port ranges
-- IRQ lines later, not required for the initial polling cut
-
-These should be granted as handles, not as ambient process privileges.
-
-## Concrete SDK v0 Sketch
-
-The first implementation pass should introduce these public SDK types:
-
-- `ringos_rpc_request` and `ringos_rpc_response` in `ringos/rpc.h`
-- `ringos_console_get_info_response`, `ringos_console_write_request`, and
-  `ringos_console_write_response` in `ringos/console.h`
-
-Suggested initial values:
-
-- `RINGOS_SYSCALL_RPC_CALL = 3`
-- `RINGOS_CONSOLE_OPERATION_GET_INFO = 1`
-- `RINGOS_CONSOLE_OPERATION_WRITE = 2`
-- `RINGOS_CONSOLE_PROTOCOL_VERSION = 1`
-
-The initial generic RPC split should be:
-
-- syscall return value: transport-level status such as bad handle or fault
-- response `status` field: service-level status returned by the target server
-
-That separation makes later service protocols easier to evolve without turning
-every RPC failure into a transport failure.
-
-## Why `ioport` Exists
-
-The reason `ioport` appears in the proposal is not that ringos-ng should build
-an architecture-wide programming model around x64 legacy ports. The reason is
-much narrower: the common PC serial path on x64 is a 16550-style UART exposed
-through the x86 I/O port space rather than through MMIO.
-
-For the first x64 serial driver, if we want the driver to stay in user space,
-the driver needs some way to perform controlled `in` and `out` operations on
-that UART register range. Without an `ioport` resource concept, one of the
-following would have to happen:
-
-- keep the x64 UART path in the kernel while arm64 uses a user-space MMIO
-  driver
-- add a special x64 serial syscall that bypasses the driver model
-- switch the first x64 hardware target to a different MMIO-backed console
-  device instead of the conventional PC UART
-
-The first two options undercut the point of proving a real user-space driver
-boundary. The third option is viable, but it means changing the platform plan
-rather than simplifying the capability model.
-
-So the proposal uses `ioport` for one reason: it is the mechanism that lets a
-user-space x64 serial driver control the standard PC UART without leaving the
-microkernel design.
-
-## Why `ioport` Should Stay Narrow
-
-Even if ringos-ng adds `ioport`, it should stay tightly scoped.
-
-- It is a driver capability, not an application API.
-- It is architecture-specific, not part of the portable client-facing service
-  contract.
-- It should be range-based and least-privilege, for example COM1's register
-  window only, not unrestricted access to the whole port space.
-- Normal console clients should never see it.
-
-The portable abstraction is the console RPC protocol. `ioport` is only an
-implementation detail of one backend.
-
-## Alternative To `ioport`
-
-If the project wants to avoid `ioport`, the clean alternative is not to hide
-the problem in the kernel. The clean alternative is to choose a first x64
-device that is MMIO-backed on both architectures.
-
-That would give a simpler driver-capability model:
-
-- `map_device_memory`
-- later `bind_interrupt`
-
-The tradeoff is that the initial x64 console path would no longer match the
-conventional PC serial device. It would depend on selecting or emulating a
-different console device.
-
-Recommendation:
-
-- if the near-term goal is proving a user-space driver against the current PC
-  UART path, keep `ioport`
-- if the near-term goal is minimizing hardware-resource concepts even at the
-  cost of changing the x64 console device, move to an MMIO-only console target
-
-## Recommended Resource Model
-
-The resource model should be generalized as device-resource handles with a kind
-field rather than as unrelated one-off syscalls.
-
-Suggested first kinds:
-
-- `RINGOS_DEVICE_RESOURCE_MMIO_RANGE`
-- `RINGOS_DEVICE_RESOURCE_IOPORT_RANGE`
-- `RINGOS_DEVICE_RESOURCE_IRQ_LINE`
-
-Suggested first operations:
-
-- map a granted MMIO range into the caller with explicit permissions and device
-  memory attributes
-- read and write within a granted I/O port range
-- close the resource handle
-
-This preserves one kernel policy model even though x64 and arm64 need
-different low-level access paths.
-
-## MMIO Mapping Requirements
-
-For MMIO-backed devices, the SDK should expose a dedicated mapping routine with
-permission flags and device-memory attributes.
-
-Required properties:
-
-- readable and writable flags
-- no executable device mappings
-- uncached or device-ordered mapping mode
-- explicit virtual-address result returned to the driver
-- failure if the handle does not refer to a granted MMIO resource
-
-The API should be specific about device memory, not reuse a future general file
-or anonymous-memory mapping API without distinction.
-
-## First Console Service Contract
-
-The first client-facing console service should stay deliberately small.
-
-Suggested operations:
-
-- `CONSOLE_WRITE`
-- `CONSOLE_GET_INFO`
-
-`CONSOLE_WRITE` should take a shared-buffer pointer or shared-buffer descriptor
-plus length and return a status code and the number of bytes accepted.
-
-`CONSOLE_GET_INFO` can return:
-
-- protocol version
-- console kind
-- capability flags such as write support
-
-The protocol should be byte-oriented even if the first implementation is only
-used for text.
-
-## Service Discovery
-
-The first cut should avoid hard-coded global handles in applications.
-
-Instead, init should provide either:
-
-- a namespace or name-service bootstrap channel, or
-- a directly inherited console service channel for the earliest sample
-
-Longer term, a dedicated name-service process is the better direction because
-it scales to multiple services and multiple driver instances.
-
-Suggested early service names:
-
-- `console.default`
-- `serial.primary`
-
-## Driver Layout By Architecture
-
-### x64
-
-The first x64 serial driver can target the standard PC UART register window.
-If that path remains the target, it requires a granted `ioport` range.
-
-The driver responsibilities are:
-
-- initialize the UART if needed
-- poll transmitter readiness
-- write outgoing bytes
-- serve `CONSOLE_WRITE` requests over a channel
+## Architecture Notes
 
 ### arm64
 
-The first arm64 serial driver can target the platform UART through MMIO.
+arm64 is the preferred first place to flesh this out further.
 
-The driver responsibilities are the same as x64 from the service boundary
-outward:
+The current prototype still hands the driver one prearranged device-memory
+region during bootstrap. That is enough to validate:
 
-- map the granted MMIO range
-- poll transmitter readiness
-- write outgoing bytes
-- serve `CONSOLE_WRITE` requests over a channel
+- architecture-specific driver placement
+- the private driver-only mapping path
+- the console RPC contract
 
-The backend differs, but the user-facing protocol stays the same.
+The next arm64 step can replace the current prototype-backed region with a more
+realistic hardware-specific mapping once the page-table and device policy work
+is ready.
 
-## libc Direction
+### x64
 
-The current hosted C path uses a special debug-log escape hatch for `puts`.
-That should eventually be replaced with:
+x64 keeps its own driver source and can evolve independently. That leaves room
+for x64 to choose a different backend later without dragging the arm64 driver
+shape with it.
 
-- console service discovery
-- `CONSOLE_WRITE` RPC
-- libc buffering policy entirely in user space
+The important point is that x64 no longer defines the public SDK surface for
+all drivers.
 
-That keeps libc above the SDK and above user-space services rather than turning
-stdio into another kernel ABI layer.
+## Directory Split
 
-## First Sample App
+The repository should now be read this way:
 
-The first sample app should not use a console-specific kernel syscall.
+- `user/` contains public SDK, libc, and ordinary sample applications
+- `drivers/` contains trusted architecture-specific driver programs
+- `arch/*/user_runtime.cpp` decides which embedded driver image a platform boots
 
-It should:
+That split keeps driver internals out of the application-facing SDK and makes
+it explicit that drivers are part of platform bring-up, not generic user
+samples.
 
-1. obtain a console service channel from startup info or simple name lookup
-2. place a message in the shared request buffer
-3. issue `CONSOLE_WRITE`
-4. return success or failure
+## Near-Term Follow-Up
 
-This validates the intended steady-state model for future applications.
+The next concrete steps are:
 
-## Staged Implementation Plan
-
-1. Freeze the process startup-info structure and the first driver resource
-   handle kinds.
-2. Extend crt0 and the SDK so startup capabilities are visible in user space.
-3. Add the first RPC syscall and SDK wrapper.
-4. Add MMIO mapping support for driver resource handles.
-5. Decide whether x64 keeps the standard PC UART path.
-6. If yes, add narrow `ioport` resource support for trusted user-space
-   drivers.
-7. Implement the serial console driver on x64 and arm64 behind one RPC
-   contract.
-8. Add a sample app that writes through the console service.
-9. Retarget libc `puts` to the service once the sample path is stable.
-
-## Recommendation
-
-The recommended direction is:
-
-- keep the client-facing console API entirely channel-based
-- treat driver space as ordinary user space with stronger capabilities
-- introduce a startup info block before adding more services
-- use device-resource handles as the kernel-facing abstraction
-- keep `ioport` only if the first x64 serial target remains the standard PC
-  UART
-
-If the project wants the smallest possible capability model, the right debate
-is not whether x64 ports are aesthetically pleasing. The real question is
-whether the first x64 console target should remain a legacy PC UART or move to
-an MMIO-backed device so both architectures can share the same hardware-access
-primitive.
+1. keep the console client RPC contract stable
+2. flesh out arm64-specific device-memory handling further
+3. add richer device-assignment metadata only when a concrete second driver
+   needs it
+4. avoid reintroducing public SDK helpers that expose one hardware model to all
+   user-space code

@@ -58,3 +58,15 @@ jobs:
 
       - name: Build hello world sample
         run: cmake --build "build/user-samples/hello_world-${{ matrix.target_arch }}"
+
+      - name: Configure console service write sample
+        run: |
+          cmake \
+            -S user/samples/console_service_write \
+            -B "build/user-samples/console_service_write-${{ matrix.target_arch }}" \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$HOME/.cache/ringos/toolchain/cmake/ringos-toolchain.cmake" \
+            -DRINGOS_TARGET_ARCH="${{ matrix.target_arch }}"
+
+      - name: Build console service write sample
+        run: cmake --build "build/user-samples/console_service_write-${{ matrix.target_arch }}"

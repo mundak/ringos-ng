@@ -42,13 +42,14 @@ IncludeCategories:
   - Regex: '^"'
     Priority: 1
   # 2. Third-party headers (imgui, GLFW, spdlog, fmt, gtest, gmock)
-  - Regex: '^<(imgui|GLFW|backends|spdlog|fmt|gtest|gmock).*>'
+  - Regex: "^<(imgui|GLFW|backends|spdlog|fmt|gtest|gmock).*>"
     Priority: 2
   # 3. Standard library headers (everything else in angle brackets)
-  - Regex: '^<'
+  - Regex: "^<"
     Priority: 3
-IncludeIsMainRegex: '([-_](test|unittest))?$'
+IncludeIsMainRegex: "([-_](test|unittest))?$"
 IndentPPDirectives: None
+InsertNewlineAtEOF: true
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: All
 
