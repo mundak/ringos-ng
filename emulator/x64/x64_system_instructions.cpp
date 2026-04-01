@@ -26,4 +26,3 @@ x64_instruction_outcome execute_x64_syscall(x64_execution_context& context, cons
 
   return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
 }
-

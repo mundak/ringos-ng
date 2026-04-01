@@ -141,4 +141,3 @@ pe_image_load_status load_pe32_plus_image(
   const pe_image_load_config& config,
   pe_image_load_result* out_result);
 const char* describe_pe_image_load_status(pe_image_load_status status);
-

@@ -1,9 +1,7 @@
-#include <stdio.h>
-
 #include <ringos/debug.h>
 #include <ringos/status.h>
-
 #include <stddef.h>
+#include <stdio.h>
 
 int puts(const char* string)
 {
@@ -21,4 +19,3 @@ int puts(const char* string)
 
   return 0;
 }
-

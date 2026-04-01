@@ -586,4 +586,3 @@ extern "C" [[noreturn]] void arm64_user_thread_exit()
   };
   run_initial_user_runtime(dispatch);
 }
-

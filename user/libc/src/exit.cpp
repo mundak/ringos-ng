@@ -1,6 +1,5 @@
-#include <stdlib.h>
-
 #include <ringos/process.h>
+#include <stdlib.h>
 
 void exit(int exit_status)
 {
