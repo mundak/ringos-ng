@@ -32,4 +32,3 @@ int32_t ringos_rpc_reply(const ringos_rpc_response* response);
 #ifdef __cplusplus
 }
 #endif
-

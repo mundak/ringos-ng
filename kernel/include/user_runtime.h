@@ -74,4 +74,3 @@ private:
 
 user_runtime& get_kernel_user_runtime();
 [[noreturn]] void run_initial_user_runtime(initial_user_runtime_platform& platform);
-

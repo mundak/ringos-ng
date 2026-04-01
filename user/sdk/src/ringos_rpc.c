@@ -31,4 +31,3 @@ int32_t ringos_rpc_reply(const ringos_rpc_response* response)
 
   return ringos_syscall1(RINGOS_SYSCALL_RPC_REPLY, (uintptr_t) response);
 }
-
