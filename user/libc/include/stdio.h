@@ -18,4 +18,3 @@ int vsnprintf(char* buffer, size_t buffer_size, const char* format, va_list argu
 #ifdef __cplusplus
 }
 #endif
-

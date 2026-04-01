@@ -340,4 +340,3 @@ bool x64_execution_context::translate_guest_pointer(uintptr_t guest_address, siz
   *out_pointer = m_memory.bytes + guest_offset;
   return true;
 }
-

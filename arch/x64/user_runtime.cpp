@@ -336,4 +336,3 @@ extern "C" [[noreturn]] void x64_user_thread_exit()
 {
   run_initial_user_runtime(g_x64_runtime_dispatch);
 }
-

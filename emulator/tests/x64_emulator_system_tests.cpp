@@ -32,4 +32,3 @@ void append_x64_system_tests(std::vector<x64_emulator_test_case>& tests)
 {
   tests.push_back({ "unsupported_engine", &test_unsupported_engine_reports_cleanly });
 }
-

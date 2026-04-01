@@ -525,4 +525,3 @@ const char* describe_x64_pe64_image_load_status(x64_pe64_image_load_status statu
 
   return "x64 PE64 image loader failed with an unknown status";
 }
-

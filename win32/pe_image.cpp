@@ -295,4 +295,3 @@ const char* describe_pe_image_load_status(pe_image_load_status status)
 
   return "PE image loader failed with an unknown status";
 }
-

@@ -49,4 +49,3 @@ struct initial_user_runtime_bootstrap
   address_space address_space;
   thread_context thread_context;
 };
-

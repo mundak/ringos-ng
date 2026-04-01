@@ -106,4 +106,3 @@ bool try_resolve_x64_windows_import(const char* dll_name, const char* function_n
 
   return false;
 }
-

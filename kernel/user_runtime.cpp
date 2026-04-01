@@ -543,4 +543,3 @@ user_runtime& get_kernel_user_runtime()
   platform.enter_user_thread(platform.context, *initial_process, *initial_thread);
   panic("initial user runtime platform returned unexpectedly");
 }
-
