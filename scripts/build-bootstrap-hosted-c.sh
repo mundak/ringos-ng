@@ -52,7 +52,7 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 TARGET_ARCH="$1"
-SOURCE_PATH="${2:-${REPO_ROOT}/user/samples/test_app.c}"
+SOURCE_PATH="${2:-${REPO_ROOT}/user/samples/hello_world/hello_world.c}"
 TOOLCHAIN_ROOT="${RINGOS_TOOLCHAIN_ROOT:-$(default_install_root)}"
 RELEASE_REPO="${RINGOS_TOOLCHAIN_RELEASE_REPO:-${GITHUB_REPOSITORY:-mundak/ringos-ng}}"
 
