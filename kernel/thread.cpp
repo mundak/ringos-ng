@@ -53,4 +53,3 @@ void thread::set_exit_status(uint64_t exit_status)
 {
   m_exit_status = exit_status;
 }
-

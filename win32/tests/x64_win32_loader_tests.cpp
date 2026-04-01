@@ -428,4 +428,3 @@ int main()
   std::puts("PASS: x64 win32 loader unit tests");
   return 0;
 }
-

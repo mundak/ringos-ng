@@ -1,6 +1,5 @@
-#include <stdio.h>
-
 #include <ringos/debug.h>
+#include <stdio.h>
 
 int puts(const char* string)
 {

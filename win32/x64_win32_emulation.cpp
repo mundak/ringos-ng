@@ -180,4 +180,3 @@ const char* describe_x64_win32_import_resolution_status(x64_win32_import_resolut
 
   return "x64 Win32 import resolver failed with an unknown status";
 }
-

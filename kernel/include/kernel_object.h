@@ -23,4 +23,3 @@ private:
   handle_t m_handle_value;
   uint32_t m_process_reference_count;
 };
-

@@ -15,4 +15,3 @@ size_t strlen(const char* string);
 #ifdef __cplusplus
 }
 #endif
-
