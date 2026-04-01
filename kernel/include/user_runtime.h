@@ -10,6 +10,7 @@
 #include "thread.h"
 #include "user_runtime_types.h"
 
+#include <ringos/rpc.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -48,9 +49,9 @@ private:
   kernel_object* find_object_by_handle(handle_t handle_value);
   bool copy_rpc_transfer_payload(
     const process& source_process,
-    const user_rpc_request_layout& source_request,
+    const ringos_rpc_request& source_request,
     const process& target_process,
-    user_rpc_request_layout* out_target_request);
+    ringos_rpc_request* out_target_request);
   void flush_console_devices();
   thread* find_next_ready_thread(thread* after_thread);
   bool schedule_next_ready_thread();

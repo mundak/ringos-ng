@@ -44,6 +44,7 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${CMAKE_SOURCE_DIR}/user/libc/include/stdlib.h
     ${CMAKE_SOURCE_DIR}/user/libc/include/string.h
     ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_rpc.c
+    ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_console.c
     ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_debug.c
     ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_process.c
     ${CMAKE_SOURCE_DIR}/user/crt/src/crt0.c

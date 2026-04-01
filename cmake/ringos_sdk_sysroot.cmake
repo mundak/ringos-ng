@@ -84,6 +84,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       ${CMAKE_SOURCE_DIR}/user/libc/include/string.h)
 
     set(rpc_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_rpc.c)
+    set(console_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_console.c)
     set(debug_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_debug.c)
     set(process_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_process.c)
     set(crt0_source ${CMAKE_SOURCE_DIR}/user/crt/src/crt0.c)
@@ -107,6 +108,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
 
     set(syscall_object ${staging_root}/ringos_syscall.obj)
     set(rpc_object ${staging_root}/ringos_rpc.obj)
+    set(console_object ${staging_root}/ringos_console.obj)
     set(debug_object ${staging_root}/ringos_debug.obj)
     set(process_object ${staging_root}/ringos_process.obj)
     set(crt0_object ${staging_root}/crt0.obj)
@@ -184,6 +186,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         COMMAND ${RINGOS_LLVM_LIB}
                 /out:${staging_library}
                 ${rpc_object}
+                ${console_object}
                 ${syscall_object}
                 ${debug_object}
                 ${process_object})
@@ -206,6 +209,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
                 rcs
                 ${staging_library}
                 ${rpc_object}
+                ${console_object}
                 ${syscall_object}
                 ${debug_object}
                 ${process_object})
@@ -251,6 +255,19 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${rpc_source}
             -o ${rpc_object}
+          COMMAND ${CMAKE_C_COMPILER}
+            --target=${target_triple}
+            -O2
+            -ffreestanding
+            -fno-stack-protector
+            -fno-builtin
+            ${sdk_early_compile_flags}
+            -Wall
+            -Wextra
+            -Wpedantic
+            -I ${sdk_include_dir}
+            -c ${console_source}
+            -o ${console_object}
           COMMAND ${CMAKE_C_COMPILER}
             --target=${target_triple}
             -O2
@@ -412,6 +429,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${libc_headers}
         ${syscall_source}
         ${rpc_source}
+        ${console_source}
         ${debug_source}
         ${process_source}
         ${crt0_source}
@@ -428,6 +446,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       BYPRODUCTS
         ${syscall_object}
         ${rpc_object}
+        ${console_object}
         ${debug_object}
         ${process_object}
         ${crt0_object}

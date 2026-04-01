@@ -4,16 +4,20 @@
 #include "debug.h"
 #include "memory.h"
 #include "panic.h"
-#include "user_abi_layouts.h"
 #include "x64_windows_compat.h"
+
+#include <ringos/console.h>
+#include <ringos/rpc.h>
 
 namespace
 {
   constexpr uint64_t WINDOWS_HANDLE_STDIN = 1;
   constexpr uint64_t WINDOWS_HANDLE_STDOUT = 2;
   constexpr uint64_t WINDOWS_HANDLE_STDERR = 3;
+  constexpr size_t RPC_ENDPOINT_NAME_BUFFER_SIZE = RINGOS_RPC_ENDPOINT_NAME_MAX_LENGTH + 1;
   constexpr size_t WINDOWS_LOG_BUFFER_SIZE = 96;
   constexpr uint32_t VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY = 256;
+  constexpr char CONSOLE_RPC_ENDPOINT_NAME[] = "console.default";
 
   struct virtual_console_device_memory_layout
   {
@@ -27,6 +31,33 @@ namespace
   bool is_windows_console_handle(uint64_t handle_value)
   {
     return handle_value == WINDOWS_HANDLE_STDOUT || handle_value == WINDOWS_HANDLE_STDERR;
+  }
+
+  bool strings_equal(const char* first, const char* second)
+  {
+    if (first == nullptr || second == nullptr)
+    {
+      return false;
+    }
+
+    for (size_t index = 0;; ++index)
+    {
+      if (first[index] != second[index])
+      {
+        return false;
+      }
+
+      if (first[index] == '\0')
+      {
+        return true;
+      }
+    }
+  }
+
+  bool has_console_rpc_endpoint(const process& process_context)
+  {
+    return process_context.get_assist_device_memory_object() == nullptr
+      && process_context.get_assist_channel() != nullptr && process_context.get_assist_channel()->get_peer() != nullptr;
   }
 }
 
@@ -363,9 +394,9 @@ int32_t user_runtime::copy_user_string(
 
 bool user_runtime::copy_rpc_transfer_payload(
   const process& source_process,
-  const user_rpc_request_layout& source_request,
+  const ringos_rpc_request& source_request,
   const process& target_process,
-  user_rpc_request_layout* out_target_request)
+  ringos_rpc_request* out_target_request)
 {
   if (out_target_request == nullptr)
   {
@@ -543,6 +574,73 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   flush_console_devices();
 
+  const auto dispatch_rpc_call = [&](channel* channel_object, uintptr_t request_address, uintptr_t response_address)
+  {
+    if (channel_object == nullptr)
+    {
+      return STATUS_NOT_FOUND;
+    }
+
+    channel* const server_channel = channel_object->get_peer();
+
+    if (server_channel == nullptr)
+    {
+      return STATUS_PEER_CLOSED;
+    }
+
+    if (server_channel->m_waiting_thread == nullptr || server_channel->m_wait_request_address == 0)
+    {
+      return STATUS_WOULD_BLOCK;
+    }
+
+    process* const server_process = server_channel->m_waiting_thread->get_process_context();
+
+    if (server_process == nullptr)
+    {
+      return STATUS_BAD_STATE;
+    }
+
+    ringos_rpc_request request {};
+    const int32_t request_status = copy_user_bytes(*owner_process, request_address, &request, sizeof(request));
+
+    if (request_status != STATUS_OK)
+    {
+      return request_status;
+    }
+
+    if (request.operation == 0)
+    {
+      return STATUS_INVALID_ARGUMENT;
+    }
+
+    ringos_rpc_request server_request {};
+
+    if (!copy_rpc_transfer_payload(*owner_process, request, *server_process, &server_request))
+    {
+      return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    const int32_t write_status = write_user_bytes(
+      *server_process, server_channel->m_wait_request_address, &server_request, sizeof(server_request));
+
+    if (write_status != STATUS_OK)
+    {
+      return write_status;
+    }
+
+    active_thread->set_state(USER_THREAD_STATE_BLOCKED);
+    server_channel->m_pending_client_thread = active_thread;
+    server_channel->m_pending_client_response_address = response_address;
+    server_channel->m_pending_request = server_request;
+    thread* server_thread = server_channel->m_waiting_thread;
+    server_thread->set_pending_syscall_status(STATUS_OK);
+    server_thread->set_state(USER_THREAD_STATE_READY);
+    server_channel->m_waiting_thread = nullptr;
+    server_channel->m_wait_request_address = 0;
+    set_current_thread(server_thread);
+    return STATUS_OK;
+  };
+
   switch (syscall_context.syscall_number)
   {
   case STAGE1_SYSCALL_DEBUG_LOG:
@@ -576,77 +674,30 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case STAGE1_SYSCALL_RPC_CALL:
   {
-    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0)
+    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0 || syscall_context.argument2 == 0)
     {
       return STATUS_INVALID_ARGUMENT;
     }
 
-    channel* channel_object = owner_process->get_assist_channel();
+    const handle_t channel_handle = static_cast<handle_t>(syscall_context.argument0);
+    kernel_object* const object = find_object_by_handle(channel_handle);
+
+    if (object == nullptr)
+    {
+      return STATUS_BAD_HANDLE;
+    }
+
+    channel* const channel_object = find_channel_by_handle(channel_handle);
 
     if (channel_object == nullptr)
     {
-      return STATUS_NOT_FOUND;
+      return STATUS_WRONG_TYPE;
     }
 
-    channel* const server_channel = channel_object->get_peer();
-
-    if (server_channel == nullptr)
-    {
-      return STATUS_PEER_CLOSED;
-    }
-
-    if (server_channel->m_waiting_thread == nullptr || server_channel->m_wait_request_address == 0)
-    {
-      return STATUS_WOULD_BLOCK;
-    }
-
-    process* const server_process = server_channel->m_waiting_thread->get_process_context();
-
-    if (server_process == nullptr)
-    {
-      return STATUS_BAD_STATE;
-    }
-
-    user_rpc_request_layout request {};
-    const int32_t request_status
-      = copy_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument0), &request, sizeof(request));
-
-    if (request_status != STATUS_OK)
-    {
-      return request_status;
-    }
-
-    if (request.operation == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    user_rpc_request_layout server_request {};
-
-    if (!copy_rpc_transfer_payload(*owner_process, request, *server_process, &server_request))
-    {
-      return STATUS_BUFFER_TOO_SMALL;
-    }
-
-    const int32_t write_status = write_user_bytes(
-      *server_process, server_channel->m_wait_request_address, &server_request, sizeof(server_request));
-
-    if (write_status != STATUS_OK)
-    {
-      return write_status;
-    }
-
-    active_thread->set_state(USER_THREAD_STATE_BLOCKED);
-    server_channel->m_pending_client_thread = active_thread;
-    server_channel->m_pending_client_response_address = static_cast<uintptr_t>(syscall_context.argument1);
-    server_channel->m_pending_request = server_request;
-    thread* server_thread = server_channel->m_waiting_thread;
-    server_thread->set_pending_syscall_status(STATUS_OK);
-    server_thread->set_state(USER_THREAD_STATE_READY);
-    server_channel->m_waiting_thread = nullptr;
-    server_channel->m_wait_request_address = 0;
-    set_current_thread(server_thread);
-    return STATUS_OK;
+    return dispatch_rpc_call(
+      channel_object,
+      static_cast<uintptr_t>(syscall_context.argument1),
+      static_cast<uintptr_t>(syscall_context.argument2));
   }
 
   case STAGE1_SYSCALL_RPC_WAIT:
@@ -694,7 +745,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       return STATUS_BAD_STATE;
     }
 
-    user_rpc_response_layout response {};
+    ringos_rpc_response response {};
     const int32_t response_status
       = copy_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument0), &response, sizeof(response));
 
@@ -756,6 +807,94 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     }
 
     return write_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument1), &size, sizeof(size));
+  }
+
+  case STAGE1_SYSCALL_RPC_OPEN:
+  {
+    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0)
+    {
+      return STATUS_INVALID_ARGUMENT;
+    }
+
+    char endpoint_name[RPC_ENDPOINT_NAME_BUFFER_SIZE];
+    memset(endpoint_name, 0, sizeof(endpoint_name));
+    const int32_t name_status = copy_user_string(
+      *active_thread, static_cast<uintptr_t>(syscall_context.argument0), endpoint_name, sizeof(endpoint_name));
+
+    if (name_status != STATUS_OK)
+    {
+      return name_status;
+    }
+
+    if (!strings_equal(endpoint_name, CONSOLE_RPC_ENDPOINT_NAME) || !has_console_rpc_endpoint(*owner_process))
+    {
+      return STATUS_NOT_FOUND;
+    }
+
+    channel* const channel_object = owner_process->get_assist_channel();
+
+    if (channel_object == nullptr)
+    {
+      return STATUS_NOT_FOUND;
+    }
+
+    if (channel_object->get_peer() == nullptr)
+    {
+      return STATUS_PEER_CLOSED;
+    }
+
+    const handle_t channel_handle = channel_object->get_handle();
+    return write_user_bytes(
+      *owner_process, static_cast<uintptr_t>(syscall_context.argument1), &channel_handle, sizeof(channel_handle));
+  }
+
+  case STAGE1_SYSCALL_CONSOLE_QUERY:
+  {
+    if (syscall_context.argument2 == 0)
+    {
+      return STATUS_INVALID_ARGUMENT;
+    }
+
+    const size_t device_capacity = static_cast<size_t>(syscall_context.argument1);
+
+    if (device_capacity != 0 && syscall_context.argument0 == 0)
+    {
+      return STATUS_INVALID_ARGUMENT;
+    }
+
+    const size_t available_device_count = has_console_rpc_endpoint(*owner_process) ? 1 : 0;
+    const int32_t count_status = write_user_bytes(
+      *owner_process,
+      static_cast<uintptr_t>(syscall_context.argument2),
+      &available_device_count,
+      sizeof(available_device_count));
+
+    if (count_status != STATUS_OK)
+    {
+      return count_status;
+    }
+
+    if (available_device_count == 0)
+    {
+      return STATUS_OK;
+    }
+
+    if (device_capacity == 0)
+    {
+      return STATUS_BUFFER_TOO_SMALL;
+    }
+
+    ringos_console_device device {};
+    memcpy(device.endpoint_name, CONSOLE_RPC_ENDPOINT_NAME, sizeof(CONSOLE_RPC_ENDPOINT_NAME));
+    const int32_t device_status
+      = write_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument0), &device, sizeof(device));
+
+    if (device_status != STATUS_OK)
+    {
+      return device_status;
+    }
+
+    return device_capacity < available_device_count ? STATUS_BUFFER_TOO_SMALL : STATUS_OK;
   }
 
   case STAGE2_SYSCALL_WINDOWS_GET_STD_HANDLE:

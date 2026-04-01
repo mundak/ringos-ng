@@ -14,6 +14,8 @@ enum ringos_syscall
   RINGOS_SYSCALL_RPC_WAIT = 4,
   RINGOS_SYSCALL_RPC_REPLY = 5,
   RINGOS_SYSCALL_DEVICE_MEMORY_MAP = 6,
+  RINGOS_SYSCALL_RPC_OPEN = 7,
+  RINGOS_SYSCALL_CONSOLE_QUERY = 8,
 };
 
 int32_t ringos_syscall0(uint64_t syscall_number);

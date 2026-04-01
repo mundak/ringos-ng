@@ -197,8 +197,8 @@ developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose seven separately
-tracked workflows:
+The current GitHub Actions setup should continue to expose eight separately
+tracked CI workflows:
 
 1. `x64_emulator_unit`
 2. `x64_win32_loader_unit`
@@ -219,12 +219,13 @@ before configure/build so CI rejects `enum class` and legacy SDK numeric
 The `user_samples` workflow is the exception to the CTest-only rule: it
 resolves the published installed-toolchain bundle, builds the hosted C sample
 through `scripts/build-bootstrap-hosted-c.sh`, and then configures and builds
-the CMake-based hello-world sample directly against the downloaded
-`ringos-toolchain.cmake` bundle for both `x64` and `arm64`.
+the CMake-based hello-world and console-service-write samples directly against
+the downloaded `ringos-toolchain.cmake` bundle for both `x64` and `arm64`.
 
 If the dependency stack changes, update `docker/Dockerfile` and
 the workflow files under `.github/workflows/` together so local container runs
 and CI stay in sync.
 
-The dedicated `toolchain_release` workflow is responsible for publishing a new
-release asset when the combined installed-toolchain manifest ID changes.
+The dedicated `toolchain_release` workflow sits outside that CI-gated set and
+is responsible for publishing a new release asset when the combined
+installed-toolchain manifest ID changes.

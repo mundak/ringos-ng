@@ -141,6 +141,32 @@ namespace
       return va_arg(arguments, int);
     }
   }
+
+  ringos_handle get_default_console_channel()
+  {
+    static ringos_handle channel_handle = RINGOS_HANDLE_INVALID;
+
+    if (channel_handle != RINGOS_HANDLE_INVALID)
+    {
+      return channel_handle;
+    }
+
+    ringos_console_device devices[1] {};
+    size_t device_count = 0;
+    const int32_t query_status = ringos_console_query_devices(devices, 1, &device_count);
+
+    if ((query_status != RINGOS_STATUS_OK && query_status != RINGOS_STATUS_BUFFER_TOO_SMALL) || device_count == 0)
+    {
+      return RINGOS_HANDLE_INVALID;
+    }
+
+    if (ringos_rpc_open(devices[0].endpoint_name, &channel_handle) != RINGOS_STATUS_OK)
+    {
+      channel_handle = RINGOS_HANDLE_INVALID;
+    }
+
+    return channel_handle;
+  }
 }
 
 int printf(const char* format, ...)
@@ -174,13 +200,21 @@ int vprintf(const char* format, va_list arguments)
     return result;
   }
 
+  const ringos_handle channel_handle = get_default_console_channel();
+
+  if (channel_handle == RINGOS_HANDLE_INVALID)
+  {
+    (void) ringos_debug_log(buffer);
+    return result;
+  }
+
   ringos_rpc_request request {};
   request.operation = RINGOS_CONSOLE_OPERATION_WRITE;
   request.argument0 = reinterpret_cast<uintptr_t>(buffer);
   request.argument1 = static_cast<uintptr_t>(result);
 
   ringos_rpc_response response {};
-  const int32_t transport_status = ringos_rpc_call(&request, &response);
+  const int32_t transport_status = ringos_rpc_call(channel_handle, &request, &response);
 
   if (transport_status == RINGOS_STATUS_OK && response.status == RINGOS_STATUS_OK)
   {

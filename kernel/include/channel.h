@@ -1,7 +1,8 @@
 #pragma once
 
 #include "kernel_object.h"
-#include "user_abi_layouts.h"
+
+#include <ringos/rpc.h>
 
 class thread;
 
@@ -21,5 +22,5 @@ private:
   uintptr_t m_wait_request_address;
   thread* m_pending_client_thread;
   uintptr_t m_pending_client_response_address;
-  user_rpc_request_layout m_pending_request;
+  ringos_rpc_request m_pending_request;
 };
