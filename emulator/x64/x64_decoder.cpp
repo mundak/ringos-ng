@@ -18,6 +18,9 @@ bool decode_x64_instruction(x64_execution_context& context, x64_decoded_instruct
     false,
     false,
     false,
+    false,
+    false,
+    false,
   };
 
   if (!context.read_u8(instruction.opcode_address, &instruction.opcode))
@@ -26,12 +29,35 @@ bool decode_x64_instruction(x64_execution_context& context, x64_decoded_instruct
     return false;
   }
 
-  if ((instruction.opcode & 0xF0) == 0x40)
+  while (true)
   {
-    instruction.rex_w = (instruction.opcode & 0x08) != 0;
-    instruction.rex_r = (instruction.opcode & 0x04) != 0;
-    instruction.rex_x = (instruction.opcode & 0x02) != 0;
-    instruction.rex_b = (instruction.opcode & 0x01) != 0;
+    if (instruction.opcode == 0x66)
+    {
+      instruction.prefix_66 = true;
+    }
+    else if (instruction.opcode == 0xF2)
+    {
+      instruction.prefix_f2 = true;
+    }
+    else if (instruction.opcode == 0xF3)
+    {
+      instruction.prefix_f3 = true;
+    }
+    else if (instruction.opcode == 0x2E)
+    {
+    }
+    else if ((instruction.opcode & 0xF0) == 0x40)
+    {
+      instruction.rex_w = (instruction.opcode & 0x08) != 0;
+      instruction.rex_r = (instruction.opcode & 0x04) != 0;
+      instruction.rex_x = (instruction.opcode & 0x02) != 0;
+      instruction.rex_b = (instruction.opcode & 0x01) != 0;
+    }
+    else
+    {
+      break;
+    }
+
     ++instruction.opcode_address;
 
     if (!context.read_u8(instruction.opcode_address, &instruction.opcode))

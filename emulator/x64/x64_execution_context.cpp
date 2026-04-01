@@ -100,6 +100,26 @@ uint32_t x64_execution_context::get_register32(uint32_t register_index) const
   return static_cast<uint32_t>(m_state.general_registers[register_index]);
 }
 
+uint8_t x64_execution_context::get_register8_low(uint32_t register_index) const
+{
+  return static_cast<uint8_t>(m_state.general_registers[register_index] & 0xFFU);
+}
+
+void x64_execution_context::set_register8_low(uint32_t register_index, uint8_t value)
+{
+  m_state.general_registers[register_index] = (m_state.general_registers[register_index] & ~0xFFULL) | value;
+}
+
+x64_simd_register& x64_execution_context::get_simd_register(uint32_t register_index)
+{
+  return m_state.simd_registers[register_index];
+}
+
+const x64_simd_register& x64_execution_context::get_simd_register(uint32_t register_index) const
+{
+  return m_state.simd_registers[register_index];
+}
+
 void x64_execution_context::set_register32(uint32_t register_index, uint32_t value)
 {
   m_state.general_registers[register_index] = value;
@@ -170,6 +190,32 @@ bool x64_execution_context::read_u64(uintptr_t guest_address, uint64_t* out_valu
   return true;
 }
 
+bool x64_execution_context::read_u128(uintptr_t guest_address, x64_simd_register* out_value) const
+{
+  uint8_t* source = nullptr;
+
+  if (out_value == nullptr || !translate_guest_pointer(guest_address, sizeof(out_value->bytes), &source))
+  {
+    return false;
+  }
+
+  memcpy(out_value->bytes, source, sizeof(out_value->bytes));
+  return true;
+}
+
+bool x64_execution_context::write_u8(uintptr_t guest_address, uint8_t value) const
+{
+  uint8_t* destination = nullptr;
+
+  if (!translate_guest_pointer(guest_address, sizeof(uint8_t), &destination))
+  {
+    return false;
+  }
+
+  *destination = value;
+  return true;
+}
+
 bool x64_execution_context::write_u32(uintptr_t guest_address, uint32_t value) const
 {
   uint8_t* destination = nullptr;
@@ -193,6 +239,19 @@ bool x64_execution_context::write_u64(uintptr_t guest_address, uint64_t value) c
   }
 
   memcpy(destination, &value, sizeof(uint64_t));
+  return true;
+}
+
+bool x64_execution_context::write_u128(uintptr_t guest_address, const x64_simd_register& value) const
+{
+  uint8_t* destination = nullptr;
+
+  if (!translate_guest_pointer(guest_address, sizeof(value.bytes), &destination))
+  {
+    return false;
+  }
+
+  memcpy(destination, value.bytes, sizeof(value.bytes));
   return true;
 }
 

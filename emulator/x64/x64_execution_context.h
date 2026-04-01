@@ -29,6 +29,10 @@ public:
 
   uint64_t& get_register64(uint32_t register_index);
   uint32_t get_register32(uint32_t register_index) const;
+  uint8_t get_register8_low(uint32_t register_index) const;
+  void set_register8_low(uint32_t register_index, uint8_t value);
+  x64_simd_register& get_simd_register(uint32_t register_index);
+  const x64_simd_register& get_simd_register(uint32_t register_index) const;
   void set_register32(uint32_t register_index, uint32_t value);
 
   bool read_u8(uintptr_t guest_address, uint8_t* out_value) const;
@@ -36,8 +40,11 @@ public:
   bool read_u32(uintptr_t guest_address, uint32_t* out_value) const;
   bool read_i32(uintptr_t guest_address, int32_t* out_value) const;
   bool read_u64(uintptr_t guest_address, uint64_t* out_value) const;
+  bool read_u128(uintptr_t guest_address, x64_simd_register* out_value) const;
+  bool write_u8(uintptr_t guest_address, uint8_t value) const;
   bool write_u32(uintptr_t guest_address, uint32_t value) const;
   bool write_u64(uintptr_t guest_address, uint64_t value) const;
+  bool write_u128(uintptr_t guest_address, const x64_simd_register& value) const;
 
   void set_logic_flags(uint64_t value, bool is_64_bit);
   void set_compare_flags(uint64_t lhs, uint64_t rhs, uint64_t result, bool is_64_bit);

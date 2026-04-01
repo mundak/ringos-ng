@@ -120,6 +120,28 @@ namespace
       "instruction_budget_limit",
       "expected instruction budget exhaustion");
   }
+
+  bool test_prefixed_multi_byte_nop()
+  {
+    constexpr std::array<uint8_t, 13> program {
+      0x66, 0x0F, 0x1F, 0x44, 0x00, 0x00, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x0F, 0x05,
+    };
+    x64_syscall_capture capture {
+      nullptr, 1, 0, STATUS_OK, true, nullptr, 0,
+    };
+    x64_emulator_result result {};
+
+    if (!run_x64_emulator_test_program("prefixed_multi_byte_nop", program.data(), program.size(), capture, &result))
+    {
+      return false;
+    }
+
+    return expect_x64_emulator_test(
+             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
+             "prefixed_multi_byte_nop",
+             "expected thread exit")
+      && expect_x64_emulator_test(capture.call_count == 1, "prefixed_multi_byte_nop", "expected one syscall");
+  }
 }
 
 void append_x64_stack_and_control_flow_tests(std::vector<x64_emulator_test_case>& tests)
@@ -128,4 +150,5 @@ void append_x64_stack_and_control_flow_tests(std::vector<x64_emulator_test_case>
   tests.push_back({ "conditional_branch", &test_conditional_branch });
   tests.push_back({ "call_indirect_rip_relative", &test_call_indirect_rip_relative });
   tests.push_back({ "instruction_budget_limit", &test_instruction_budget_limit });
+  tests.push_back({ "prefixed_multi_byte_nop", &test_prefixed_multi_byte_nop });
 }

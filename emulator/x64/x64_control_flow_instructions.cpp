@@ -192,3 +192,24 @@ x64_instruction_outcome execute_x64_jump_short_condition(
                                                         : instruction.next_address + sizeof(int8_t);
   return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
 }
+
+x64_instruction_outcome execute_x64_jump_near_condition(
+  x64_execution_context& context, const x64_decoded_instruction& instruction)
+{
+  int32_t displacement = 0;
+  uint8_t secondary_opcode = 0;
+
+  if (
+    !context.read_u8(instruction.next_address, &secondary_opcode)
+    || !context.read_i32(instruction.next_address + 1, &displacement))
+  {
+    context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
+    return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
+  }
+
+  const bool zero_flag_set = (context.get_state().flags & RFLAGS_ZERO) != 0;
+  const bool take_branch = secondary_opcode == 0x84 ? zero_flag_set : !zero_flag_set;
+  context.get_state().instruction_pointer = take_branch ? instruction.next_address + 1 + sizeof(int32_t) + displacement
+                                                        : instruction.next_address + 1 + sizeof(int32_t);
+  return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
+}
