@@ -1,4 +1,4 @@
-name: smoke_arm64_native
+name: sample_console_service_write_x64_native
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  smoke_arm64_native:
+  sample_console_service_write_x64_native:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -36,11 +36,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build
 
-      - name: Configure arm64
-        run: cmake --preset arm64-debug
+      - name: Configure x64
+        run: cmake --preset x64-debug
 
-      - name: Build arm64
-        run: cmake --build --preset build-arm64-debug
+      - name: Build console_service_write x64 native target
+        run: cmake --build --preset build-x64-debug --target ringos_x64_console_service_write
 
-      - name: Run native arm64 smoke test
-        run: ctest --preset smoke_arm64_native
+      - name: Run console_service_write x64 native sample test
+        run: ctest --preset sample_console_service_write_x64_native

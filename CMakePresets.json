@@ -105,7 +105,7 @@
       }
     },
     {
-      "name": "smoke_x64_native",
+      "name": "sample_hello_world_x64_native",
       "configurePreset": "x64-debug",
       "output": {
         "outputOnFailure": true
@@ -115,12 +115,12 @@
       },
       "filter": {
         "include": {
-          "name": "^smoke_x64_native$"
+          "name": "^sample_hello_world_x64_native$"
         }
       }
     },
     {
-      "name": "smoke_x64_ansi_c",
+      "name": "sample_console_service_write_x64_native",
       "configurePreset": "x64-debug",
       "output": {
         "outputOnFailure": true
@@ -130,12 +130,12 @@
       },
       "filter": {
         "include": {
-          "name": "^smoke_x64_ansi_c$"
+          "name": "^sample_console_service_write_x64_native$"
         }
       }
     },
     {
-      "name": "smoke_arm64_native",
+      "name": "sample_hello_world_arm64_native",
       "configurePreset": "arm64-debug",
       "output": {
         "outputOnFailure": true
@@ -145,12 +145,12 @@
       },
       "filter": {
         "include": {
-          "name": "^smoke_arm64_native$"
+          "name": "^sample_hello_world_arm64_native$"
         }
       }
     },
     {
-      "name": "smoke_arm64_ansi_c",
+      "name": "sample_console_service_write_arm64_native",
       "configurePreset": "arm64-debug",
       "output": {
         "outputOnFailure": true
@@ -160,12 +160,12 @@
       },
       "filter": {
         "include": {
-          "name": "^smoke_arm64_ansi_c$"
+          "name": "^sample_console_service_write_arm64_native$"
         }
       }
     },
     {
-      "name": "smoke_arm64_x64_emulator",
+      "name": "sample_hello_world_arm64_x64_emulator",
       "configurePreset": "arm64-debug",
       "output": {
         "outputOnFailure": true
@@ -175,7 +175,22 @@
       },
       "filter": {
         "include": {
-          "name": "^smoke_arm64_x64_emulator$"
+          "name": "^sample_hello_world_arm64_x64_emulator$"
+        }
+      }
+    },
+    {
+      "name": "sample_console_service_write_arm64_x64_emulator",
+      "configurePreset": "arm64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_console_service_write_arm64_x64_emulator$"
         }
       }
     }

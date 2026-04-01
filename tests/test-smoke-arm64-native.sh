@@ -6,7 +6,7 @@
 # crash, or missing output.
 #
 # Usage:
-#   scripts/test-smoke-arm64-native.sh <path-to-ringos_arm64>
+#   tests/test-smoke-arm64-native.sh <path-to-ringos_arm64>
 #
 # This script is registered as the smoke_arm64_native CTest test.
 
@@ -24,7 +24,7 @@ DEBUG_LOG="$(mktemp)"
 trap 'rm -f "${DEBUG_LOG}"' EXIT
 
 timeout "${TIMEOUT_SECONDS}" \
-  "$(dirname "${BASH_SOURCE[0]}")/run-arm64.sh" "${KERNEL_IMAGE}" >"${DEBUG_LOG}" 2>&1 \
+  "$(dirname "${BASH_SOURCE[0]}")/../scripts/run-arm64.sh" "${KERNEL_IMAGE}" >"${DEBUG_LOG}" 2>&1 \
   || true
 
 for expected_line in \

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Deterministic test for the x64 GDB launch wrapper.
+# Deterministic test for the arm64 GDB launch wrapper.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 TEST_DIRECTORY="$(mktemp -d)"
-FAKE_QEMU="${TEST_DIRECTORY}/fake-qemu-x64.sh"
+FAKE_QEMU="${TEST_DIRECTORY}/fake-qemu-arm64.sh"
 ARGUMENT_LOG="${TEST_DIRECTORY}/arguments.log"
-KERNEL_IMAGE="${TEST_DIRECTORY}/ringos_x64"
+KERNEL_IMAGE="${TEST_DIRECTORY}/ringos_arm64"
 
 cleanup()
 {
@@ -29,21 +29,20 @@ touch "${KERNEL_IMAGE}"
 RINGOS_TEST_ARGUMENT_LOG="${ARGUMENT_LOG}" \
 RINGOS_QEMU_BIN="${FAKE_QEMU}" \
 RINGOS_GDB_PORT=4321 \
-RINGOS_DEBUGCON="file:/tmp/ringos-debugcon.log" \
-  "${SCRIPT_DIR}/debug-x64.sh" "${KERNEL_IMAGE}"
+  "${SCRIPT_DIR}/../scripts/debug-arm64.sh" "${KERNEL_IMAGE}"
 
 for expected_argument in \
+  -machine \
+  virt \
+  -cpu \
+  cortex-a57 \
   -kernel \
   "${KERNEL_IMAGE}" \
   -display \
   none \
-  -debugcon \
-  file:/tmp/ringos-debugcon.log \
-  -global \
-  isa-debugcon.iobase=0xe9 \
-  -monitor \
-  none \
   -no-reboot \
+  -semihosting-config \
+  enable=on,target=gdb \
   -gdb \
   tcp::4321 \
   -S; do
@@ -55,4 +54,4 @@ for expected_argument in \
   fi
 done
 
-echo "PASS: x64 debug launch wrapper"
+echo "PASS: arm64 debug launch wrapper"

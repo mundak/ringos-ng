@@ -1,6 +1,6 @@
 @echo off
-REM Build and test the ringos x64 target inside a Docker container.
-REM Usage: scripts\docker-test-x64.bat
+REM Build and run the console_service_write x64 native sample test inside a Docker container.
+REM Usage: tests\docker-test-console-service-write-x64-native.bat
 
 setlocal
 
@@ -32,8 +32,8 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo === Running x64 tests in %IMAGE_NAME% container ===
-docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build && cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset x64_win32_loader_unit && ctest --preset smoke_x64_native && ctest --preset smoke_x64_ansi_c"
+echo === Running console_service_write x64 native sample test in %IMAGE_NAME% container ===
+docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build && cmake --preset x64-debug && cmake --build --preset build-x64-debug --target ringos_x64_console_service_write && ctest --preset sample_console_service_write_x64_native"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%
