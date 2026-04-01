@@ -50,6 +50,7 @@ IncludeCategories:
 IncludeIsMainRegex: "([-_](test|unittest))?$"
 IndentPPDirectives: None
 InsertNewlineAtEOF: true
+KeepEmptyLinesAtEOF: true
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: All
 
