@@ -39,9 +39,15 @@ enum x64_emulator_completion : uint32_t
   X64_EMULATOR_COMPLETION_UNSUPPORTED_ENGINE = 5,
 };
 
+struct x64_simd_register
+{
+  uint8_t bytes[16];
+};
+
 struct x64_emulator_state
 {
   uint64_t general_registers[16];
+  x64_simd_register simd_registers[16];
   uintptr_t instruction_pointer;
   uint64_t flags;
 };

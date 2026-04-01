@@ -29,13 +29,22 @@ void x64_instruction_dispatch::initialize_opcode_handlers()
     m_secondary_opcode_handlers[opcode] = &execute_x64_unsupported;
   }
 
+  m_primary_opcode_handlers[0x80] = &execute_x64_group80;
+  m_primary_opcode_handlers[0x81] = &execute_x64_group81;
+  m_primary_opcode_handlers[0x08] = &execute_x64_or_register_byte;
+  m_primary_opcode_handlers[0x0B] = &execute_x64_or_rm_to_register;
   m_primary_opcode_handlers[0x89] = &execute_x64_mov_register;
   m_primary_opcode_handlers[0x8B] = &execute_x64_mov_register;
+  m_primary_opcode_handlers[0x39] = &execute_x64_compare_rm_with_register;
   m_primary_opcode_handlers[0x31] = &execute_x64_xor_register;
   m_primary_opcode_handlers[0x85] = &execute_x64_test_register;
+  m_primary_opcode_handlers[0xA9] = &execute_x64_test_accumulator_immediate;
   m_primary_opcode_handlers[0x83] = &execute_x64_group83;
-  m_primary_opcode_handlers[0x8D] = &execute_x64_lea_rip_relative;
+  m_primary_opcode_handlers[0x8D] = &execute_x64_lea;
   m_primary_opcode_handlers[0x90] = &execute_x64_nop;
+  m_primary_opcode_handlers[0xC7] = &execute_x64_mov_immediate_to_rm;
+  m_primary_opcode_handlers[0xF6] = &execute_x64_group_f6;
+  m_primary_opcode_handlers[0xF7] = &execute_x64_group_f7;
   m_primary_opcode_handlers[0xC3] = &execute_x64_return;
   m_primary_opcode_handlers[0xE8] = &execute_x64_call_relative;
   m_primary_opcode_handlers[0xE9] = &execute_x64_jump_relative_near;
@@ -59,7 +68,22 @@ void x64_instruction_dispatch::initialize_opcode_handlers()
     m_primary_opcode_handlers[opcode] = &execute_x64_mov_immediate32;
   }
 
+  m_secondary_opcode_handlers[0x10] = &execute_x64_secondary_mov_xmm;
+  m_secondary_opcode_handlers[0x11] = &execute_x64_secondary_store_xmm;
   m_secondary_opcode_handlers[0x05] = &execute_x64_syscall;
+  m_secondary_opcode_handlers[0x29] = &execute_x64_secondary_store_xmm;
+  m_secondary_opcode_handlers[0x84] = &execute_x64_jump_near_condition;
+  m_secondary_opcode_handlers[0x85] = &execute_x64_jump_near_condition;
+  m_secondary_opcode_handlers[0x94] = &execute_x64_secondary_setcc;
+  m_secondary_opcode_handlers[0x95] = &execute_x64_secondary_setcc;
+  m_secondary_opcode_handlers[0xB6] = &execute_x64_secondary_movzx_byte;
+  m_secondary_opcode_handlers[0x57] = &execute_x64_secondary_xorps;
+  m_secondary_opcode_handlers[0x60] = &execute_x64_secondary_punpcklbw;
+  m_secondary_opcode_handlers[0x6E] = &execute_x64_secondary_movd;
+  m_secondary_opcode_handlers[0x70] = &execute_x64_secondary_shuffle;
+  m_secondary_opcode_handlers[0x7F] = &execute_x64_secondary_store_xmm;
+  m_secondary_opcode_handlers[0xD6] = &execute_x64_secondary_movq_store;
+  m_secondary_opcode_handlers[0x1F] = &execute_x64_secondary_nop;
 }
 
 x64_instruction_outcome x64_instruction_dispatch::dispatch_secondary_opcode(

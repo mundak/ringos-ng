@@ -20,6 +20,7 @@ set(RINGOS_X64_EMULATOR_IMPLEMENTATION_SOURCES
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_execution_context.cpp
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_instruction_dispatch.cpp
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_interpreter.cpp
+  ${CMAKE_SOURCE_DIR}/emulator/x64/x64_simd_instructions.cpp
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_stack_instructions.cpp
   ${CMAKE_SOURCE_DIR}/emulator/x64/x64_system_instructions.cpp
 )

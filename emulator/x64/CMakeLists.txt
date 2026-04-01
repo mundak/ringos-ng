@@ -7,6 +7,7 @@ add_library(ringos_x64_emulator OBJECT
   x64_execution_context.cpp
   x64_interpreter.cpp
   x64_instruction_dispatch.cpp
+  x64_simd_instructions.cpp
   x64_stack_instructions.cpp
   x64_system_instructions.cpp
 )

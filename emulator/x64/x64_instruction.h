@@ -21,6 +21,9 @@ struct x64_decoded_instruction
   uintptr_t opcode_address;
   uintptr_t next_address;
   uint8_t opcode;
+  bool prefix_66;
+  bool prefix_f2;
+  bool prefix_f3;
   bool rex_w;
   bool rex_r;
   bool rex_x;

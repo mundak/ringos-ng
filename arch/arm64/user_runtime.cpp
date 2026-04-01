@@ -505,11 +505,12 @@ namespace
     const user_syscall_context syscall_context {
       state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RAX)],
       state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDI)],
+      state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSI)],
       state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDX)],
-      state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R8)],
-      state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R9)],
+      state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R10)],
       static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSP)]),
     };
+
     const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
 
     if (runtime.get_current_thread() == current_thread)
