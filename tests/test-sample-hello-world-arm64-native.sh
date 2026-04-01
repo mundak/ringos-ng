@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Smoke test for the x64 kernel image that boots the ANSI C hello world app.
+# Smoke test for the native arm64 kernel image that boots the hello_world sample.
 
 set -euo pipefail
 
 if [[ $# -lt 1 ]]; then
-  echo "Usage: $0 <path-to-ringos_x64_ansi_c>" >&2
+  echo "Usage: $0 <path-to-ringos_arm64>" >&2
   exit 1
 fi
 
@@ -15,22 +15,21 @@ DEBUG_LOG="$(mktemp)"
 trap 'rm -f "${DEBUG_LOG}"' EXIT
 
 timeout "${TIMEOUT_SECONDS}" \
-  env RINGOS_DEBUGCON="file:${DEBUG_LOG}" \
-  "$(dirname "${BASH_SOURCE[0]}")/run-x64.sh" "${KERNEL_IMAGE}" >/dev/null 2>&1 \
+  "$(dirname "${BASH_SOURCE[0]}")/../scripts/run-arm64.sh" "${KERNEL_IMAGE}" >"${DEBUG_LOG}" 2>&1 \
   || true
 
 for expected_line in \
-  "[gdb] ringos x64" \
+  "[gdb] ringos arm64" \
   "[gdb] gdb hooks ready" \
   "[gdb] hello world" \
-  "[gdb] x64 initial user runtime ready" \
+  "[gdb] arm64 initial user runtime ready" \
   "[gdb] hello world from ANSI C"; do
   if ! grep -Fq -- "${expected_line}" "${DEBUG_LOG}"; then
-    echo "FAIL: expected '${expected_line}' not found in x64 ANSI C debug output" >&2
+    echo "FAIL: expected '${expected_line}' not found in arm64 hello_world debug output" >&2
     echo "--- debug output ---" >&2
     cat "${DEBUG_LOG}" >&2
     exit 1
   fi
 done
 
-echo "PASS: x64 ANSI C smoke test"
+echo "PASS: arm64 hello_world sample test"

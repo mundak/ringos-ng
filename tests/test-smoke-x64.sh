@@ -6,7 +6,7 @@
 # crash, or missing output.
 #
 # Usage:
-#   scripts/test-smoke-x64.sh <path-to-ringos_x64>
+#   tests/test-smoke-x64.sh <path-to-ringos_x64>
 #
 # This script is registered as the smoke_x64_native CTest test.
 
@@ -25,7 +25,7 @@ trap 'rm -f "${DEBUG_LOG}"' EXIT
 
 timeout "${TIMEOUT_SECONDS}" \
   env RINGOS_DEBUGCON="file:${DEBUG_LOG}" \
-  "$(dirname "${BASH_SOURCE[0]}")/run-x64.sh" "${KERNEL_IMAGE}" >/dev/null 2>&1 \
+  "$(dirname "${BASH_SOURCE[0]}")/../scripts/run-x64.sh" "${KERNEL_IMAGE}" >/dev/null 2>&1 \
   || true
 
 for expected_line in \

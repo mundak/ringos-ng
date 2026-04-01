@@ -11,19 +11,22 @@ ringos_add_embedded_x64_test_app(
   SOURCE_PATH ${CMAKE_SOURCE_DIR}/drivers/x64/console_driver.cpp)
 
 ringos_add_embedded_x64_test_app(
-  ringos_x64_test_app
+  ringos_x64_hello_world_test_app
   elf64-x86-64
   i386:x86-64
-  X64_TEST_APP_IMAGE_OBJECT)
-
-ringos_add_embedded_x64_test_app(
-  ringos_x64_ansi_c_test_app
-  elf64-x86-64
-  i386:x86-64
-  X64_ANSI_C_TEST_APP_IMAGE_OBJECT
-  BINARY_STEM ringos_ansi_c_test_app_x64_pe64_image
+  X64_HELLO_WORLD_IMAGE_OBJECT
+  BINARY_STEM ringos_hello_world_x64_pe64_image
   PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
   PROJECT_TARGET hello_world)
+
+ringos_add_embedded_x64_test_app(
+  ringos_x64_console_service_write_test_app
+  elf64-x86-64
+  i386:x86-64
+  X64_CONSOLE_SERVICE_WRITE_IMAGE_OBJECT
+  BINARY_STEM ringos_console_service_write_x64_pe64_image
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/console_service_write
+  PROJECT_TARGET console_service_write)
 
 function(
   ringos_add_x64_kernel_target
@@ -88,17 +91,17 @@ endfunction()
 ringos_add_x64_kernel_target(
   ringos_x64
   ringos_x64_console_driver
-  ringos_x64_test_app
+  ringos_x64_hello_world_test_app
   ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
-  ${X64_TEST_APP_IMAGE_OBJECT}
+  ${X64_HELLO_WORLD_IMAGE_OBJECT}
   ringos_console_driver_x64_pe64_image
-  ringos_test_app_x64_pe64_image)
+  ringos_hello_world_x64_pe64_image)
 
 ringos_add_x64_kernel_target(
-  ringos_x64_ansi_c
+  ringos_x64_console_service_write
   ringos_x64_console_driver
-  ringos_x64_ansi_c_test_app
+  ringos_x64_console_service_write_test_app
   ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
-  ${X64_ANSI_C_TEST_APP_IMAGE_OBJECT}
+  ${X64_CONSOLE_SERVICE_WRITE_IMAGE_OBJECT}
   ringos_console_driver_x64_pe64_image
-  ringos_ansi_c_test_app_x64_pe64_image)
+  ringos_console_service_write_x64_pe64_image)

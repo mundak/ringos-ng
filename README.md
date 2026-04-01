@@ -19,9 +19,9 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 - Shared kernel code owns the boot handoff contract, debug-host logging path,
   and panic handling.
 - CI exposes dedicated workflows for the x64 emulator unit tests, the x64 Win32
-  loader unit tests, the native and ANSI C smoke lanes for x64 and arm64, the
-  emulated x64-on-arm64 smoke lane, and the release-bundle-backed user sample
-  builds for both architectures.
+  loader unit tests, and six sample lanes that explicitly cover
+  `hello_world` and `console_service_write` on x64 native, arm64 native, and
+  x64 emulation on arm64.
 
 ## Supported Targets
 
@@ -61,8 +61,12 @@ scripts\docker-run-os-arm64.bat
 Build and smoke-test a target from Windows:
 
 ```bat
-scripts\docker-test-x64.bat
-scripts\docker-test-arm64.bat
+tests\docker-test-hello-world-x64-native.bat
+tests\docker-test-console-service-write-x64-native.bat
+tests\docker-test-hello-world-arm64-native.bat
+tests\docker-test-console-service-write-arm64-native.bat
+tests\docker-test-hello-world-arm64-x64-emulator.bat
+tests\docker-test-console-service-write-arm64-x64-emulator.bat
 ```
 
 These wrappers now resolve the expected versioned toolchain release asset
@@ -84,8 +88,8 @@ If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
 docker build -f docker/Dockerfile -t ringos-ci .
-docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset smoke_x64_native"
-docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset smoke_arm64_native && ctest --preset smoke_arm64_x64_emulator"
+docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset x64_win32_loader_unit && ctest --preset sample_hello_world_x64_native && ctest --preset sample_console_service_write_x64_native"
+docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset sample_hello_world_arm64_native && ctest --preset sample_console_service_write_arm64_native && ctest --preset sample_hello_world_arm64_x64_emulator && ctest --preset sample_console_service_write_arm64_x64_emulator"
 ```
 
 ### Native Linux Workflow
@@ -180,9 +184,12 @@ Run smoke tests with CTest:
 ```bash
 ctest --preset x64_emulator_unit
 ctest --preset x64_win32_loader_unit
-ctest --preset smoke_x64_native
-ctest --preset smoke_arm64_native
-ctest --preset smoke_arm64_x64_emulator
+ctest --preset sample_hello_world_x64_native
+ctest --preset sample_console_service_write_x64_native
+ctest --preset sample_hello_world_arm64_native
+ctest --preset sample_console_service_write_arm64_native
+ctest --preset sample_hello_world_arm64_x64_emulator
+ctest --preset sample_console_service_write_arm64_x64_emulator
 ```
 
 More detail on the local and CI verification contract lives in
@@ -247,13 +254,12 @@ commands that point directly at the downloaded toolchain bundle.
 │   ├── debug-x64.sh
 │   ├── docker-run-os-arm64.bat
 │   ├── docker-run-os-x64.bat
-│   ├── docker-test-arm64.bat
-│   ├── docker-test-x64.bat
 │   ├── run-arm64.sh
 │   ├── run-x64.sh
-│   ├── test-smoke-arm64-native.sh
-│   ├── test-smoke-arm64-x64-emulator.sh
-│   └── test-smoke-x64.sh
+├── tests/
+│   ├── docker-test-*.bat     # aggregate and sample-specific Docker test wrappers
+│   ├── test-sample-*.sh      # sample-specific QEMU assertions for each platform lane
+│   └── test-smoke-*.sh       # legacy wrappers kept for reference during transition
 └── docs/
     ├── ci-and-testing.md
     └── contributing.md

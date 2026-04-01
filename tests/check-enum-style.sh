@@ -26,12 +26,14 @@ if [[ -n "${enum_class_matches}" ]]; then
   exit 1
 fi
 
-sdk_define_matches="$({
-  search '^#define RINGOS_CONSOLE_' user/sdk/include/ringos/console.h || true
-  search '^#define RINGOS_STATUS_' user/sdk/include/ringos/status.h || true
-  search '^#define RINGOS_SYSCALL_' user/sdk/include/ringos/syscalls.h || true
-  search '^#define RINGOS_INVALID_HANDLE' user/sdk/include/ringos/handle.h || true
-} | sed '/^$/d' || true)"
+sdk_define_matches="$(
+  {
+    search '^#define RINGOS_CONSOLE_' user/sdk/include/ringos/console.h || true
+    search '^#define RINGOS_STATUS_' user/sdk/include/ringos/status.h || true
+    search '^#define RINGOS_SYSCALL_' user/sdk/include/ringos/syscalls.h || true
+    search '^#define RINGOS_INVALID_HANDLE' user/sdk/include/ringos/handle.h || true
+  } | sed '/^$/d' || true
+)"
 
 if [[ -n "${sdk_define_matches}" ]]; then
   echo "error: SDK numeric constants must use enum-backed declarations instead of #define."

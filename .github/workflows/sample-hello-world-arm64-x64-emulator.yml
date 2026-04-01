@@ -1,4 +1,4 @@
-name: x64_emulator_unit
+name: sample_hello_world_arm64_x64_emulator
 
 on:
   pull_request:
@@ -7,8 +7,9 @@ on:
       - main
 
 jobs:
-  x64_emulator_unit:
+  sample_hello_world_arm64_x64_emulator:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
 
@@ -17,9 +18,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y -o Acquire::Retries=3 \
             cmake \
             ninja-build \
             clang \
@@ -36,14 +38,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build
 
-      - name: Run enum style checks
-        run: bash tests/check-enum-style.sh
+      - name: Configure arm64
+        run: cmake --preset arm64-debug
 
-      - name: Configure x64
-        run: cmake --preset x64-debug
+      - name: Build hello_world arm64 x64-emulator target
+        run: cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator
 
-      - name: Build x64
-        run: cmake --build --preset build-x64-debug
-
-      - name: Run x64 emulator unit test
-        run: ctest --preset x64_emulator_unit
+      - name: Run hello_world arm64 x64-emulator sample test
+        run: ctest --preset sample_hello_world_arm64_x64_emulator

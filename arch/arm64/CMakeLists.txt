@@ -20,25 +20,40 @@ ringos_add_embedded_x64_test_app(
   SOURCE_PATH ${CMAKE_SOURCE_DIR}/drivers/x64/console_driver.cpp)
 
 ringos_add_embedded_arm64_test_app(
-  ringos_arm64_test_app
+  ringos_arm64_hello_world_test_app
   elf64-littleaarch64
   aarch64
-  ARM64_TEST_APP_IMAGE_OBJECT)
-
-ringos_add_embedded_x64_test_app(
-  ringos_arm64_x64_test_app
-  elf64-littleaarch64
-  aarch64
-  X64_TEST_APP_IMAGE_OBJECT)
-
-ringos_add_embedded_arm64_test_app(
-  ringos_arm64_ansi_c_test_app
-  elf64-littleaarch64
-  aarch64
-  ARM64_ANSI_C_TEST_APP_IMAGE_OBJECT
-  BINARY_STEM ringos_ansi_c_test_app_arm64_pe64_image
+  ARM64_HELLO_WORLD_IMAGE_OBJECT
+  BINARY_STEM ringos_hello_world_arm64_pe64_image
   PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
   PROJECT_TARGET hello_world)
+
+ringos_add_embedded_x64_test_app(
+  ringos_arm64_x64_hello_world_test_app
+  elf64-littleaarch64
+  aarch64
+  X64_HELLO_WORLD_IMAGE_OBJECT
+  BINARY_STEM ringos_hello_world_x64_pe64_image
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
+  PROJECT_TARGET hello_world)
+
+ringos_add_embedded_arm64_test_app(
+  ringos_arm64_console_service_write_test_app
+  elf64-littleaarch64
+  aarch64
+  ARM64_CONSOLE_SERVICE_WRITE_IMAGE_OBJECT
+  BINARY_STEM ringos_console_service_write_arm64_pe64_image
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/console_service_write
+  PROJECT_TARGET console_service_write)
+
+ringos_add_embedded_x64_test_app(
+  ringos_arm64_x64_console_service_write_test_app
+  elf64-littleaarch64
+  aarch64
+  X64_CONSOLE_SERVICE_WRITE_IMAGE_OBJECT
+  BINARY_STEM ringos_console_service_write_x64_pe64_image
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/console_service_write
+  PROJECT_TARGET console_service_write)
 
 set(ARM64_KERNEL_COMPILE_OPTIONS
   -mgeneral-regs-only
@@ -108,26 +123,35 @@ target_compile_options(ringos_x64_win32_emulation
 ringos_add_arm64_kernel_target(
   ringos_arm64
   ringos_arm64_console_driver
-  ringos_arm64_test_app
+  ringos_arm64_hello_world_test_app
   ${ARM64_CONSOLE_DRIVER_IMAGE_OBJECT}
-  ${ARM64_TEST_APP_IMAGE_OBJECT}
+  ${ARM64_HELLO_WORLD_IMAGE_OBJECT}
   ringos_console_driver_arm64_pe64_image
-  ringos_test_app_arm64_pe64_image)
+  ringos_hello_world_arm64_pe64_image)
 
 ringos_add_arm64_kernel_target(
-  ringos_arm64_ansi_c
+  ringos_arm64_console_service_write
   ringos_arm64_console_driver
-  ringos_arm64_ansi_c_test_app
+  ringos_arm64_console_service_write_test_app
   ${ARM64_CONSOLE_DRIVER_IMAGE_OBJECT}
-  ${ARM64_ANSI_C_TEST_APP_IMAGE_OBJECT}
+  ${ARM64_CONSOLE_SERVICE_WRITE_IMAGE_OBJECT}
   ringos_console_driver_arm64_pe64_image
-  ringos_ansi_c_test_app_arm64_pe64_image)
+  ringos_console_service_write_arm64_pe64_image)
 
 ringos_add_arm64_kernel_target(
   ringos_arm64_x64_emulator
   ringos_arm64_x64_console_driver
-  ringos_arm64_x64_test_app
+  ringos_arm64_x64_hello_world_test_app
   ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
-  ${X64_TEST_APP_IMAGE_OBJECT}
+  ${X64_HELLO_WORLD_IMAGE_OBJECT}
   ringos_console_driver_x64_pe64_image
-  ringos_test_app_x64_pe64_image)
+  ringos_hello_world_x64_pe64_image)
+
+ringos_add_arm64_kernel_target(
+  ringos_arm64_x64_emulator_console_service_write
+  ringos_arm64_x64_console_driver
+  ringos_arm64_x64_console_service_write_test_app
+  ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
+  ${X64_CONSOLE_SERVICE_WRITE_IMAGE_OBJECT}
+  ringos_console_driver_x64_pe64_image
+  ringos_console_service_write_x64_pe64_image)

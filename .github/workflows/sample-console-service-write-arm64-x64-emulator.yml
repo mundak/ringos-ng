@@ -1,4 +1,4 @@
-name: smoke_arm64_x64_emulator
+name: sample_console_service_write_arm64_x64_emulator
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  smoke_arm64_x64_emulator:
+  sample_console_service_write_arm64_x64_emulator:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -41,8 +41,8 @@ jobs:
       - name: Configure arm64
         run: cmake --preset arm64-debug
 
-      - name: Build arm64
-        run: cmake --build --preset build-arm64-debug
+      - name: Build console_service_write arm64 x64-emulator target
+        run: cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator_console_service_write
 
-      - name: Run emulated x64-on-arm64 smoke test
-        run: ctest --preset smoke_arm64_x64_emulator
+      - name: Run console_service_write arm64 x64-emulator sample test
+        run: ctest --preset sample_console_service_write_arm64_x64_emulator
