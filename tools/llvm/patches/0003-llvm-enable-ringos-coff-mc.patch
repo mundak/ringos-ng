@@ -1,7 +1,7 @@
 diff --git a/llvm/include/llvm/TargetParser/Triple.h b/llvm/include/llvm/TargetParser/Triple.h
 --- a/llvm/include/llvm/TargetParser/Triple.h
 +++ b/llvm/include/llvm/TargetParser/Triple.h
-@@
+@@ -605,7 +605,8 @@ public:
    /// Checks if the environment is MSVC.
    bool isKnownWindowsMSVCEnvironment() const {
 -    return isOSWindows() && getEnvironment() == Triple::MSVC;
@@ -13,7 +13,7 @@ diff --git a/llvm/include/llvm/TargetParser/Triple.h b/llvm/include/llvm/TargetP
 diff --git a/llvm/lib/MC/MCContext.cpp b/llvm/lib/MC/MCContext.cpp
 --- a/llvm/lib/MC/MCContext.cpp
 +++ b/llvm/lib/MC/MCContext.cpp
-@@
+@@ -83,7 +83,8 @@ MCContext::MCContext(const Triple &TheTriple, const MCAsmInfo *MAI,
    switch (TheTriple.getObjectFormat()) {
    case Triple::MachO:
      Env = IsMachO;
@@ -25,11 +25,10 @@ diff --git a/llvm/lib/MC/MCContext.cpp b/llvm/lib/MC/MCContext.cpp
        reportFatalUsageError(
            "cannot initialize MC for non-Windows COFF object files");
      }
- 
 diff --git a/llvm/lib/MC/TargetRegistry.cpp b/llvm/lib/MC/TargetRegistry.cpp
 --- a/llvm/lib/MC/TargetRegistry.cpp
 +++ b/llvm/lib/MC/TargetRegistry.cpp
-@@
+@@ -34,8 +34,8 @@ MCStreamer *Target::createMCObjectStreamer(
    switch (T.getObjectFormat()) {
    case Triple::UnknownObjectFormat:
      llvm_unreachable("Unknown object format");
@@ -41,15 +40,10 @@ diff --git a/llvm/lib/MC/TargetRegistry.cpp b/llvm/lib/MC/TargetRegistry.cpp
      S = COFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
                             std::move(Emitter));
      break;
-   case Triple::MachO:
 diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp b/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
 --- a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
 +++ b/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
-@@
- MCAsmBackend *llvm::createX86_32AsmBackend(const Target &T,
-                                            const MCSubtargetInfo &STI,
-                                            const MCRegisterInfo &MRI,
-                                            const MCTargetOptions &Options) {
+@@ -1473,7 +1473,8 @@ MCAsmBackend *llvm::createX86_32AsmBackend(const Target &T,
    const Triple &TheTriple = STI.getTargetTriple();
    if (TheTriple.isOSBinFormatMachO())
      return new DarwinX86AsmBackend(T, MRI, STI);
@@ -60,12 +54,7 @@ diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp b/llvm/lib/Targe
      return new WindowsX86AsmBackend(T, false, STI);
  
    uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
- 
-@@
- MCAsmBackend *llvm::createX86_64AsmBackend(const Target &T,
-                                            const MCSubtargetInfo &STI,
-                                            const MCRegisterInfo &MRI,
-                                            const MCTargetOptions &Options) {
+@@ -1496,7 +1497,8 @@ MCAsmBackend *llvm::createX86_64AsmBackend(const Target &T,
    const Triple &TheTriple = STI.getTargetTriple();
    if (TheTriple.isOSBinFormatMachO())
      return new DarwinX86AsmBackend(T, MRI, STI);
@@ -76,13 +65,10 @@ diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp b/llvm/lib/Targe
      return new WindowsX86AsmBackend(T, true, STI);
  
    if (TheTriple.isUEFI()) {
-     assert(TheTriple.isOSBinFormatCOFF() &&
-          "Only COFF format is supported in UEFI environment.");
 diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp b/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp
 --- a/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp
 +++ b/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp
-@@
- X86MCAsmInfoGNUCOFF::X86MCAsmInfoGNUCOFF(const Triple &Triple) {
+@@ -184,8 +184,8 @@ X86MCAsmInfoGNUCOFF::X86MCAsmInfoGNUCOFF(const Triple &Triple) {
 -  assert((Triple.isOSWindows() || Triple.isUEFI()) &&
 -         "Windows and UEFI are the only supported COFF targets");
 +  assert((Triple.isOSWindows() || Triple.isOSRingos() || Triple.isUEFI()) &&
@@ -90,4 +76,3 @@ diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp b/llvm/lib/Target
    if (Triple.isX86_64()) {
      InternalSymbolPrefix = ".L";
      PrivateLabelPrefix = ".L";
-     CodePointerSize = 8;
