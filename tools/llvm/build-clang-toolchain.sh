@@ -26,6 +26,16 @@ LLVM_PATCH_DIR="${RINGOS_LLVM_PATCH_DIR:-${LLVM_ROOT}/patches}"
 LLVM_PROJECTS="${RINGOS_LLVM_ENABLE_PROJECTS:-clang;lld}"
 LLVM_RUNTIMES="${RINGOS_LLVM_ENABLE_RUNTIMES:-compiler-rt}"
 LLVM_TARGETS="${RINGOS_LLVM_TARGETS_TO_BUILD:-AArch64;X86}"
+NORMALIZED_PATCH_DIR=""
+
+cleanup()
+{
+  if [[ -n "${NORMALIZED_PATCH_DIR}" && -d "${NORMALIZED_PATCH_DIR}" ]]; then
+    rm -rf "${NORMALIZED_PATCH_DIR}"
+  fi
+}
+
+trap cleanup EXIT
 
 mkdir -p "${LLVM_ROOT}" "$(dirname "${LLVM_SOURCE_DIR}")" "$(dirname "${LLVM_INSTALL_DIR}")"
 
@@ -35,16 +45,25 @@ fi
 
 git -C "${LLVM_SOURCE_DIR}" fetch --tags --force origin
 git -C "${LLVM_SOURCE_DIR}" checkout --detach "${LLVM_REF}"
+git -C "${LLVM_SOURCE_DIR}" reset --hard "${LLVM_REF}"
+git -C "${LLVM_SOURCE_DIR}" clean -fdx
 
 if [[ -d "${LLVM_PATCH_DIR}" ]]; then
   shopt -s nullglob
   patch_files=("${LLVM_PATCH_DIR}"/*.patch)
   shopt -u nullglob
 
+  if [[ "${#patch_files[@]}" -gt 0 ]]; then
+    NORMALIZED_PATCH_DIR="$(mktemp -d)"
+  fi
+
   for patch_file in "${patch_files[@]}"; do
-    if git -C "${LLVM_SOURCE_DIR}" apply --check "${patch_file}"; then
-      git -C "${LLVM_SOURCE_DIR}" apply "${patch_file}"
-    elif git -C "${LLVM_SOURCE_DIR}" apply --reverse --check "${patch_file}"; then
+    normalized_patch_file="${NORMALIZED_PATCH_DIR}/$(basename "${patch_file}")"
+    sed 's/\r$//' "${patch_file}" > "${normalized_patch_file}"
+
+    if git -C "${LLVM_SOURCE_DIR}" apply --check "${normalized_patch_file}"; then
+      git -C "${LLVM_SOURCE_DIR}" apply "${normalized_patch_file}"
+    elif git -C "${LLVM_SOURCE_DIR}" apply --reverse --check "${normalized_patch_file}"; then
       echo "Skipping already-applied patch ${patch_file}"
     else
       echo "Failed to apply patch ${patch_file}" >&2

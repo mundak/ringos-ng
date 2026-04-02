@@ -32,18 +32,35 @@ else
   output_zip=""
 fi
 
+external_previous_stage_root="${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT:-}"
+bootstrap_previous_stage_root=0
+
 install_root="$(mktemp -d)"
 staging_root="$(mktemp -d)"
-previous_stage_root="$(mktemp -d)"
 package_root="${staging_root}/ringos-toolchain"
 x64_build_dir="${staging_root}/build-x64"
 arm64_build_dir="${staging_root}/build-arm64"
 
-RINGOS_LLVM_INSTALL_DIR="${previous_stage_root}" bash "${repo_root}/tools/llvm/build-clang-toolchain.sh"
+if [[ -n "${external_previous_stage_root}" ]]; then
+  previous_stage_root="${external_previous_stage_root}"
+
+  if [[ ! -x "${previous_stage_root}/bin/clang" ]]; then
+    echo "Configured previous-stage toolchain root does not contain bin/clang: ${previous_stage_root}" >&2
+    exit 1
+  fi
+else
+  previous_stage_root="$(mktemp -d)"
+  bootstrap_previous_stage_root=1
+  RINGOS_LLVM_INSTALL_DIR="${previous_stage_root}" bash "${repo_root}/tools/llvm/build-clang-toolchain.sh"
+fi
 
 cleanup()
 {
-  rm -rf "${install_root}" "${staging_root}" "${previous_stage_root}"
+  rm -rf "${install_root}" "${staging_root}"
+
+  if [[ "${bootstrap_previous_stage_root}" == "1" ]]; then
+    rm -rf "${previous_stage_root}"
+  fi
 }
 
 trap cleanup EXIT

@@ -1,7 +1,7 @@
 diff --git a/llvm/include/llvm/TargetParser/Triple.h b/llvm/include/llvm/TargetParser/Triple.h
 --- a/llvm/include/llvm/TargetParser/Triple.h
 +++ b/llvm/include/llvm/TargetParser/Triple.h
-@@ -607,3 +607,4 @@ public:
+@@ -612,3 +612,4 @@ public:
    bool isKnownWindowsMSVCEnvironment() const {
 -    return isOSWindows() && getEnvironment() == Triple::MSVC;
 +    return (isOSWindows() || isOSRingos()) &&
@@ -10,32 +10,35 @@ diff --git a/llvm/include/llvm/TargetParser/Triple.h b/llvm/include/llvm/TargetP
 diff --git a/llvm/lib/MC/MCContext.cpp b/llvm/lib/MC/MCContext.cpp
 --- a/llvm/lib/MC/MCContext.cpp
 +++ b/llvm/lib/MC/MCContext.cpp
-@@ -87,5 +87,6 @@ MCContext::MCContext(const Triple &TheTriple, const MCAsmInfo *MAI,
+@@ -86,6 +86,7 @@ MCContext::MCContext(const Triple &TheTriple, const MCAsmInfo *MAI,
    case Triple::COFF:
--    if (!TheTriple.isOSWindows() && !TheTriple.isUEFI()) {
+-    if (!TheTriple.isOSWindows() && !TheTriple.isUEFI())
 +    if (!TheTriple.isOSWindows() && !TheTriple.isOSRingos() &&
-+        !TheTriple.isUEFI()) {
-       reportFatalUsageError(
-           "cannot initialize MC for non-Windows COFF object files");
-     }
-diff --git a/llvm/lib/MC/TargetRegistry.cpp b/llvm/lib/MC/TargetRegistry.cpp
---- a/llvm/lib/MC/TargetRegistry.cpp
-+++ b/llvm/lib/MC/TargetRegistry.cpp
-@@ -37,5 +37,5 @@ MCStreamer *Target::createMCObjectStreamer(
-   case Triple::COFF:
--    assert((T.isOSWindows() || T.isUEFI()) &&
--           "only Windows and UEFI COFF are supported");
-+    assert((T.isOSWindows() || T.isOSRingos() || T.isUEFI()) &&
-+           "only Windows, RingOS, and UEFI COFF are supported");
-     S = COFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
-                            std::move(Emitter));
++        !TheTriple.isUEFI())
+       report_fatal_error(
+-          "Cannot initialize MC for non-Windows COFF object files.");
++          "Cannot initialize MC for non-Windows/RingOS COFF object files.");
+
+     Env = IsCOFF;
+diff --git a/llvm/include/llvm/MC/TargetRegistry.h b/llvm/include/llvm/MC/TargetRegistry.h
+--- a/llvm/include/llvm/MC/TargetRegistry.h
++++ b/llvm/include/llvm/MC/TargetRegistry.h
+@@ -572,6 +572,6 @@ public:
+     case Triple::UnknownObjectFormat:
+       llvm_unreachable("Unknown object format");
+     case Triple::COFF:
+-      assert((T.isOSWindows() || T.isUEFI()) &&
+-             "only Windows and UEFI COFF are supported");
++      assert((T.isOSWindows() || T.isOSRingos() || T.isUEFI()) &&
++             "only Windows, RingOS, and UEFI COFF are supported");
+       S = COFFStreamerCtorFn(Ctx, std::move(TAB), std::move(OW),
 diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp b/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
 --- a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
 +++ b/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
-@@ -1477,5 +1477,6 @@ MCAsmBackend *llvm::createX86_32AsmBackend(const Target &T,
+@@ -1499,5 +1499,6 @@ MCAsmBackend *llvm::createX86_32AsmBackend(const Target &T,
    if (TheTriple.isOSBinFormatMachO())
      return new DarwinX86AsmBackend(T, MRI, STI);
- 
+
 -  if (TheTriple.isOSWindows() && TheTriple.isOSBinFormatCOFF())
 +  if ((TheTriple.isOSWindows() || TheTriple.isOSRingos()) &&
 +      TheTriple.isOSBinFormatCOFF())
@@ -43,10 +46,10 @@ diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp b/llvm/lib/Targe
 diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp b/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
 --- a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
 +++ b/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp
-@@ -1500,5 +1501,6 @@ MCAsmBackend *llvm::createX86_64AsmBackend(const Target &T,
+@@ -1518,5 +1519,6 @@ MCAsmBackend *llvm::createX86_64AsmBackend(const Target &T,
    if (TheTriple.isOSBinFormatMachO())
      return new DarwinX86AsmBackend(T, MRI, STI);
- 
+
 -  if (TheTriple.isOSWindows() && TheTriple.isOSBinFormatCOFF())
 +  if ((TheTriple.isOSWindows() || TheTriple.isOSRingos()) &&
 +      TheTriple.isOSBinFormatCOFF())
@@ -54,10 +57,11 @@ diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86AsmBackend.cpp b/llvm/lib/Targe
 diff --git a/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp b/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp
 --- a/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp
 +++ b/llvm/lib/Target/X86/MCTargetDesc/X86MCAsmInfo.cpp
-@@ -184,4 +184,4 @@ X86MCAsmInfoGNUCOFF::X86MCAsmInfoGNUCOFF(const Triple &Triple) {
+@@ -155,5 +155,5 @@ X86MCAsmInfoGNUCOFF::X86MCAsmInfoGNUCOFF(const Triple &Triple) {
 -  assert((Triple.isOSWindows() || Triple.isUEFI()) &&
 -         "Windows and UEFI are the only supported COFF targets");
 +  assert((Triple.isOSWindows() || Triple.isOSRingos() || Triple.isUEFI()) &&
 +         "Windows, RingOS, and UEFI are the only supported COFF targets");
-   if (Triple.isX86_64()) {
-     InternalSymbolPrefix = ".L";
+   if (Triple.getArch() == Triple::x86_64) {
+     PrivateGlobalPrefix = ".L";
+     PrivateLabelPrefix = ".L";

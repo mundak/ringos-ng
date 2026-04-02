@@ -101,6 +101,7 @@ same container image:
 
 ```bash
 scripts/build-clang-toolchain.sh
+tools/toolchain/build-toolchain-local.sh
 scripts/build-bootstrap-hosted-c.sh x64
 scripts/build-bootstrap-hosted-c.sh arm64
 scripts/build-bootstrap-hosted-cpp.sh x64
@@ -108,11 +109,26 @@ scripts/build-bootstrap-hosted-cpp.sh arm64
 ```
 
 The first script builds the repo-owned host Clang toolchain scaffolding. The
-second and third scripts resolve the published installed-toolchain bundle and
-compile hosted C or bootstrap hosted C++ samples against the downloaded
+second script reuses a persistent previous-stage LLVM cache when one is
+available, then rebuilds the installed RingOS toolchain bundle against that
+cached compiler. The hosted C and bootstrap hosted C++ sample scripts resolve
+the published installed-toolchain bundle and compile against the downloaded
 compiler configs and sysroot for the selected target. Those sample lanes no
 longer depend on repo-local staged bootstrap config files or arbitrary host
 compiler paths.
+
+For Windows Docker iteration on native LLVM patches, use:
+
+```bat
+scripts\docker-build-toolchain-local.bat
+```
+
+That wrapper bind-mounts the worktree into `/workspace`, mounts a persistent
+host cache into `/root/.cache/ringos`, normalizes the touched shell scripts to
+LF inside the container, and then runs `tools/toolchain/build-toolchain-local.sh`.
+The cache preserves the LLVM clone, Ninja build tree, and previous-stage
+compiler install under `/root/.cache/ringos/native-llvm-toolchain-local`, so
+subsequent patch iterations do not restart the LLVM bootstrap from scratch.
 
 Before configuring, each wrapper now mounts a host-side cache directory into the
 container and runs `tools/toolchain/ensure-toolchain-release.sh` so the
