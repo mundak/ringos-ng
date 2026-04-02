@@ -3,6 +3,12 @@ include(${CMAKE_CURRENT_LIST_DIR}/ringos-llvm-root.cmake)
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
+ringos_resolve_llvm_root(ringos_arm64_llvm_root)
+set(RINGOS_LLVM_TOOLCHAIN_ROOT ${ringos_arm64_llvm_root})
+list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
+	RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT
+	RINGOS_LLVM_TOOLCHAIN_ROOT)
+
 ringos_find_llvm_tool(clang RINGOS_CLANG clang clang-18 clang-17)
 ringos_find_llvm_tool(clang++ RINGOS_CLANGXX clang++ clang++-18 clang++-17)
 ringos_find_llvm_tool(llvm-objcopy RINGOS_LLVM_OBJCOPY llvm-objcopy llvm-objcopy-18 llvm-objcopy-17)
