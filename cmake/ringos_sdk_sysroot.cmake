@@ -12,6 +12,34 @@ function(ringos_get_sdk_target_triple target_arch out_target_triple)
   set(${out_target_triple} ${target_triple} PARENT_SCOPE)
 endfunction()
 
+function(ringos_get_libcxx_include_dir out_include_dir)
+  if(DEFINED RINGOS_LIBCXX_SOURCE_DIR AND NOT RINGOS_LIBCXX_SOURCE_DIR STREQUAL "")
+    set(libcxx_source_dir ${RINGOS_LIBCXX_SOURCE_DIR})
+  else()
+    set(libcxx_source_dir ${CMAKE_SOURCE_DIR}/tools/llvm/src/llvm-project/libcxx)
+  endif()
+
+  set(libcxx_include_dir ${libcxx_source_dir}/include)
+
+  if(EXISTS ${libcxx_include_dir}/__config)
+    set(${out_include_dir} ${libcxx_include_dir} PARENT_SCOPE)
+  else()
+    set(${out_include_dir} "" PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(ringos_collect_libcxx_headers out_headers)
+  ringos_get_libcxx_include_dir(libcxx_include_dir)
+
+  if(libcxx_include_dir)
+    file(GLOB_RECURSE libcxx_headers LIST_DIRECTORIES FALSE ${libcxx_include_dir}/*)
+  else()
+    set(libcxx_headers)
+  endif()
+
+  set(${out_headers} ${libcxx_headers} PARENT_SCOPE)
+endfunction()
+
 function(ringos_append_sdk_link_flags target_arch out_link_flags)
   set(link_flags
     -fuse-ld=lld
@@ -45,6 +73,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
   set(generated_root ${CMAKE_BINARY_DIR}/generated/sdk/${target_arch})
   set(sysroot_dir ${CMAKE_BINARY_DIR}/sysroot/${target_triple})
   set(include_dir ${sysroot_dir}/include)
+  set(cxx_include_dir ${include_dir}/c++/v1)
   set(lib_dir ${sysroot_dir}/lib)
   set(share_dir ${sysroot_dir}/share/ringos)
   set(sysroot_library ${lib_dir}/ringos_sdk.lib)
@@ -77,11 +106,15 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/syscalls.h
       ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/types.h)
     set(libc_include_dir ${CMAKE_SOURCE_DIR}/user/libc/include)
+    set(libcxx_config_site ${CMAKE_SOURCE_DIR}/user/libcxx/__config_site)
+    set(libcxx_assertion_handler ${CMAKE_SOURCE_DIR}/user/libcxx/__assertion_handler)
     set(libc_headers
       ${CMAKE_SOURCE_DIR}/user/libc/include/errno.h
       ${CMAKE_SOURCE_DIR}/user/libc/include/stdio.h
       ${CMAKE_SOURCE_DIR}/user/libc/include/stdlib.h
       ${CMAKE_SOURCE_DIR}/user/libc/include/string.h)
+    ringos_get_libcxx_include_dir(libcxx_include_dir)
+    ringos_collect_libcxx_headers(libcxx_headers)
 
     set(rpc_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_rpc.c)
     set(console_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_console.c)
@@ -138,6 +171,18 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(target_triple_file_source ${generated_root}/target-triple.txt)
     set(runtime_manifest_source ${generated_root}/runtime-manifest.txt)
 
+    if(libcxx_headers)
+      set(libcxx_copy_commands
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${include_dir}/c++
+        COMMAND ${CMAKE_COMMAND} -E remove_directory ${cxx_include_dir}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${libcxx_include_dir} ${cxx_include_dir}
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${libcxx_config_site} ${cxx_include_dir}/__config_site)
+      list(APPEND libcxx_copy_commands
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${libcxx_assertion_handler} ${cxx_include_dir}/__assertion_handler)
+    else()
+      set(libcxx_copy_commands)
+    endif()
+
     set(compile_config_lines
       --target=${target_triple}
       -fno-stack-protector
@@ -160,6 +205,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       "get_filename_component(RINGOS_SYSROOT_DIR \"\${RINGOS_SHARE_DIR}/../..\" ABSOLUTE)\n"
       "set(RINGOS_TARGET_TRIPLE \"${target_triple}\")\n"
       "set(RINGOS_SYSROOT_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include\")\n"
+      "set(RINGOS_SYSROOT_CXX_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include/c++/v1\")\n"
       "set(RINGOS_SYSROOT_LIB_DIR \"\${RINGOS_SYSROOT_DIR}/lib\")\n"
       "set(RINGOS_SYSROOT_CRT0_OBJECT \"\${RINGOS_SYSROOT_LIB_DIR}/crt0.obj\")\n"
       "set(RINGOS_SYSROOT_SDK_LIBRARY \"\${RINGOS_SYSROOT_LIB_DIR}/ringos_sdk.lib\")\n"
@@ -174,6 +220,10 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       "sdk=lib/ringos_sdk.lib\n"
       "libc=lib/ringos_c.lib\n"
       "compiler_rt=lib/clang_rt.builtins.lib\n")
+
+    if(libcxx_headers)
+      string(APPEND runtime_manifest_contents "libcxx_headers=include/c++/v1\n")
+    endif()
 
     file(WRITE ${compile_config_source} ${compile_config_contents})
     file(WRITE ${link_config_source} ${link_config_contents})
@@ -414,6 +464,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
           ${compiler_rt_archive_command}
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${sdk_include_dir} ${include_dir}
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${libc_include_dir} ${include_dir}
+      ${libcxx_copy_commands}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${crt0_object} ${sysroot_crt0}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${staging_library} ${sysroot_library}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${staging_libc} ${sysroot_libc}
@@ -427,6 +478,9 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       DEPENDS
         ${sdk_headers}
         ${libc_headers}
+        ${libcxx_headers}
+        ${libcxx_config_site}
+        ${libcxx_assertion_handler}
         ${syscall_source}
         ${rpc_source}
         ${console_source}

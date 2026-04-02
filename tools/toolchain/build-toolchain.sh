@@ -38,6 +38,8 @@ package_root="${staging_root}/ringos-toolchain"
 x64_build_dir="${staging_root}/build-x64"
 arm64_build_dir="${staging_root}/build-arm64"
 
+bash "${repo_root}/tools/llvm/ensure-libcxx-source.sh"
+
 cleanup()
 {
   rm -rf "${install_root}" "${staging_root}"

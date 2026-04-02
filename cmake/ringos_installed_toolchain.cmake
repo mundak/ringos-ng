@@ -27,6 +27,8 @@ function(ringos_get_default_toolchain_install_root out_install_root)
 endfunction()
 
 function(ringos_collect_installed_toolchain_input_files target_arch out_input_files)
+  ringos_collect_libcxx_headers(libcxx_headers)
+
   set(input_files
     ${CMAKE_SOURCE_DIR}/cmake/ringos_sdk_sysroot.cmake
     ${CMAKE_SOURCE_DIR}/cmake/ringos_installed_toolchain.cmake
@@ -43,6 +45,8 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${CMAKE_SOURCE_DIR}/user/libc/include/stdio.h
     ${CMAKE_SOURCE_DIR}/user/libc/include/stdlib.h
     ${CMAKE_SOURCE_DIR}/user/libc/include/string.h
+    ${CMAKE_SOURCE_DIR}/user/libcxx/__assertion_handler
+    ${CMAKE_SOURCE_DIR}/user/libcxx/__config_site
     ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_rpc.c
     ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_console.c
     ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_debug.c
@@ -55,6 +59,10 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${CMAKE_SOURCE_DIR}/user/libc/src/stdlib.cpp
     ${CMAKE_SOURCE_DIR}/user/libc/src/string.cpp
     ${CMAKE_SOURCE_DIR}/user/compiler_rt/src/builtins.c)
+
+  if(libcxx_headers)
+    list(APPEND input_files ${libcxx_headers})
+  endif()
 
   if(target_arch STREQUAL "x64")
     list(APPEND input_files ${CMAKE_SOURCE_DIR}/user/sdk/x64/ringos_syscall.S)
@@ -264,6 +272,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   set(compile_config_lines
     --target=${driver_target_triple}
     -fno-stack-protector
+    -fno-builtin
     -resource-dir
     <CFGDIR>/../../lib/clang/${clang_resource_version}
     -I
@@ -297,6 +306,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "set(RINGOS_TOOLCHAIN_MODE \"${RINGOS_TOOLCHAIN_DRIVER_MODE}\")\n"
     "set(RINGOS_CLANG_RESOURCE_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/lib/clang/${clang_resource_version}\")\n"
     "set(RINGOS_SYSROOT_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include\")\n"
+    "set(RINGOS_SYSROOT_CXX_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include/c++/v1\")\n"
     "set(RINGOS_SYSROOT_LIB_DIR \"\${RINGOS_SYSROOT_DIR}/lib\")\n"
     "set(RINGOS_SYSROOT_CRT0_OBJECT \"\${RINGOS_SYSROOT_LIB_DIR}/crt0.obj\")\n"
     "set(RINGOS_SYSROOT_SDK_LIBRARY \"\${RINGOS_SYSROOT_LIB_DIR}/ringos_sdk.lib\")\n"
@@ -329,8 +339,8 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "set(CMAKE_C_STANDARD_LIBRARIES_INIT \"\")\n"
     "set(CMAKE_CXX_STANDARD_LIBRARIES_INIT \"\")\n"
     "set(CMAKE_ASM_STANDARD_LIBRARIES_INIT \"\")\n"
-    "set(CMAKE_C_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
-    "set(CMAKE_CXX_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_C_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -fno-builtin -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_CXX_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -fno-builtin -nostdinc++ -isystem \\\"\${RINGOS_SYSROOT_CXX_INCLUDE_DIR}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
     "set(CMAKE_ASM_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
     "set(CMAKE_EXE_LINKER_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" ${toolchain_link_flags_string} \\\"\${RINGOS_SYSROOT_CRT0_OBJECT}\\\" \\\"\${RINGOS_SYSROOT_LIBC_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_SDK_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_COMPILER_RT_LIBRARY}\\\"\")\n")
 

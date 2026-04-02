@@ -9,6 +9,11 @@ Default layout:
 - `tools/llvm/patches` for the in-repo RingOS patch series
 - `user/sysroot` for the installed host tools and the compiler-relative RingOS sysroot
 
+Bootstrap hosted-C++ bundles also use the pinned upstream checkout as the source
+of libc++ headers. Run `tools/llvm/ensure-libcxx-source.sh` when you need only
+the libc++ header tree under `tools/llvm/src/llvm-project/libcxx/include`
+without building the full Clang toolchain.
+
 Patch order:
 
 1. `patches/0001-llvm-add-ringos-triple.patch`

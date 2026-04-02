@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Resolve the expected shared toolchain release for this checkout, download it when available,
-# and optionally build or publish it when the release does not exist yet.
+# and optionally build or publish it in the dedicated toolchain workflow when the release does not exist yet.
 
 set -euo pipefail
 
@@ -35,7 +35,7 @@ Options:
   --install-root <path>     Extract or build the shared toolchain bundle here.
   --repo <owner/name>       GitHub repository that owns the release assets.
   --allow-build             Build the toolchain archive locally when the release is missing.
-  --publish-if-missing      Publish the release when it is missing. Requires gh and GH_TOKEN.
+  --publish-if-missing      Build and publish the release when it is missing. Requires gh and GH_TOKEN.
   --help                    Show this help text.
 EOF
 }
@@ -88,6 +88,8 @@ need_tool curl
 need_tool sha256sum
 need_tool sed
 need_tool mktemp
+
+bash "${repo_root}/tools/llvm/ensure-libcxx-source.sh"
 
 work_root="$(mktemp -d)"
 trap 'rm -rf "${work_root}"' EXIT

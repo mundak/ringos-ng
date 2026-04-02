@@ -1,4 +1,4 @@
-name: sample_hello_world_x64_native
+name: sample_hello_world_cpp_x64_native
 
 on:
   pull_request:
@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  sample_hello_world_x64_native:
+  sample_hello_world_cpp_x64_native:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -39,8 +39,8 @@ jobs:
       - name: Configure x64
         run: cmake --preset x64-debug
 
-      - name: Build hello_world x64 native target
-        run: cmake --build --preset build-x64-debug --target ringos_x64
+      - name: Build hello_world_cpp x64 native target
+        run: cmake --build --preset build-x64-debug --target ringos_x64_hello_world_cpp
 
-      - name: Run hello_world x64 native sample test
-        run: ctest --preset sample_hello_world_x64_native
+      - name: Run hello_world_cpp x64 native sample test
+        run: ctest --preset sample_hello_world_cpp_x64_native

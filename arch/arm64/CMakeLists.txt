@@ -28,6 +28,15 @@ ringos_add_embedded_arm64_test_app(
   PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
   PROJECT_TARGET hello_world)
 
+ringos_add_embedded_arm64_test_app(
+  ringos_arm64_hello_world_cpp_test_app
+  elf64-littleaarch64
+  aarch64
+  ARM64_HELLO_WORLD_CPP_IMAGE_OBJECT
+  BINARY_STEM ringos_hello_world_cpp_arm64_pe64_image
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp
+  PROJECT_TARGET hello_world_cpp)
+
 ringos_add_embedded_x64_test_app(
   ringos_arm64_x64_hello_world_test_app
   elf64-littleaarch64
@@ -36,6 +45,15 @@ ringos_add_embedded_x64_test_app(
   BINARY_STEM ringos_hello_world_x64_pe64_image
   PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
   PROJECT_TARGET hello_world)
+
+ringos_add_embedded_x64_test_app(
+  ringos_arm64_x64_hello_world_cpp_test_app
+  elf64-littleaarch64
+  aarch64
+  X64_HELLO_WORLD_CPP_IMAGE_OBJECT
+  BINARY_STEM ringos_hello_world_cpp_x64_pe64_image
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp
+  PROJECT_TARGET hello_world_cpp)
 
 ringos_add_embedded_arm64_test_app(
   ringos_arm64_console_service_write_test_app
@@ -130,6 +148,15 @@ ringos_add_arm64_kernel_target(
   ringos_hello_world_arm64_pe64_image)
 
 ringos_add_arm64_kernel_target(
+  ringos_arm64_hello_world_cpp
+  ringos_arm64_console_driver
+  ringos_arm64_hello_world_cpp_test_app
+  ${ARM64_CONSOLE_DRIVER_IMAGE_OBJECT}
+  ${ARM64_HELLO_WORLD_CPP_IMAGE_OBJECT}
+  ringos_console_driver_arm64_pe64_image
+  ringos_hello_world_cpp_arm64_pe64_image)
+
+ringos_add_arm64_kernel_target(
   ringos_arm64_console_service_write
   ringos_arm64_console_driver
   ringos_arm64_console_service_write_test_app
@@ -146,6 +173,15 @@ ringos_add_arm64_kernel_target(
   ${X64_HELLO_WORLD_IMAGE_OBJECT}
   ringos_console_driver_x64_pe64_image
   ringos_hello_world_x64_pe64_image)
+
+ringos_add_arm64_kernel_target(
+  ringos_arm64_x64_emulator_hello_world_cpp
+  ringos_arm64_x64_console_driver
+  ringos_arm64_x64_hello_world_cpp_test_app
+  ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
+  ${X64_HELLO_WORLD_CPP_IMAGE_OBJECT}
+  ringos_console_driver_x64_pe64_image
+  ringos_hello_world_cpp_x64_pe64_image)
 
 ringos_add_arm64_kernel_target(
   ringos_arm64_x64_emulator_console_service_write
