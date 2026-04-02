@@ -6,15 +6,13 @@ FROM ubuntu:24.04
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
   ca-certificates \
+  build-essential \
   cmake \
   ninja-build \
-  clang \
   git \
   python3 \
   curl \
   gdb-multiarch \
-  lld \
-  llvm \
   qemu-system-arm \
   qemu-system-misc \
   qemu-system-x86 \

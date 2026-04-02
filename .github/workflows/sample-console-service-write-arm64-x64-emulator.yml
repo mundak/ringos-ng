@@ -22,13 +22,11 @@ jobs:
         run: |
           sudo apt-get update -o Acquire::Retries=3
           sudo apt-get install -y -o Acquire::Retries=3 \
+            build-essential \
             cmake \
             ninja-build \
-            clang \
             curl \
             gdb-multiarch \
-            lld \
-            llvm \
             qemu-system-arm \
             qemu-system-misc \
             qemu-system-x86

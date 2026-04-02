@@ -88,10 +88,15 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
   set(stamp_file ${share_dir}/sysroot.stamp)
 
   if(NOT TARGET ${target_name})
-    find_program(RINGOS_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17)
+    if(NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
+      message(FATAL_ERROR
+        "RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT must point to an installed ringos-aware compiler root.")
+    endif()
+
+    find_program(RINGOS_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17 HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin NO_DEFAULT_PATH)
 
     if(NOT RINGOS_LLVM_LIB)
-      find_program(RINGOS_LLVM_AR NAMES llvm-ar llvm-ar-18 llvm-ar-17 REQUIRED)
+      find_program(RINGOS_LLVM_AR NAMES llvm-ar llvm-ar-18 llvm-ar-17 HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin NO_DEFAULT_PATH REQUIRED)
     endif()
 
     set(sdk_include_dir ${CMAKE_SOURCE_DIR}/user/sdk/include)

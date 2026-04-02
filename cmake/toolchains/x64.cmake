@@ -1,22 +1,27 @@
+include(${CMAKE_CURRENT_LIST_DIR}/ringos-llvm-root.cmake)
+
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR x86_64)
 
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
-set(CMAKE_ASM_COMPILER clang)
+ringos_find_llvm_tool(clang RINGOS_CLANG clang clang-18 clang-17)
+ringos_find_llvm_tool(clang++ RINGOS_CLANGXX clang++ clang++-18 clang++-17)
+ringos_find_llvm_tool(llvm-objcopy RINGOS_LLVM_OBJCOPY llvm-objcopy llvm-objcopy-18 llvm-objcopy-17)
+ringos_find_llvm_tool(ld.lld RINGOS_LLD ld.lld ld.lld-18 ld.lld-17)
 
-set(CMAKE_C_COMPILER_TARGET x86_64-unknown-none-elf)
-set(CMAKE_CXX_COMPILER_TARGET x86_64-unknown-none-elf)
-set(CMAKE_ASM_COMPILER_TARGET x86_64-unknown-none-elf)
+set(CMAKE_C_COMPILER ${RINGOS_CLANG})
+set(CMAKE_CXX_COMPILER ${RINGOS_CLANGXX})
+set(CMAKE_ASM_COMPILER ${RINGOS_CLANG})
+
+set(CMAKE_C_COMPILER_TARGET x86_64-unknown-ringos)
+set(CMAKE_CXX_COMPILER_TARGET x86_64-unknown-ringos)
+set(CMAKE_ASM_COMPILER_TARGET x86_64-unknown-ringos)
 
 # Avoid linking during CMake compiler detection
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
-# Locate LLVM tools — try unversioned first, then versioned fallbacks
-find_program(CMAKE_OBJCOPY NAMES llvm-objcopy llvm-objcopy-18 llvm-objcopy-17 REQUIRED)
-find_program(RINGOS_LLD NAMES ld.lld ld.lld-18 ld.lld-17 REQUIRED)
+set(CMAKE_OBJCOPY ${RINGOS_LLVM_OBJCOPY})
 
-# For x86_64-unknown-none-elf, clang delegates linking to g++ rather than lld.
+# For x86_64-unknown-ringos, clang still delegates freestanding linking to g++ rather than lld.
 # Invoke lld directly to avoid this limitation.
 # -nostdlib/-nostartfiles are compiler-driver flags that prevent libc and CRT
 # objects from being linked automatically. When invoking lld directly, those

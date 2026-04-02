@@ -104,12 +104,10 @@ including `gdb-multiarch` for the debug-launch and debug-host test surface:
 ```bash
 sudo apt-get update
 sudo apt-get install -y \
+  build-essential \
   cmake \
   ninja-build \
-  clang \
   curl \
-  lld \
-  llvm \
   qemu-system-arm \
   qemu-system-misc \
   qemu-system-x86 \
@@ -238,10 +236,10 @@ for the ANSI C entry point and `user/samples/hello_world_cpp/README.md` for
 the hosted C++20 variant that consumes staged libc++ headers from the installed
 toolchain bundle.
 
-The installed toolchain now exposes the first hosted-C++ bootstrap surface for
-user programs: staged libc++ headers, PE constructor startup via `.CRT$X*`,
-and `atexit()` teardown through the packaged ringos libc and SDK. The current
-bootstrap still keeps `-fno-exceptions`, `-fno-rtti`, and
+The installed toolchain now exposes the first hosted-C++ surface for user
+programs: staged libc++ headers, PE constructor startup via `.CRT$X*`, and
+`atexit()` teardown through the packaged ringos libc and SDK. The current
+hosted C++ path still keeps `-fno-exceptions`, `-fno-rtti`, and
 `-fno-threadsafe-statics`, and it does not yet ship `libc++.lib`,
 `libc++abi.lib`, unwind support, or a real allocator for containers.
 

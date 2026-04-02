@@ -34,15 +34,16 @@ fi
 
 install_root="$(mktemp -d)"
 staging_root="$(mktemp -d)"
+previous_stage_root="$(mktemp -d)"
 package_root="${staging_root}/ringos-toolchain"
 x64_build_dir="${staging_root}/build-x64"
 arm64_build_dir="${staging_root}/build-arm64"
 
-bash "${repo_root}/tools/llvm/ensure-libcxx-source.sh"
+RINGOS_LLVM_INSTALL_DIR="${previous_stage_root}" bash "${repo_root}/tools/llvm/build-clang-toolchain.sh"
 
 cleanup()
 {
-  rm -rf "${install_root}" "${staging_root}"
+  rm -rf "${install_root}" "${staging_root}" "${previous_stage_root}"
 }
 
 trap cleanup EXIT
@@ -52,9 +53,11 @@ cmake -S "${repo_root}" \
   -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DRINGOS_ENABLE_TESTING=ON \
+  -DRINGOS_ENABLE_TESTING=OFF \
   -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/x64.cmake" \
   -DRINGOS_TARGET_ARCH=x64 \
+  -DRINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT="${previous_stage_root}" \
+  -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
   -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${install_root}"
 cmake --build "${x64_build_dir}" --target ringos_installed_toolchain
 
@@ -63,9 +66,11 @@ cmake -S "${repo_root}" \
   -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DRINGOS_ENABLE_TESTING=ON \
+  -DRINGOS_ENABLE_TESTING=OFF \
   -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/arm64.cmake" \
   -DRINGOS_TARGET_ARCH=arm64 \
+  -DRINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT="${previous_stage_root}" \
+  -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
   -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${install_root}"
 cmake --build "${arm64_build_dir}" --target ringos_installed_toolchain
 

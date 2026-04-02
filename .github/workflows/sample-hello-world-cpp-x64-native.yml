@@ -20,13 +20,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            build-essential \
             cmake \
             ninja-build \
-            clang \
             curl \
             gdb-multiarch \
-            lld \
-            llvm \
             qemu-system-arm \
             qemu-system-misc \
             qemu-system-x86
