@@ -53,12 +53,35 @@ function(ringos_get_llvm_ref out_llvm_ref)
 endfunction()
 
 function(ringos_get_expected_clang_resource_version out_resource_version)
-  ringos_get_llvm_ref(llvm_ref)
+  unset(resource_version)
 
-  if(llvm_ref MATCHES "^llvmorg-(.+)$")
-    set(resource_version ${CMAKE_MATCH_1})
-  else()
-    set(resource_version ${llvm_ref})
+  if(DEFINED RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT AND NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT STREQUAL "")
+    find_program(ringos_previous_stage_clang
+      NAMES clang clang-18 clang-17
+      HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin
+      NO_DEFAULT_PATH)
+
+    if(ringos_previous_stage_clang)
+      execute_process(
+        COMMAND ${ringos_previous_stage_clang} --print-resource-dir
+        RESULT_VARIABLE ringos_previous_stage_clang_result
+        OUTPUT_VARIABLE ringos_previous_stage_clang_resource_dir
+        OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+      if(ringos_previous_stage_clang_result EQUAL 0 AND EXISTS ${ringos_previous_stage_clang_resource_dir})
+        get_filename_component(resource_version ${ringos_previous_stage_clang_resource_dir} NAME)
+      endif()
+    endif()
+  endif()
+
+  if(NOT DEFINED resource_version OR resource_version STREQUAL "")
+    ringos_get_llvm_ref(llvm_ref)
+
+    if(llvm_ref MATCHES "^llvmorg-(.+)$")
+      set(resource_version ${CMAKE_MATCH_1})
+    else()
+      set(resource_version ${llvm_ref})
+    endif()
   endif()
 
   set(${out_resource_version} ${resource_version} PARENT_SCOPE)

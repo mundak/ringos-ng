@@ -32,6 +32,23 @@ function(ringos_read_installed_toolchain_manifest_value manifest_file key out_va
   set(${out_value} ${manifest_value} PARENT_SCOPE)
 endfunction()
 
+function(ringos_resolve_clang_resource_dir clang_path out_resource_dir out_resource_version)
+  execute_process(
+    COMMAND ${clang_path} --print-resource-dir
+    RESULT_VARIABLE clang_resource_dir_result
+    OUTPUT_VARIABLE clang_resource_dir
+    OUTPUT_STRIP_TRAILING_WHITESPACE)
+
+  if(NOT clang_resource_dir_result EQUAL 0 OR NOT EXISTS ${clang_resource_dir})
+    message(FATAL_ERROR "Unable to resolve clang resource directory from ${clang_path}")
+  endif()
+
+  get_filename_component(clang_resource_version ${clang_resource_dir} NAME)
+
+  set(${out_resource_dir} ${clang_resource_dir} PARENT_SCOPE)
+  set(${out_resource_version} ${clang_resource_version} PARENT_SCOPE)
+endfunction()
+
 function(ringos_existing_toolchain_matches_bundle bundle_root target_arch expected_toolchain_id out_matches out_toolchain_file)
   set(bundle_toolchain_file ${bundle_root}/cmake/ringos-${target_arch}-toolchain.cmake)
   set(bundle_manifest_file ${bundle_root}/share/ringos/toolchain-manifest-${target_arch}.json)
@@ -107,12 +124,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   endif()
 
   ringos_get_llvm_ref(llvm_ref)
-  ringos_get_expected_clang_resource_version(clang_resource_version)
-  set(clang_resource_dir ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/lib/clang/${clang_resource_version})
-
-  if(NOT EXISTS ${clang_resource_dir})
-    message(FATAL_ERROR "Expected clang resource directory under ${clang_resource_dir}")
-  endif()
+  ringos_resolve_clang_resource_dir(${RINGOS_TOOLCHAIN_CLANG} clang_resource_dir clang_resource_version)
 
   ringos_collect_installed_toolchain_input_files(${target_arch} toolchain_input_files)
   ringos_compute_installed_toolchain_id(${target_arch} toolchain_id_prefix toolchain_id)
