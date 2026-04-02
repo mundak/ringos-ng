@@ -58,12 +58,12 @@ RELEASE_REPO="${RINGOS_TOOLCHAIN_RELEASE_REPO:-${GITHUB_REPOSITORY:-mundak/ringo
 
 case "${TARGET_ARCH}" in
   x64)
-    TARGET_TRIPLE="x86_64-unknown-ringos"
+    TARGET_TRIPLE="x86_64-unknown-ringos-msvc"
     COMPILE_CONFIG="${TOOLCHAIN_ROOT}/share/ringos/compile-x64.cfg"
     LINK_CONFIG="${TOOLCHAIN_ROOT}/share/ringos/link-x64.cfg"
     ;;
   arm64)
-    TARGET_TRIPLE="aarch64-unknown-ringos"
+    TARGET_TRIPLE="aarch64-unknown-ringos-msvc"
     COMPILE_CONFIG="${TOOLCHAIN_ROOT}/share/ringos/compile-arm64.cfg"
     LINK_CONFIG="${TOOLCHAIN_ROOT}/share/ringos/link-arm64.cfg"
     ;;

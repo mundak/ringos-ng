@@ -18,9 +18,9 @@ set(CMAKE_C_COMPILER ${RINGOS_CLANG})
 set(CMAKE_CXX_COMPILER ${RINGOS_CLANGXX})
 set(CMAKE_ASM_COMPILER ${RINGOS_CLANG})
 
-set(CMAKE_C_COMPILER_TARGET aarch64-unknown-ringos)
-set(CMAKE_CXX_COMPILER_TARGET aarch64-unknown-ringos)
-set(CMAKE_ASM_COMPILER_TARGET aarch64-unknown-ringos)
+set(CMAKE_C_COMPILER_TARGET aarch64-unknown-ringos-msvc)
+set(CMAKE_CXX_COMPILER_TARGET aarch64-unknown-ringos-msvc)
+set(CMAKE_ASM_COMPILER_TARGET aarch64-unknown-ringos-msvc)
 
 # Avoid linking during CMake compiler detection
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)

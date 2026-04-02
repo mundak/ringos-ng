@@ -18,16 +18,16 @@ set(CMAKE_C_COMPILER ${RINGOS_CLANG})
 set(CMAKE_CXX_COMPILER ${RINGOS_CLANGXX})
 set(CMAKE_ASM_COMPILER ${RINGOS_CLANG})
 
-set(CMAKE_C_COMPILER_TARGET x86_64-unknown-ringos)
-set(CMAKE_CXX_COMPILER_TARGET x86_64-unknown-ringos)
-set(CMAKE_ASM_COMPILER_TARGET x86_64-unknown-ringos)
+set(CMAKE_C_COMPILER_TARGET x86_64-unknown-ringos-msvc)
+set(CMAKE_CXX_COMPILER_TARGET x86_64-unknown-ringos-msvc)
+set(CMAKE_ASM_COMPILER_TARGET x86_64-unknown-ringos-msvc)
 
 # Avoid linking during CMake compiler detection
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 set(CMAKE_OBJCOPY ${RINGOS_LLVM_OBJCOPY})
 
-# For x86_64-unknown-ringos, clang still delegates freestanding linking to g++ rather than lld.
+# For x86_64-unknown-ringos-msvc, clang still delegates freestanding linking to g++ rather than lld.
 # Invoke lld directly to avoid this limitation.
 # -nostdlib/-nostartfiles are compiler-driver flags that prevent libc and CRT
 # objects from being linked automatically. When invoking lld directly, those
