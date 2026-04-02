@@ -33,7 +33,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo === Running console_service_write arm64 x64-emulator sample test in %IMAGE_NAME% container ===
-docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build && cmake --preset arm64-debug && cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator_console_service_write && ctest --preset sample_console_service_write_arm64_x64_emulator"
+docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng && cmake --preset arm64-debug && cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator_console_service_write && ctest --preset sample_console_service_write_arm64_x64_emulator"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%

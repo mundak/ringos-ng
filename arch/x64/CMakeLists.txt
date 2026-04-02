@@ -20,6 +20,15 @@ ringos_add_embedded_x64_test_app(
   PROJECT_TARGET hello_world)
 
 ringos_add_embedded_x64_test_app(
+  ringos_x64_hello_world_cpp_test_app
+  elf64-x86-64
+  i386:x86-64
+  X64_HELLO_WORLD_CPP_IMAGE_OBJECT
+  BINARY_STEM ringos_hello_world_cpp_x64_pe64_image
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp
+  PROJECT_TARGET hello_world_cpp)
+
+ringos_add_embedded_x64_test_app(
   ringos_x64_console_service_write_test_app
   elf64-x86-64
   i386:x86-64
@@ -96,6 +105,15 @@ ringos_add_x64_kernel_target(
   ${X64_HELLO_WORLD_IMAGE_OBJECT}
   ringos_console_driver_x64_pe64_image
   ringos_hello_world_x64_pe64_image)
+
+ringos_add_x64_kernel_target(
+  ringos_x64_hello_world_cpp
+  ringos_x64_console_driver
+  ringos_x64_hello_world_cpp_test_app
+  ${X64_CONSOLE_DRIVER_IMAGE_OBJECT}
+  ${X64_HELLO_WORLD_CPP_IMAGE_OBJECT}
+  ringos_console_driver_x64_pe64_image
+  ringos_hello_world_cpp_x64_pe64_image)
 
 ringos_add_x64_kernel_target(
   ringos_x64_console_service_write

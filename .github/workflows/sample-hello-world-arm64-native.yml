@@ -34,7 +34,7 @@ jobs:
       - name: Ensure shared toolchain bundle
         env:
           GH_TOKEN: ${{ github.token }}
-        run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --allow-build
+        run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY"
 
       - name: Configure arm64
         run: cmake --preset arm64-debug

@@ -31,8 +31,9 @@ Use these layers:
 5. `tests/*.sh` contains test assertions and deterministic wrapper checks.
 6. `tests/docker-*.bat` wraps the Windows container workflow.
 7. `.github/workflows/*.yml` installs dependencies and runs the same presets.
-8. `tools/toolchain/ensure-toolchain-release.sh` resolves, downloads, or
-	publishes the shared installed-toolchain bundle.
+8. `tools/toolchain/ensure-toolchain-release.sh` resolves and downloads the
+	shared installed-toolchain bundle for test and run flows, while the dedicated
+	toolchain workflow handles build and publish operations.
 
 The workflow file should stay thin. If a command matters for local users, it
 should exist in the repository first.
@@ -54,10 +55,13 @@ Test presets:
 - `x64_emulator_unit`
 - `x64_win32_loader_unit`
 - `sample_hello_world_x64_native`
+- `sample_hello_world_cpp_x64_native`
 - `sample_console_service_write_x64_native`
 - `sample_hello_world_arm64_native`
+- `sample_hello_world_cpp_arm64_native`
 - `sample_console_service_write_arm64_native`
 - `sample_hello_world_arm64_x64_emulator`
+- `sample_hello_world_cpp_arm64_x64_emulator`
 - `sample_console_service_write_arm64_x64_emulator`
 
 Each test preset maps to exactly one distinct CI scenario and stops on the
@@ -78,10 +82,13 @@ Build and smoke-test a target:
 
 ```bat
 tests\docker-test-hello-world-x64-native.bat
+tests\docker-test-hello-world-cpp-x64-native.bat
 tests\docker-test-console-service-write-x64-native.bat
 tests\docker-test-hello-world-arm64-native.bat
+tests\docker-test-hello-world-cpp-arm64-native.bat
 tests\docker-test-console-service-write-arm64-native.bat
 tests\docker-test-hello-world-arm64-x64-emulator.bat
+tests\docker-test-hello-world-cpp-arm64-x64-emulator.bat
 tests\docker-test-console-service-write-arm64-x64-emulator.bat
 ```
 
@@ -96,18 +103,21 @@ same container image:
 scripts/build-clang-toolchain.sh
 scripts/build-bootstrap-hosted-c.sh x64
 scripts/build-bootstrap-hosted-c.sh arm64
+scripts/build-bootstrap-hosted-cpp.sh x64
+scripts/build-bootstrap-hosted-cpp.sh arm64
 ```
 
 The first script builds the repo-owned host Clang toolchain scaffolding. The
-second script resolves the published installed-toolchain bundle and compiles a
-hosted C sample against the downloaded compiler configs and sysroot for the
-selected target. That sample lane no longer depends on repo-local staged
-bootstrap config files or arbitrary host compiler paths.
+second and third scripts resolve the published installed-toolchain bundle and
+compile hosted C or bootstrap hosted C++ samples against the downloaded
+compiler configs and sysroot for the selected target. Those sample lanes no
+longer depend on repo-local staged bootstrap config files or arbitrary host
+compiler paths.
 
 Before configuring, each wrapper now mounts a host-side cache directory into the
 container and runs `tools/toolchain/ensure-toolchain-release.sh` so the
-installed-toolchain bundle is normally fetched from GitHub Releases instead of
-being rebuilt in every container invocation.
+installed-toolchain bundle is fetched from GitHub Releases and the wrapper fails
+immediately if the expected release is missing or incomplete.
 
 When the repository is private, pass `GH_TOKEN` or `GITHUB_TOKEN` through the
 wrapper environment so the container can authenticate release downloads.
@@ -117,11 +127,11 @@ wrapper environment so the container can authenticate release downloads.
 Install the same core packages used by `docker/Dockerfile`, including
 `gdb-multiarch` for the debugger-launch and debug-host test surface.
 
-If you want the native Linux flow to reuse the published installed-toolchain
-bundle, run:
+Resolve the published installed-toolchain bundle before native Linux configure
+or test steps by running:
 
 ```bash
-bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build
+bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
 ```
 
 For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` before invoking
@@ -143,10 +153,13 @@ Run tests:
 ctest --preset x64_emulator_unit
 ctest --preset x64_win32_loader_unit
 ctest --preset sample_hello_world_x64_native
+ctest --preset sample_hello_world_cpp_x64_native
 ctest --preset sample_console_service_write_x64_native
 ctest --preset sample_hello_world_arm64_native
+ctest --preset sample_hello_world_cpp_arm64_native
 ctest --preset sample_console_service_write_arm64_native
 ctest --preset sample_hello_world_arm64_x64_emulator
+ctest --preset sample_hello_world_cpp_arm64_x64_emulator
 ctest --preset sample_console_service_write_arm64_x64_emulator
 ```
 
@@ -204,17 +217,20 @@ developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose eight separately
+The current GitHub Actions setup should continue to expose eleven separately
 tracked CI workflows:
 
 1. `x64_emulator_unit`
 2. `x64_win32_loader_unit`
 3. `sample_hello_world_x64_native`
-4. `sample_console_service_write_x64_native`
-5. `sample_hello_world_arm64_native`
-6. `sample_console_service_write_arm64_native`
-7. `sample_hello_world_arm64_x64_emulator`
-8. `sample_console_service_write_arm64_x64_emulator`
+4. `sample_hello_world_cpp_x64_native`
+5. `sample_console_service_write_x64_native`
+6. `sample_hello_world_arm64_native`
+7. `sample_hello_world_cpp_arm64_native`
+8. `sample_console_service_write_arm64_native`
+9. `sample_hello_world_arm64_x64_emulator`
+10. `sample_hello_world_cpp_arm64_x64_emulator`
+11. `sample_console_service_write_arm64_x64_emulator`
 
 Each workflow installs the Linux dependency set and builds the matching target.
 Most workflows then run exactly one scenario-specific CTest preset.
