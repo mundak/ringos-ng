@@ -123,7 +123,7 @@ resolve_expected_release_tag()
 {
   local release_info_file="${work_root}/toolchain-release-info.txt"
 
-  cmake -P "${repo_root}/cmake/compute_toolchain_release.cmake" > "${release_info_file}"
+  cmake -P "${repo_root}/cmake/compute_toolchain_release.cmake" > "${release_info_file}" 2>&1
 
   toolchain_x64_id="$(sed -n 's/^x64_toolchain_id=//p' "${release_info_file}" | head -n 1)"
   toolchain_arm64_id="$(sed -n 's/^arm64_toolchain_id=//p' "${release_info_file}" | head -n 1)"
