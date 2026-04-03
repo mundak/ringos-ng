@@ -120,6 +120,21 @@
       }
     },
     {
+      "name": "sample_hello_world_cpp_x64_native",
+      "configurePreset": "x64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_cpp_x64_native$"
+        }
+      }
+    },
+    {
       "name": "sample_console_service_write_x64_native",
       "configurePreset": "x64-debug",
       "output": {
@@ -150,6 +165,21 @@
       }
     },
     {
+      "name": "sample_hello_world_cpp_arm64_native",
+      "configurePreset": "arm64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_cpp_arm64_native$"
+        }
+      }
+    },
+    {
       "name": "sample_console_service_write_arm64_native",
       "configurePreset": "arm64-debug",
       "output": {
@@ -176,6 +206,21 @@
       "filter": {
         "include": {
           "name": "^sample_hello_world_arm64_x64_emulator$"
+        }
+      }
+    },
+    {
+      "name": "sample_hello_world_cpp_arm64_x64_emulator",
+      "configurePreset": "arm64-debug",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "stopOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_cpp_arm64_x64_emulator$"
         }
       }
     },

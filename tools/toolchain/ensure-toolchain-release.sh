@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Resolve the expected shared toolchain release for this checkout, download it when available,
-# and optionally build or publish it when the release does not exist yet.
+# and optionally build or publish it in the dedicated toolchain workflow when the release does not exist yet.
 
 set -euo pipefail
 
@@ -35,7 +35,7 @@ Options:
   --install-root <path>     Extract or build the shared toolchain bundle here.
   --repo <owner/name>       GitHub repository that owns the release assets.
   --allow-build             Build the toolchain archive locally when the release is missing.
-  --publish-if-missing      Publish the release when it is missing. Requires gh and GH_TOKEN.
+  --publish-if-missing      Build and publish the release when it is missing. Requires gh and GH_TOKEN.
   --help                    Show this help text.
 EOF
 }
@@ -89,6 +89,8 @@ need_tool sha256sum
 need_tool sed
 need_tool mktemp
 
+bash "${repo_root}/tools/llvm/ensure-libcxx-source.sh"
+
 work_root="$(mktemp -d)"
 trap 'rm -rf "${work_root}"' EXIT
 
@@ -119,37 +121,20 @@ compute_bundle_id()
 
 resolve_expected_release_tag()
 {
-  local x64_build_dir="${work_root}/resolve-x64"
-  local arm64_build_dir="${work_root}/resolve-arm64"
+  local release_info_file="${work_root}/toolchain-release-info.txt"
 
-  cmake -S "${repo_root}" \
-    -B "${x64_build_dir}" \
-    -G Ninja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/x64.cmake" \
-    -DRINGOS_ENABLE_TESTING=OFF \
-    -DRINGOS_TARGET_ARCH=x64 \
-    -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${work_root}/install-root" >/dev/null
+  cmake -P "${repo_root}/cmake/compute_toolchain_release.cmake" > "${release_info_file}"
 
-  cmake -S "${repo_root}" \
-    -B "${arm64_build_dir}" \
-    -G Ninja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/arm64.cmake" \
-    -DRINGOS_ENABLE_TESTING=OFF \
-    -DRINGOS_TARGET_ARCH=arm64 \
-    -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${work_root}/install-root" >/dev/null
+  toolchain_x64_id="$(sed -n 's/^x64_toolchain_id=//p' "${release_info_file}" | head -n 1)"
+  toolchain_arm64_id="$(sed -n 's/^arm64_toolchain_id=//p' "${release_info_file}" | head -n 1)"
+  bundle_id="$(sed -n 's/^bundle_id=//p' "${release_info_file}" | head -n 1)"
+  release_tag="$(sed -n 's/^release_tag=//p' "${release_info_file}" | head -n 1)"
 
-  toolchain_x64_id="$(read_manifest_value "${x64_build_dir}/generated/installed_toolchain/x64/toolchain-manifest-x64.json" toolchain_id)"
-  toolchain_arm64_id="$(read_manifest_value "${arm64_build_dir}/generated/installed_toolchain/arm64/toolchain-manifest-arm64.json" toolchain_id)"
-
-  if [[ -z "${toolchain_x64_id}" || -z "${toolchain_arm64_id}" ]]; then
+  if [[ -z "${toolchain_x64_id}" || -z "${toolchain_arm64_id}" || -z "${bundle_id}" || -z "${release_tag}" ]]; then
     echo "Unable to resolve the expected installed toolchain manifest IDs." >&2
     exit 1
   fi
 
-  bundle_id="$(compute_bundle_id "${toolchain_x64_id}" "${toolchain_arm64_id}")"
-  release_tag="ringos-toolchain-${bundle_id}"
   asset_name="${release_tag}.zip"
 }
 

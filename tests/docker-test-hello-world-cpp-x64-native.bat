@@ -1,6 +1,6 @@
 @echo off
-REM Build and run the hello_world arm64 x64-emulator sample test inside a Docker container.
-REM Usage: tests\docker-test-hello-world-arm64-x64-emulator.bat
+REM Build and run the hello_world_cpp x64 native sample test inside a Docker container.
+REM Usage: tests\docker-test-hello-world-cpp-x64-native.bat
 
 setlocal
 
@@ -32,8 +32,8 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-echo === Running hello_world arm64 x64-emulator sample test in %IMAGE_NAME% container ===
-docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng && cmake --preset arm64-debug && cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator && ctest --preset sample_hello_world_arm64_x64_emulator"
+echo === Running hello_world_cpp x64 native sample test in %IMAGE_NAME% container ===
+docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng && cmake --preset x64-debug && cmake --build --preset build-x64-debug --target ringos_x64_hello_world_cpp && ctest --preset sample_hello_world_cpp_x64_native"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%

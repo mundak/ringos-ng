@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.27)
 
 project(ringos LANGUAGES C CXX ASM)
 
+include(cmake/ringos_toolchain_identity.cmake)
 include(cmake/ringos_installed_toolchain.cmake)
 
 if(NOT DEFINED RINGOS_TARGET_ARCH)
@@ -19,11 +20,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 ringos_get_default_toolchain_install_root(ringos_default_toolchain_install_root)
 set(RINGOS_TOOLCHAIN_INSTALL_ROOT ${ringos_default_toolchain_install_root}
   CACHE PATH "Install location for the shared ringos toolchain package")
-set(RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT ""
-  CACHE PATH "Installed previous-stage clang toolchain root used to seed the shared ringos toolchain package")
-set(RINGOS_TOOLCHAIN_DRIVER_MODE "bootstrap-compat"
+ringos_get_default_previous_stage_toolchain_root(ringos_default_previous_stage_toolchain_root)
+set(RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT ${ringos_default_previous_stage_toolchain_root}
+  CACHE PATH "Installed previous-stage ringos-aware LLVM toolchain root used to seed the shared ringos toolchain package")
+set(RINGOS_TOOLCHAIN_DRIVER_MODE "ringos-native"
   CACHE STRING "Compiler driver mode for the shared ringos toolchain package")
-set_property(CACHE RINGOS_TOOLCHAIN_DRIVER_MODE PROPERTY STRINGS bootstrap-compat ringos-native)
+set_property(CACHE RINGOS_TOOLCHAIN_DRIVER_MODE PROPERTY STRINGS ringos-native)
 
 option(RINGOS_ENABLE_TESTING "Enable smoke tests" OFF)
 add_subdirectory(win32)

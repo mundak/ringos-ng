@@ -32,15 +32,35 @@ else
   output_zip=""
 fi
 
+external_previous_stage_root="${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT:-}"
+bootstrap_previous_stage_root=0
+
 install_root="$(mktemp -d)"
 staging_root="$(mktemp -d)"
 package_root="${staging_root}/ringos-toolchain"
 x64_build_dir="${staging_root}/build-x64"
 arm64_build_dir="${staging_root}/build-arm64"
 
+if [[ -n "${external_previous_stage_root}" ]]; then
+  previous_stage_root="${external_previous_stage_root}"
+
+  if [[ ! -x "${previous_stage_root}/bin/clang" ]]; then
+    echo "Configured previous-stage toolchain root does not contain bin/clang: ${previous_stage_root}" >&2
+    exit 1
+  fi
+else
+  previous_stage_root="$(mktemp -d)"
+  bootstrap_previous_stage_root=1
+  RINGOS_LLVM_INSTALL_DIR="${previous_stage_root}" bash "${repo_root}/tools/llvm/build-clang-toolchain.sh"
+fi
+
 cleanup()
 {
   rm -rf "${install_root}" "${staging_root}"
+
+  if [[ "${bootstrap_previous_stage_root}" == "1" ]]; then
+    rm -rf "${previous_stage_root}"
+  fi
 }
 
 trap cleanup EXIT
@@ -50,9 +70,11 @@ cmake -S "${repo_root}" \
   -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DRINGOS_ENABLE_TESTING=ON \
+  -DRINGOS_ENABLE_TESTING=OFF \
   -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/x64.cmake" \
   -DRINGOS_TARGET_ARCH=x64 \
+  -DRINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT="${previous_stage_root}" \
+  -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
   -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${install_root}"
 cmake --build "${x64_build_dir}" --target ringos_installed_toolchain
 
@@ -61,9 +83,11 @@ cmake -S "${repo_root}" \
   -G Ninja \
   -DCMAKE_BUILD_TYPE=Debug \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-  -DRINGOS_ENABLE_TESTING=ON \
+  -DRINGOS_ENABLE_TESTING=OFF \
   -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/arm64.cmake" \
   -DRINGOS_TARGET_ARCH=arm64 \
+  -DRINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT="${previous_stage_root}" \
+  -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
   -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${install_root}"
 cmake --build "${arm64_build_dir}" --target ringos_installed_toolchain
 

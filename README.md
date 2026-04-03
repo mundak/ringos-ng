@@ -19,9 +19,9 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 - Shared kernel code owns the boot handoff contract, debug-host logging path,
   and panic handling.
 - CI exposes dedicated workflows for the x64 emulator unit tests, the x64 Win32
-  loader unit tests, and six sample lanes that explicitly cover
-  `hello_world` and `console_service_write` on x64 native, arm64 native, and
-  x64 emulation on arm64.
+  loader unit tests, and nine sample lanes that explicitly cover
+  `hello_world`, `hello_world_cpp`, and `console_service_write` on x64 native,
+  arm64 native, and x64 emulation on arm64.
 
 ## Supported Targets
 
@@ -62,10 +62,13 @@ Build and smoke-test a target from Windows:
 
 ```bat
 tests\docker-test-hello-world-x64-native.bat
+tests\docker-test-hello-world-cpp-x64-native.bat
 tests\docker-test-console-service-write-x64-native.bat
 tests\docker-test-hello-world-arm64-native.bat
+tests\docker-test-hello-world-cpp-arm64-native.bat
 tests\docker-test-console-service-write-arm64-native.bat
 tests\docker-test-hello-world-arm64-x64-emulator.bat
+tests\docker-test-hello-world-cpp-arm64-x64-emulator.bat
 tests\docker-test-console-service-write-arm64-x64-emulator.bat
 ```
 
@@ -88,8 +91,8 @@ If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
 docker build -f docker/Dockerfile -t ringos-ci .
-docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset x64_win32_loader_unit && ctest --preset sample_hello_world_x64_native && ctest --preset sample_console_service_write_x64_native"
-docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset sample_hello_world_arm64_native && ctest --preset sample_console_service_write_arm64_native && ctest --preset sample_hello_world_arm64_x64_emulator && ctest --preset sample_console_service_write_arm64_x64_emulator"
+docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset x64_win32_loader_unit && ctest --preset sample_hello_world_x64_native && ctest --preset sample_hello_world_cpp_x64_native && ctest --preset sample_console_service_write_x64_native"
+docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset sample_hello_world_arm64_native && ctest --preset sample_hello_world_cpp_arm64_native && ctest --preset sample_console_service_write_arm64_native && ctest --preset sample_hello_world_arm64_x64_emulator && ctest --preset sample_hello_world_cpp_arm64_x64_emulator && ctest --preset sample_console_service_write_arm64_x64_emulator"
 ```
 
 ### Native Linux Workflow
@@ -101,24 +104,22 @@ including `gdb-multiarch` for the debug-launch and debug-host test surface:
 ```bash
 sudo apt-get update
 sudo apt-get install -y \
+  build-essential \
   cmake \
   ninja-build \
-  clang \
   curl \
-  lld \
-  llvm \
   qemu-system-arm \
   qemu-system-misc \
   qemu-system-x86 \
   gdb-multiarch
 ```
 
-Resolve the shared toolchain bundle before configuring if you want the build to
-reuse the published release rather than regenerating the installed toolchain
-bundle locally:
+Resolve the shared toolchain bundle before configuring so the build uses the
+published release bundle expected by CI and fails immediately when that bundle
+is missing or incomplete:
 
 ```bash
-bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng --allow-build
+bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
 ```
 
 For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` first so the
@@ -185,10 +186,13 @@ Run smoke tests with CTest:
 ctest --preset x64_emulator_unit
 ctest --preset x64_win32_loader_unit
 ctest --preset sample_hello_world_x64_native
+ctest --preset sample_hello_world_cpp_x64_native
 ctest --preset sample_console_service_write_x64_native
 ctest --preset sample_hello_world_arm64_native
+ctest --preset sample_hello_world_cpp_arm64_native
 ctest --preset sample_console_service_write_arm64_native
 ctest --preset sample_hello_world_arm64_x64_emulator
+ctest --preset sample_hello_world_cpp_arm64_x64_emulator
 ctest --preset sample_console_service_write_arm64_x64_emulator
 ```
 
@@ -204,13 +208,11 @@ the full x64+arm64 bundle. The archive also carries
 `share/ringos/toolchain-bundle-manifest.json` so the extracted package keeps the
 same single public identity while still recording the underlying per-target
 manifest IDs. The
-dedicated `toolchain_release` workflow publishes the release on `main`, on
-manual dispatch, and on a daily schedule so canonical CI and Docker-based local
-pipelines can download the matching bundle instead of rebuilding it every run.
-
-When the expected release is not available yet, `tools/toolchain/ensure-toolchain-release.sh`
-can fall back to a local build with `--allow-build`, and it can publish the
-missing release with `--publish-if-missing` when `GH_TOKEN` is available.
+dedicated `toolchain_release` workflow validates the bundle build on every
+commit and publishes the release on `main`, on manual dispatch, and on a daily
+schedule when the computed bundle hash does not already exist. Test and Docker
+wrapper flows only download or verify the published bundle; they do not build
+toolchains on demand.
 
 ## User-Space Samples
 
@@ -219,17 +221,27 @@ the published installed-toolchain bundle and its bundled sysroots. Do not point
 sample builds at repo-local `build/<preset>/sysroot` trees or arbitrary host
 compiler paths.
 
-Use the hosted C helper for standalone `.c` samples:
+Use the hosted helpers for standalone `.c` or `.cpp` samples:
 
 ```bash
 bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
 bash scripts/build-bootstrap-hosted-c.sh x64 user/samples/hello_world/hello_world.c
 bash scripts/build-bootstrap-hosted-c.sh arm64 user/samples/hello_world/hello_world.c
+bash scripts/build-bootstrap-hosted-cpp.sh x64 user/samples/hello_world_cpp/hello_world.cpp
+bash scripts/build-bootstrap-hosted-cpp.sh arm64 user/samples/hello_world_cpp/hello_world.cpp
 ```
 
-For the CMake-based hello-world sample, see
-`user/samples/hello_world/README.md` for the Windows and Linux configure
-commands that point directly at the downloaded toolchain bundle.
+For the CMake-based hello-world samples, see `user/samples/hello_world/README.md`
+for the ANSI C entry point and `user/samples/hello_world_cpp/README.md` for
+the hosted C++20 variant that consumes staged libc++ headers from the installed
+toolchain bundle.
+
+The installed toolchain now exposes the first hosted-C++ surface for user
+programs: staged libc++ headers, PE constructor startup via `.CRT$X*`, and
+`atexit()` teardown through the packaged ringos libc and SDK. The current
+hosted C++ path still keeps `-fno-exceptions`, `-fno-rtti`, and
+`-fno-threadsafe-statics`, and it does not yet ship `libc++.lib`,
+`libc++abi.lib`, unwind support, or a real allocator for containers.
 
 ## Repository Layout
 

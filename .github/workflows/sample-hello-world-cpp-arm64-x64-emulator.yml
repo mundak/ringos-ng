@@ -1,4 +1,4 @@
-name: sample_hello_world_arm64_native
+name: sample_hello_world_cpp_arm64_x64_emulator
 
 on:
   pull_request:
@@ -7,8 +7,9 @@ on:
       - main
 
 jobs:
-  sample_hello_world_arm64_native:
+  sample_hello_world_cpp_arm64_x64_emulator:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
 
@@ -17,9 +18,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install dependencies
+        timeout-minutes: 10
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y -o Acquire::Retries=3 \
             build-essential \
             cmake \
             ninja-build \
@@ -37,8 +39,8 @@ jobs:
       - name: Configure arm64
         run: cmake --preset arm64-debug
 
-      - name: Build hello_world arm64 native target
-        run: cmake --build --preset build-arm64-debug --target ringos_arm64
+      - name: Build hello_world_cpp arm64 x64-emulator target
+        run: cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator_hello_world_cpp
 
-      - name: Run hello_world arm64 native sample test
-        run: ctest --preset sample_hello_world_arm64_native
+      - name: Run hello_world_cpp arm64 x64-emulator sample test
+        run: ctest --preset sample_hello_world_cpp_arm64_x64_emulator

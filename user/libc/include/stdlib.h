@@ -17,6 +17,7 @@ extern "C" {
 
 RINGOS_LIBC_NORETURN void exit(int exit_status);
 RINGOS_LIBC_NORETURN void abort(void);
+int atexit(void (*function)(void));
 
 void* malloc(size_t size);
 void free(void* pointer);

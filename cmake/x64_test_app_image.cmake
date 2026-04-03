@@ -6,12 +6,13 @@ function(
   out_object)
   include(${CMAKE_SOURCE_DIR}/cmake/ringos_sdk_sysroot.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/ringos_installed_toolchain.cmake)
+  include(${CMAKE_SOURCE_DIR}/cmake/toolchains/ringos-llvm-root.cmake)
 
   set(options)
   set(oneValueArgs BINARY_STEM SOURCE_PATH PROJECT_PATH PROJECT_TARGET PROJECT_OUTPUT_NAME)
   cmake_parse_arguments(RINGOS_TEST_APP "${options}" "${oneValueArgs}" "" ${ARGN})
 
-  find_program(RINGOS_LLD_LINK NAMES lld-link lld-link-18 lld-link-17 REQUIRED)
+  ringos_find_llvm_tool(lld-link RINGOS_LLD_LINK lld-link lld-link-18 lld-link-17)
 
   if(RINGOS_TEST_APP_SOURCE_PATH AND RINGOS_TEST_APP_PROJECT_PATH)
     message(FATAL_ERROR "Specify either SOURCE_PATH or PROJECT_PATH for an embedded x64 test app, not both.")

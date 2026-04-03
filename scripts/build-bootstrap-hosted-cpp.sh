@@ -21,7 +21,7 @@ usage()
   cat <<EOF
 Usage: $0 <x64|arm64> [source-path]
 
-Build a hosted C sample against the published ringos installed-toolchain bundle.
+Build a hosted C++ sample against the published ringos installed-toolchain bundle.
 
 Environment:
   RINGOS_TOOLCHAIN_ROOT         Override the extracted toolchain location.
@@ -30,19 +30,19 @@ Environment:
 EOF
 }
 
-resolve_toolchain_clang()
+resolve_toolchain_clangxx()
 {
   local toolchain_root="$1"
   local candidate=""
 
-  for candidate in clang clang-18 clang-17; do
+  for candidate in clang++ clang++-18 clang++-17 clang clang-18 clang-17; do
     if [[ -x "${toolchain_root}/bin/${candidate}" ]]; then
       printf '%s\n' "${toolchain_root}/bin/${candidate}"
       return 0
     fi
   done
 
-  echo "Unable to find a bundled clang executable under ${toolchain_root}/bin" >&2
+  echo "Unable to find a bundled clang or clang++ executable under ${toolchain_root}/bin" >&2
   exit 1
 }
 
@@ -52,7 +52,7 @@ if [[ $# -lt 1 || $# -gt 2 ]]; then
 fi
 
 TARGET_ARCH="$1"
-SOURCE_PATH="${2:-${REPO_ROOT}/user/samples/hello_world/hello_world.c}"
+SOURCE_PATH="${2:-${REPO_ROOT}/user/samples/hello_world_cpp/hello_world.cpp}"
 TOOLCHAIN_ROOT="${RINGOS_TOOLCHAIN_ROOT:-$(default_install_root)}"
 RELEASE_REPO="${RINGOS_TOOLCHAIN_RELEASE_REPO:-${GITHUB_REPOSITORY:-mundak/ringos-ng}}"
 
@@ -93,7 +93,14 @@ if [[ ! -d "${TOOLCHAIN_ROOT}/sysroots/${TARGET_TRIPLE}" ]]; then
   exit 1
 fi
 
-COMPILER="$(resolve_toolchain_clang "${TOOLCHAIN_ROOT}")"
+CXX_INCLUDE_DIR="${TOOLCHAIN_ROOT}/sysroots/${TARGET_TRIPLE}/include/c++/v1"
+
+if [[ ! -f "${CXX_INCLUDE_DIR}/type_traits" ]]; then
+  echo "Expected libc++ headers under ${CXX_INCLUDE_DIR}. Rebuild the toolchain bundle after running tools/llvm/ensure-libcxx-source.sh." >&2
+  exit 1
+fi
+
+COMPILER="$(resolve_toolchain_clangxx "${TOOLCHAIN_ROOT}")"
 
 OUTPUT_DIR="${REPO_ROOT}/build/user-samples/${TARGET_ARCH}"
 SOURCE_STEM="$(basename "${SOURCE_PATH}")"
@@ -103,13 +110,19 @@ OUTPUT_PATH="${OUTPUT_DIR}/${SOURCE_STEM}.exe"
 mkdir -p "${OUTPUT_DIR}"
 
 "${COMPILER}" \
+  --driver-mode=g++ \
   --config="${COMPILE_CONFIG}" \
   --config="${LINK_CONFIG}" \
   -O2 \
+  -fno-exceptions \
+  -fno-rtti \
+  -fno-threadsafe-statics \
+  -nostdinc++ \
+  -isystem "${CXX_INCLUDE_DIR}" \
   -Wall \
   -Wextra \
   -Wpedantic \
   "${SOURCE_PATH}" \
   -o "${OUTPUT_PATH}"
 
-echo "Built hosted C sample with ${COMPILER}: ${OUTPUT_PATH}"
+echo "Built hosted C++ sample with ${COMPILER}: ${OUTPUT_PATH}"
