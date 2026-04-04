@@ -18,6 +18,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Normalize shell script line endings
+        run: git ls-files '*.sh' -z | xargs -0 sed -i 's/\r$//'
+
       - name: Install dependencies
         run: |
           sudo apt-get update
