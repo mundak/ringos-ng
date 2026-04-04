@@ -17,7 +17,8 @@ default_install_root()
 }
 
 LLVM_REPO_URL="${RINGOS_LLVM_REPO_URL:-https://github.com/llvm/llvm-project.git}"
-LLVM_REF="${RINGOS_LLVM_REF:-llvmorg-18.1.8}"
+# Pin the upstream patch base to the exact peeled commit for llvmorg-18.1.8.
+LLVM_REF="${RINGOS_LLVM_REF:-3b5b5c1ec4a3095ab096dd780e84d7ab81f3d7ff}"
 LLVM_ROOT="${RINGOS_LLVM_ROOT:-${REPO_ROOT}/tools/llvm}"
 LLVM_SOURCE_DIR="${RINGOS_LLVM_SOURCE_DIR:-${LLVM_ROOT}/src/llvm-project}"
 LLVM_BUILD_DIR="${RINGOS_LLVM_BUILD_DIR:-${LLVM_ROOT}/build}"
@@ -40,12 +41,16 @@ trap cleanup EXIT
 mkdir -p "${LLVM_ROOT}" "$(dirname "${LLVM_SOURCE_DIR}")" "$(dirname "${LLVM_INSTALL_DIR}")"
 
 if [[ ! -d "${LLVM_SOURCE_DIR}/.git" ]]; then
-  git clone "${LLVM_REPO_URL}" "${LLVM_SOURCE_DIR}"
+  git clone --filter=blob:none --no-checkout "${LLVM_REPO_URL}" "${LLVM_SOURCE_DIR}"
 fi
 
-git -C "${LLVM_SOURCE_DIR}" fetch --tags --force origin
-git -C "${LLVM_SOURCE_DIR}" checkout --detach "${LLVM_REF}"
-git -C "${LLVM_SOURCE_DIR}" reset --hard "${LLVM_REF}"
+if [[ "$(git -C "${LLVM_SOURCE_DIR}" config --bool core.sparseCheckout 2>/dev/null || echo false)" == "true" ]]; then
+  git -C "${LLVM_SOURCE_DIR}" sparse-checkout disable
+fi
+
+git -C "${LLVM_SOURCE_DIR}" fetch --depth 1 origin "${LLVM_REF}"
+git -C "${LLVM_SOURCE_DIR}" checkout --detach --force FETCH_HEAD
+git -C "${LLVM_SOURCE_DIR}" reset --hard FETCH_HEAD
 git -C "${LLVM_SOURCE_DIR}" clean -fdx
 
 if [[ -d "${LLVM_PATCH_DIR}" ]]; then

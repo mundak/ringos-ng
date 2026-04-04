@@ -1,6 +1,6 @@
 # RingOS llvm-project patch set
 
-This directory holds the Stage 8 llvm-project patch series and bootstrap script that `tools/llvm/build-clang-toolchain.sh` applies on top of `llvmorg-18.1.8`.
+This directory holds the Stage 8 llvm-project patch series and bootstrap script that `tools/llvm/build-clang-toolchain.sh` applies on top of the exact llvm-project commit `3b5b5c1ec4a3095ab096dd780e84d7ab81f3d7ff` (`llvmorg-18.1.8`).
 
 Default layout:
 
@@ -13,6 +13,9 @@ Bootstrap hosted-C++ bundles also use the pinned upstream checkout as the source
 of libc++ headers. Run `tools/llvm/ensure-libcxx-source.sh` when you need only
 the libc++ header tree under `tools/llvm/src/llvm-project/libcxx/include`
 without building the full Clang toolchain.
+
+Both helper scripts fetch only that exact pinned revision by default rather than
+refreshing against moving tags or the latest upstream branch state.
 
 Patch order:
 
@@ -33,4 +36,4 @@ Current limitations of the initial driver patch:
 - Shared-library, import-library, and broader MSVC compatibility behaviors are not implemented yet.
 - Compiler-rt naming is still repo-specific via `clang_rt.builtins.lib`; this series does not yet normalize RingOS runtime naming inside Clang.
 
-When updating these patches, regenerate them from a clean `llvmorg-18.1.8` checkout rather than editing patch hunks by hand.
+When updating these patches, regenerate them from a clean checkout of commit `3b5b5c1ec4a3095ab096dd780e84d7ab81f3d7ff` (`llvmorg-18.1.8`) rather than editing patch hunks by hand.
