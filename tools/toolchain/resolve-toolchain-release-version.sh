@@ -91,7 +91,7 @@ PY
 
 release_version="${release_date}.${sequence_number}"
 release_tag="ringos-toolchain-${release_version}"
-release_asset_name="${release_tag}.zip"
+release_asset_name="${release_tag}.tar.xz"
 
 echo "release_version=${release_version}"
 echo "release_tag=${release_tag}"

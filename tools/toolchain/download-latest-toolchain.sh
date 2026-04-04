@@ -141,10 +141,18 @@ if not tag_name:
     sys.exit("Latest release metadata is missing tag_name")
 
 toolchain_version = tag_name.removeprefix("ringos-toolchain-")
-asset_name = f"{tag_name}.zip"
-asset = next((entry for entry in release.get("assets", []) if entry.get("name") == asset_name), None)
+asset = None
+asset_name = ""
+
+for candidate_name in (f"{tag_name}.tar.xz", f"{tag_name}.zip"):
+  candidate_asset = next((entry for entry in release.get("assets", []) if entry.get("name") == candidate_name), None)
+  if candidate_asset is not None:
+    asset_name = candidate_name
+    asset = candidate_asset
+    break
+
 if asset is None:
-    sys.exit(f"Latest release {tag_name} does not contain {asset_name}")
+  sys.exit(f"Latest release {tag_name} does not contain a supported toolchain archive")
 
 print(f"release_tag={tag_name}")
 print(f"release_version={toolchain_version}")

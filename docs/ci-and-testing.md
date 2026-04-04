@@ -11,7 +11,7 @@ entry points.
 - Windows users are expected to use the Docker-based test wrappers in `tests/`.
 - Native Linux is supported for direct shell iteration and GDB-based debugging.
 - Shared installed-toolchain consumers should prefer the published
-	latest `ringos-toolchain.zip` release asset when a published bundle exists.
+	latest `ringos-toolchain-YYYY.MM.DD.N.tar.xz` release asset when a published bundle exists.
 
 The repository should keep one canonical build and test interface even when it
 is executed through different shells.

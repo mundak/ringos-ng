@@ -73,7 +73,7 @@ tests\docker-test-console-service-write-arm64-x64-emulator.bat
 ```
 
 These wrappers now resolve the latest published toolchain release asset
-(`ringos-toolchain.zip`) before configuring the tree. The
+(`ringos-toolchain-YYYY.MM.DD.N.tar.xz`) before configuring the tree. The
 extracted bundle is cached under the host-side
 `%LOCALAPPDATA%\ringos` directory and mounted into the container so repeated
 local Docker runs reuse the published toolchain instead of rebuilding it.
@@ -81,7 +81,7 @@ If the repository is private, set `GH_TOKEN` or `GITHUB_TOKEN` in the host
 environment so the container can authenticate release downloads instead of
 falling back to a local rebuild.
 
-Build the shared external toolchain package ZIP from Windows:
+Build the shared external toolchain package tar.xz archive from Windows:
 
 ```bat
 tools\toolchain\docker-build-toolchain.bat
@@ -135,7 +135,7 @@ cmake --preset arm64-debug
 cmake --build --preset build-arm64-debug
 ```
 
-Build the shared external toolchain package ZIP:
+Build the shared external toolchain package tar.xz archive:
 
 ```bash
 tools/toolchain/build-toolchain.sh
@@ -203,8 +203,9 @@ More detail on the local and CI verification contract lives in
 
 The installed-toolchain flow publishes manual GitHub releases tagged as
 `ringos-toolchain-YYYY.MM.DD.N`, where `N` increments when multiple toolchain
-releases are created on the same UTC day. Each release carries a stable
-download asset named `ringos-toolchain.zip`, and the extracted archive records
+releases are created on the same UTC day. Each release carries a download
+asset named after that tag, such as `ringos-toolchain-2026.05.05.01.tar.xz`,
+and the extracted archive records
 that published version in `share/ringos/toolchain-version.txt` plus the
 per-target toolchain manifests. The dedicated `toolchain_release` workflow is
 manual-only: it computes the next date-based version, builds the shared x64 and

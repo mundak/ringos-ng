@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the shared ringos toolchain package for all targets and archive it as a distributable ZIP.
+# Build the shared ringos toolchain package for all targets and archive it as a distributable tar.xz.
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ repo_root="$(cd "${script_dir}/../.." && pwd)"
 usage()
 {
   cat <<EOF
-Usage: tools/toolchain/build-toolchain.sh [options] [output-zip]
+Usage: tools/toolchain/build-toolchain.sh [options] [output-archive]
 
 Options:
   --output <path>          Output archive path.
@@ -18,13 +18,13 @@ Options:
 EOF
 }
 
-output_zip=""
+output_archive=""
 toolchain_version="${RINGOS_TOOLCHAIN_VERSION:-}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --output)
-      output_zip="$2"
+      output_archive="$2"
       shift 2
       ;;
     --version)
@@ -36,8 +36,8 @@ while [[ $# -gt 0 ]]; do
       exit 0
       ;;
     *)
-      if [[ -z "${output_zip}" ]]; then
-        output_zip="$1"
+      if [[ -z "${output_archive}" ]]; then
+        output_archive="$1"
         shift
       else
         echo "Unknown argument: $1" >&2
@@ -85,6 +85,29 @@ cleanup()
 
 trap cleanup EXIT
 
+validate_packaged_toolchain()
+{
+  local bundle_root="$1"
+  local -a expected_tools=(clang clang++ lld-link llvm-ar llvm-ranlib llvm-objcopy)
+  local -a expected_target_triples=(x86_64-unknown-ringos-msvc aarch64-unknown-ringos-msvc)
+  local tool_name=""
+  local target_triple=""
+
+  for tool_name in "${expected_tools[@]}"; do
+    if [[ ! -e "${bundle_root}/bin/${tool_name}" ]]; then
+      echo "Packaged toolchain bundle is missing bin/${tool_name}." >&2
+      exit 1
+    fi
+  done
+
+  for target_triple in "${expected_target_triples[@]}"; do
+    if [[ ! -e "${bundle_root}/sysroots/${target_triple}/include/c++/v1/__config" ]]; then
+      echo "Packaged toolchain bundle is missing libc++ headers for ${target_triple}." >&2
+      exit 1
+    fi
+  done
+}
+
 cmake -S "${repo_root}" \
   -B "${x64_build_dir}" \
   -G Ninja \
@@ -118,31 +141,32 @@ printf '%s\n' "${toolchain_version}" > "${toolchain_version_file}"
 
 archive_stem="ringos-toolchain-${toolchain_version}"
 
-if [[ -z "${output_zip}" ]]; then
-  output_zip="${repo_root}/build/${archive_stem}.zip"
+if [[ -z "${output_archive}" ]]; then
+  output_archive="${repo_root}/build/${archive_stem}.tar.xz"
 fi
 
-case "${output_zip}" in
+case "${output_archive}" in
   /*)
-    output_zip_path="${output_zip}"
+    output_archive_path="${output_archive}"
     ;;
   *)
-    output_zip_path="$PWD/${output_zip}"
+    output_archive_path="$PWD/${output_archive}"
     ;;
 esac
 
-mkdir -p "$(dirname "${output_zip_path}")"
+mkdir -p "$(dirname "${output_archive_path}")"
 
 mkdir -p "${package_root}"
-cp -R "${install_root}/." "${package_root}/"
+cp -a "${install_root}/." "${package_root}/"
+validate_packaged_toolchain "${package_root}"
 
-rm -f "${output_zip_path}"
+rm -f "${output_archive_path}"
 (
   cd "${staging_root}"
-  cmake -E tar cf "${output_zip_path}" --format=zip ringos-toolchain
+  cmake -E tar cJf "${output_archive_path}" ringos-toolchain
 )
 
-echo "Built shared toolchain archive: ${output_zip_path}"
+echo "Built shared toolchain archive: ${output_archive_path}"
 echo "Toolchain version: ${toolchain_version}"
 echo "x64 toolchain file in archive: ringos-toolchain/cmake/ringos-x64-toolchain.cmake"
 echo "arm64 toolchain file in archive: ringos-toolchain/cmake/ringos-arm64-toolchain.cmake"
