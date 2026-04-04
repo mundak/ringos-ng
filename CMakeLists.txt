@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.27)
 
 project(ringos LANGUAGES C CXX ASM)
 
-include(cmake/ringos_toolchain_identity.cmake)
+include(cmake/ringos_toolchain_common.cmake)
 include(cmake/ringos_installed_toolchain.cmake)
 
 if(NOT DEFINED RINGOS_TARGET_ARCH)

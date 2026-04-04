@@ -72,8 +72,8 @@ tests\docker-test-hello-world-cpp-arm64-x64-emulator.bat
 tests\docker-test-console-service-write-arm64-x64-emulator.bat
 ```
 
-These wrappers now resolve the expected versioned toolchain release asset
-(`ringos-toolchain-<bundle-id>.zip`) before configuring the tree. The
+These wrappers now resolve the latest published toolchain release asset
+(`ringos-toolchain.zip`) before configuring the tree. The
 extracted bundle is cached under the host-side
 `%LOCALAPPDATA%\ringos` directory and mounted into the container so repeated
 local Docker runs reuse the published toolchain instead of rebuilding it.
@@ -201,18 +201,16 @@ More detail on the local and CI verification contract lives in
 
 ## Shared Toolchain Release
 
-The installed-toolchain flow publishes a shared GitHub release asset named
-`ringos-toolchain-<bundle-id>.zip`, where `<bundle-id>` is one combined hash for
-the full x64+arm64 bundle. The archive also carries
-`share/ringos/toolchain-bundle-id.txt` and
-`share/ringos/toolchain-bundle-manifest.json` so the extracted package keeps the
-same single public identity while still recording the underlying per-target
-manifest IDs. The
-dedicated `toolchain_release` workflow validates the bundle build on every
-commit and publishes the release on `main`, on manual dispatch, and on a daily
-schedule when the computed bundle hash does not already exist. Test and Docker
-wrapper flows only download or verify the published bundle; they do not build
-toolchains on demand.
+The installed-toolchain flow publishes manual GitHub releases tagged as
+`ringos-toolchain-YYYY.MM.DD.N`, where `N` increments when multiple toolchain
+releases are created on the same UTC day. Each release carries a stable
+download asset named `ringos-toolchain.zip`, and the extracted archive records
+that published version in `share/ringos/toolchain-version.txt` plus the
+per-target toolchain manifests. The dedicated `toolchain_release` workflow is
+manual-only: it computes the next date-based version, builds the shared x64 and
+arm64 bundle, and publishes that bundle to GitHub Releases. Test and Docker
+wrapper flows only download or verify the latest published bundle; they do not
+build toolchains on demand.
 
 ## User-Space Samples
 

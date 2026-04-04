@@ -6,30 +6,50 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../.." && pwd)"
 
-read_manifest_value()
+usage()
 {
-  local manifest_file="$1"
-  local key="$2"
+  cat <<EOF
+Usage: tools/toolchain/build-toolchain.sh [options] [output-zip]
 
-  sed -n "s/.*\"${key}\": \"\([^\"]*\)\".*/\1/p" "${manifest_file}" | head -n 1
+Options:
+  --output <path>          Output archive path.
+  --version <version>      Toolchain version recorded in the bundle metadata.
+  --help                   Show this help text.
+EOF
 }
 
-compute_bundle_id()
-{
-  local x64_toolchain_id="$1"
-  local arm64_toolchain_id="$2"
-  local bundle_hash=""
+output_zip=""
+toolchain_version="${RINGOS_TOOLCHAIN_VERSION:-}"
 
-  bundle_hash="$(printf 'x64=%s\narm64=%s\n' "${x64_toolchain_id}" "${arm64_toolchain_id}" | sha256sum)"
-  bundle_hash="${bundle_hash%% *}"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --output)
+      output_zip="$2"
+      shift 2
+      ;;
+    --version)
+      toolchain_version="$2"
+      shift 2
+      ;;
+    --help)
+      usage
+      exit 0
+      ;;
+    *)
+      if [[ -z "${output_zip}" ]]; then
+        output_zip="$1"
+        shift
+      else
+        echo "Unknown argument: $1" >&2
+        usage >&2
+        exit 1
+      fi
+      ;;
+  esac
+done
 
-  printf '%s\n' "${bundle_hash:0:20}"
-}
-
-if [[ $# -ge 1 ]]; then
-  output_zip="$1"
-else
-  output_zip=""
+if [[ -z "${toolchain_version}" ]]; then
+  toolchain_version="dev-local"
 fi
 
 external_previous_stage_root="${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT:-}"
@@ -73,6 +93,7 @@ cmake -S "${repo_root}" \
   -DRINGOS_ENABLE_TESTING=OFF \
   -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/x64.cmake" \
   -DRINGOS_TARGET_ARCH=x64 \
+  -DRINGOS_TOOLCHAIN_VERSION="${toolchain_version}" \
   -DRINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT="${previous_stage_root}" \
   -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
   -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${install_root}"
@@ -86,36 +107,16 @@ cmake -S "${repo_root}" \
   -DRINGOS_ENABLE_TESTING=OFF \
   -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/arm64.cmake" \
   -DRINGOS_TARGET_ARCH=arm64 \
+  -DRINGOS_TOOLCHAIN_VERSION="${toolchain_version}" \
   -DRINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT="${previous_stage_root}" \
   -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
   -DRINGOS_TOOLCHAIN_INSTALL_ROOT="${install_root}"
 cmake --build "${arm64_build_dir}" --target ringos_installed_toolchain
 
-x64_manifest="${install_root}/share/ringos/toolchain-manifest-x64.json"
-arm64_manifest="${install_root}/share/ringos/toolchain-manifest-arm64.json"
-x64_toolchain_id="$(read_manifest_value "${x64_manifest}" toolchain_id)"
-arm64_toolchain_id="$(read_manifest_value "${arm64_manifest}" toolchain_id)"
+toolchain_version_file="${install_root}/share/ringos/toolchain-version.txt"
+printf '%s\n' "${toolchain_version}" > "${toolchain_version_file}"
 
-if [[ -z "${x64_toolchain_id}" || -z "${arm64_toolchain_id}" ]]; then
-  echo "Unable to resolve installed toolchain manifest IDs after packaging." >&2
-  exit 1
-fi
-
-bundle_id="$(compute_bundle_id "${x64_toolchain_id}" "${arm64_toolchain_id}")"
-bundle_manifest="${install_root}/share/ringos/toolchain-bundle-manifest.json"
-bundle_id_file="${install_root}/share/ringos/toolchain-bundle-id.txt"
-
-cat > "${bundle_manifest}" <<EOF
-{
-  "bundle_id": "${bundle_id}",
-  "x64_toolchain_id": "${x64_toolchain_id}",
-  "arm64_toolchain_id": "${arm64_toolchain_id}"
-}
-EOF
-
-printf '%s\n' "${bundle_id}" > "${bundle_id_file}"
-
-archive_stem="ringos-toolchain-${bundle_id}"
+archive_stem="ringos-toolchain-${toolchain_version}"
 
 if [[ -z "${output_zip}" ]]; then
   output_zip="${repo_root}/build/${archive_stem}.zip"
@@ -142,7 +143,7 @@ rm -f "${output_zip_path}"
 )
 
 echo "Built shared toolchain archive: ${output_zip_path}"
-echo "Bundle id: ${bundle_id}"
+echo "Toolchain version: ${toolchain_version}"
 echo "x64 toolchain file in archive: ringos-toolchain/cmake/ringos-x64-toolchain.cmake"
 echo "arm64 toolchain file in archive: ringos-toolchain/cmake/ringos-arm64-toolchain.cmake"
 echo "generic toolchain file in archive: ringos-toolchain/cmake/ringos-toolchain.cmake"

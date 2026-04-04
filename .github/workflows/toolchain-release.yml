@@ -1,10 +1,6 @@
 name: toolchain_release
 
 on:
-  pull_request:
-  push:
-  schedule:
-    - cron: "17 5 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -33,12 +29,33 @@ jobs:
             curl \
             python3
 
-      - name: Validate shared toolchain bundle build
-        if: github.event_name == 'pull_request' || github.ref != 'refs/heads/main'
-        run: bash tools/toolchain/build-toolchain.sh
-
-      - name: Publish shared toolchain release when missing
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+      - name: Resolve release version
+        id: release_version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY" --publish-if-missing
+        run: |
+          bash tools/toolchain/resolve-toolchain-release-version.sh --repo "$GITHUB_REPOSITORY" > "${RUNNER_TEMP}/toolchain-release-info.txt"
+          cat "${RUNNER_TEMP}/toolchain-release-info.txt" >> "$GITHUB_OUTPUT"
+
+      - name: Build shared toolchain bundle
+        env:
+          RINGOS_TOOLCHAIN_VERSION: ${{ steps.release_version.outputs.release_version }}
+          RELEASE_ASSET_NAME: ${{ steps.release_version.outputs.release_asset_name }}
+        run: bash tools/toolchain/build-toolchain.sh --output "${RUNNER_TEMP}/${RELEASE_ASSET_NAME}"
+
+      - name: Publish shared toolchain release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.release_version.outputs.release_tag }}
+          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
+          RELEASE_ASSET_NAME: ${{ steps.release_version.outputs.release_asset_name }}
+        run: |
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${RUNNER_TEMP}/${RELEASE_ASSET_NAME}" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" \
+              "${RUNNER_TEMP}/${RELEASE_ASSET_NAME}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "$RELEASE_TAG" \
+              --notes "Shared ringos toolchain bundle version $RELEASE_VERSION."
+          fi

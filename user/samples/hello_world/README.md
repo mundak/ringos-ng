@@ -5,7 +5,7 @@ Do not point it at repo-local `build/<preset>/sysroot` trees or an arbitrary hos
 
 ## Resolve The Toolchain Bundle
 
-From the repository root, download the matching toolchain bundle from GitHub Releases into the default cache location:
+From the repository root, download the latest published toolchain bundle from GitHub Releases into the default cache location:
 
 ```bash
 bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng

@@ -11,8 +11,7 @@ entry points.
 - Windows users are expected to use the Docker-based test wrappers in `tests/`.
 - Native Linux is supported for direct shell iteration and GDB-based debugging.
 - Shared installed-toolchain consumers should prefer the published
-	`ringos-toolchain-<bundle-id>.zip` release asset when the expected
-	bundle already exists.
+	latest `ringos-toolchain.zip` release asset when a published bundle exists.
 
 The repository should keep one canonical build and test interface even when it
 is executed through different shells.
@@ -132,8 +131,9 @@ subsequent patch iterations do not restart the LLVM bootstrap from scratch.
 
 Before configuring, each wrapper now mounts a host-side cache directory into the
 container and runs `tools/toolchain/ensure-toolchain-release.sh` so the
-installed-toolchain bundle is fetched from GitHub Releases and the wrapper fails
-immediately if the expected release is missing or incomplete.
+installed-toolchain bundle is fetched from the latest GitHub Release and the
+wrapper fails immediately if no published release is available or the archive is
+incomplete.
 
 When the repository is private, pass `GH_TOKEN` or `GITHUB_TOKEN` through the
 wrapper environment so the container can authenticate release downloads.

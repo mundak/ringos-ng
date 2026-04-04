@@ -1,6 +1,18 @@
 include_guard(GLOBAL)
 
-include(${CMAKE_SOURCE_DIR}/cmake/ringos_toolchain_identity.cmake)
+include(${CMAKE_SOURCE_DIR}/cmake/ringos_toolchain_common.cmake)
+
+function(ringos_get_toolchain_version out_version)
+  if(DEFINED RINGOS_TOOLCHAIN_VERSION AND NOT RINGOS_TOOLCHAIN_VERSION STREQUAL "")
+    set(toolchain_version ${RINGOS_TOOLCHAIN_VERSION})
+  elseif(DEFINED ENV{RINGOS_TOOLCHAIN_VERSION} AND NOT "$ENV{RINGOS_TOOLCHAIN_VERSION}" STREQUAL "")
+    set(toolchain_version $ENV{RINGOS_TOOLCHAIN_VERSION})
+  else()
+    set(toolchain_version dev-local)
+  endif()
+
+  set(${out_version} ${toolchain_version} PARENT_SCOPE)
+endfunction()
 
 function(ringos_resolve_tool_program tool_name out_path)
   if(NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
@@ -15,21 +27,6 @@ function(ringos_resolve_tool_program tool_name out_path)
   endif()
 
   set(${out_path} ${tool_path} PARENT_SCOPE)
-endfunction()
-
-function(ringos_read_installed_toolchain_manifest_value manifest_file key out_value)
-  if(NOT EXISTS ${manifest_file})
-    message(FATAL_ERROR "Installed toolchain manifest does not exist: ${manifest_file}")
-  endif()
-
-  file(STRINGS ${manifest_file} manifest_line REGEX "\"${key}\": \"[^\"]+\"" LIMIT_COUNT 1)
-
-  if(NOT manifest_line)
-    message(FATAL_ERROR "Unable to find '${key}' in installed toolchain manifest: ${manifest_file}")
-  endif()
-
-  string(REGEX REPLACE ".*\"${key}\": \"([^\"]+)\".*" "\\1" manifest_value "${manifest_line}")
-  set(${out_value} ${manifest_value} PARENT_SCOPE)
 endfunction()
 
 function(ringos_resolve_clang_resource_dir clang_path out_resource_dir out_resource_version)
@@ -47,28 +44,6 @@ function(ringos_resolve_clang_resource_dir clang_path out_resource_dir out_resou
 
   set(${out_resource_dir} ${clang_resource_dir} PARENT_SCOPE)
   set(${out_resource_version} ${clang_resource_version} PARENT_SCOPE)
-endfunction()
-
-function(ringos_existing_toolchain_matches_bundle bundle_root target_arch expected_toolchain_id out_matches out_toolchain_file)
-  set(bundle_toolchain_file ${bundle_root}/cmake/ringos-${target_arch}-toolchain.cmake)
-  set(bundle_manifest_file ${bundle_root}/share/ringos/toolchain-manifest-${target_arch}.json)
-
-  if(NOT EXISTS ${bundle_toolchain_file} OR NOT EXISTS ${bundle_manifest_file})
-    set(${out_matches} FALSE PARENT_SCOPE)
-    set(${out_toolchain_file} ${bundle_toolchain_file} PARENT_SCOPE)
-    return()
-  endif()
-
-  ringos_read_installed_toolchain_manifest_value(${bundle_manifest_file} toolchain_id actual_toolchain_id)
-
-  if(actual_toolchain_id STREQUAL expected_toolchain_id)
-    set(bundle_matches TRUE)
-  else()
-    set(bundle_matches FALSE)
-  endif()
-
-  set(${out_matches} ${bundle_matches} PARENT_SCOPE)
-  set(${out_toolchain_file} ${bundle_toolchain_file} PARENT_SCOPE)
 endfunction()
 
 function(ringos_generate_installed_toolchain_bundle target_arch out_target out_bundle_root out_toolchain_file)
@@ -123,11 +98,11 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     get_filename_component(toolchain_llvm_lib_name ${RINGOS_TOOLCHAIN_LLVM_LIB} NAME)
   endif()
 
+  ringos_get_toolchain_version(toolchain_version)
   ringos_get_llvm_ref(llvm_ref)
   ringos_resolve_clang_resource_dir(${RINGOS_TOOLCHAIN_CLANG} clang_resource_dir clang_resource_version)
 
   ringos_collect_installed_toolchain_input_files(${target_arch} toolchain_input_files)
-  ringos_compute_installed_toolchain_id(${target_arch} toolchain_id_prefix toolchain_id)
 
   set(target_name ringos_${target_arch}_installed_toolchain)
   set(bundle_root ${RINGOS_TOOLCHAIN_INSTALL_ROOT})
@@ -197,6 +172,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "set(RINGOS_TARGET_TRIPLE \"${native_target_triple}\")\n"
     "set(RINGOS_DRIVER_TARGET_TRIPLE \"${driver_target_triple}\")\n"
     "set(RINGOS_BOOTSTRAP_TARGET_TRIPLE \"${bootstrap_target_triple}\")\n"
+    "set(RINGOS_TOOLCHAIN_VERSION \"${toolchain_version}\")\n"
     "set(RINGOS_TOOLCHAIN_MODE \"${RINGOS_TOOLCHAIN_DRIVER_MODE}\")\n"
     "set(RINGOS_CLANG_RESOURCE_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/lib/clang/${clang_resource_version}\")\n"
     "set(RINGOS_SYSROOT_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include\")\n"
@@ -239,7 +215,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "set(CMAKE_EXE_LINKER_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" ${toolchain_link_flags_string} \\\"\${RINGOS_SYSROOT_CRT0_OBJECT}\\\" \\\"\${RINGOS_SYSROOT_LIBC_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_SDK_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_COMPILER_RT_LIBRARY}\\\"\")\n")
 
   string(CONCAT runtime_manifest_contents
-    "toolchain_id=${toolchain_id_prefix}\n"
+    "toolchain_version=${toolchain_version}\n"
     "toolchain_mode=${RINGOS_TOOLCHAIN_DRIVER_MODE}\n"
     "target_arch=${target_arch}\n"
     "target_triple=${native_target_triple}\n"
@@ -253,7 +229,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
 
   string(CONCAT manifest_contents
     "{\n"
-    "  \"toolchain_id\": \"${toolchain_id_prefix}\",\n"
+    "  \"toolchain_version\": \"${toolchain_version}\",\n"
     "  \"toolchain_mode\": \"${RINGOS_TOOLCHAIN_DRIVER_MODE}\",\n"
     "  \"target_arch\": \"${target_arch}\",\n"
     "  \"target_triple\": \"${native_target_triple}\",\n"
@@ -286,24 +262,6 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   file(WRITE ${manifest_file_source} ${manifest_contents})
   file(WRITE ${runtime_manifest_source} ${runtime_manifest_contents})
   file(WRITE ${generic_toolchain_source} ${generic_toolchain_contents})
-
-  ringos_existing_toolchain_matches_bundle(
-    ${bundle_root}
-    ${target_arch}
-    ${toolchain_id_prefix}
-    bundle_matches_existing
-    existing_bundle_toolchain_file)
-
-  if(bundle_matches_existing)
-    if(NOT TARGET ${target_name})
-      add_custom_target(${target_name})
-    endif()
-
-    set(${out_target} ${target_name} PARENT_SCOPE)
-    set(${out_bundle_root} ${bundle_root} PARENT_SCOPE)
-    set(${out_toolchain_file} ${existing_bundle_toolchain_file} PARENT_SCOPE)
-    return()
-  endif()
 
   file(GLOB_RECURSE clang_resource_files LIST_DIRECTORIES FALSE ${clang_resource_dir}/*)
 
