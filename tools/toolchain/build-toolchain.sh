@@ -418,7 +418,6 @@ run_with_heartbeat "Configuring x64 installed-toolchain build in ${x64_build_dir
     -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/x64.cmake" \
     -DRINGOS_TARGET_ARCH=x64 \
     -DRINGOS_TOOLCHAIN_VERSION="${toolchain_version}" \
-    -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
     -DRINGOS_TOOLCHAIN_ROOT="${install_root}"
 run_with_heartbeat "Building x64 installed-toolchain payload" \
   cmake --build "${x64_build_dir}" --target ringos_installed_toolchain --parallel "${payload_build_jobs}"
@@ -434,7 +433,6 @@ run_with_heartbeat "Configuring arm64 installed-toolchain build in ${arm64_build
     -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/arm64.cmake" \
     -DRINGOS_TARGET_ARCH=arm64 \
     -DRINGOS_TOOLCHAIN_VERSION="${toolchain_version}" \
-    -DRINGOS_TOOLCHAIN_DRIVER_MODE=ringos-native \
     -DRINGOS_TOOLCHAIN_ROOT="${install_root}"
 run_with_heartbeat "Building arm64 installed-toolchain payload" \
   cmake --build "${arm64_build_dir}" --target ringos_installed_toolchain --parallel "${payload_build_jobs}"

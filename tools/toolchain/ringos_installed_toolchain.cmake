@@ -56,21 +56,7 @@ endfunction()
 
 function(ringos_generate_installed_toolchain_bundle target_arch out_target out_bundle_root out_toolchain_file)
   ringos_get_active_llvm_root(active_llvm_root)
-
-  if(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "ringos-native" AND NOT EXISTS ${active_llvm_root}/bin/clang)
-    message(FATAL_ERROR
-      "Active LLVM root must contain an installed ringos-aware compiler "
-      "when RINGOS_TOOLCHAIN_DRIVER_MODE is 'ringos-native'.")
-  endif()
-
-  ringos_get_sdk_target_triple(${target_arch} bootstrap_target_triple)
   ringos_get_native_target_triple(${target_arch} native_target_triple)
-
-  if(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "ringos-native")
-    set(driver_target_triple ${native_target_triple})
-  else()
-    message(FATAL_ERROR "Unsupported RINGOS_TOOLCHAIN_DRIVER_MODE: ${RINGOS_TOOLCHAIN_DRIVER_MODE}")
-  endif()
 
   ringos_add_sdk_sysroot(
     ${target_arch}
@@ -149,7 +135,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   endif()
 
   set(compile_config_lines
-    --target=${driver_target_triple}
+    --target=${native_target_triple}
     -fno-stack-protector
     -fno-builtin
     -resource-dir
@@ -160,7 +146,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   string(APPEND compile_config_contents "\n")
 
   ringos_append_sdk_link_flags(${target_arch} link_config_lines)
-  list(INSERT link_config_lines 0 --target=${driver_target_triple})
+  list(INSERT link_config_lines 0 --target=${native_target_triple})
   list(APPEND link_config_lines
     -resource-dir
     <CFGDIR>/../../lib/clang/${clang_resource_version}
@@ -180,10 +166,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "get_filename_component(RINGOS_SYSROOT_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/sysroots/${native_target_triple}\" ABSOLUTE)\n"
     "set(RINGOS_TARGET_ARCH \"${target_arch}\")\n"
     "set(RINGOS_TARGET_TRIPLE \"${native_target_triple}\")\n"
-    "set(RINGOS_DRIVER_TARGET_TRIPLE \"${driver_target_triple}\")\n"
-    "set(RINGOS_BOOTSTRAP_TARGET_TRIPLE \"${bootstrap_target_triple}\")\n"
     "set(RINGOS_TOOLCHAIN_VERSION \"${toolchain_version}\")\n"
-    "set(RINGOS_TOOLCHAIN_MODE \"${RINGOS_TOOLCHAIN_DRIVER_MODE}\")\n"
     "set(RINGOS_CLANG_RESOURCE_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/lib/clang/${clang_resource_version}\")\n"
     "set(RINGOS_SYSROOT_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include\")\n"
     "set(RINGOS_SYSROOT_CXX_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include/c++/v1\")\n"
@@ -201,9 +184,9 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "set(CMAKE_C_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clang_name}\")\n"
     "set(CMAKE_CXX_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clangxx_name}\")\n"
     "set(CMAKE_ASM_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clang_name}\")\n"
-    "set(CMAKE_C_COMPILER_TARGET \"\${RINGOS_DRIVER_TARGET_TRIPLE}\")\n"
-    "set(CMAKE_CXX_COMPILER_TARGET \"\${RINGOS_DRIVER_TARGET_TRIPLE}\")\n"
-    "set(CMAKE_ASM_COMPILER_TARGET \"\${RINGOS_DRIVER_TARGET_TRIPLE}\")\n"
+    "set(CMAKE_C_COMPILER_TARGET \"\${RINGOS_TARGET_TRIPLE}\")\n"
+    "set(CMAKE_CXX_COMPILER_TARGET \"\${RINGOS_TARGET_TRIPLE}\")\n"
+    "set(CMAKE_ASM_COMPILER_TARGET \"\${RINGOS_TARGET_TRIPLE}\")\n"
     "set(CMAKE_AR \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ar_name}\")\n"
     "set(CMAKE_RANLIB \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ranlib_name}\")\n"
     "set(CMAKE_C_COMPILER_AR \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_llvm_ar_name}\")\n"
@@ -219,18 +202,15 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "set(CMAKE_C_STANDARD_LIBRARIES_INIT \"\")\n"
     "set(CMAKE_CXX_STANDARD_LIBRARIES_INIT \"\")\n"
     "set(CMAKE_ASM_STANDARD_LIBRARIES_INIT \"\")\n"
-    "set(CMAKE_C_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -fno-builtin -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
-    "set(CMAKE_CXX_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -fno-builtin -nostdinc++ -isystem \\\"\${RINGOS_SYSROOT_CXX_INCLUDE_DIR}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
-    "set(CMAKE_ASM_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
-    "set(CMAKE_EXE_LINKER_FLAGS_INIT \"--target=\\\"\${RINGOS_DRIVER_TARGET_TRIPLE}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" ${toolchain_link_flags_string} \\\"\${RINGOS_SYSROOT_CRT0_OBJECT}\\\" \\\"\${RINGOS_SYSROOT_LIBC_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_SDK_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_COMPILER_RT_LIBRARY}\\\"\")\n")
+    "set(CMAKE_C_FLAGS_INIT \"--target=\\\"\${RINGOS_TARGET_TRIPLE}\\\" -fno-stack-protector -fno-builtin -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_CXX_FLAGS_INIT \"--target=\\\"\${RINGOS_TARGET_TRIPLE}\\\" -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -fno-builtin -nostdinc++ -isystem \\\"\${RINGOS_SYSROOT_CXX_INCLUDE_DIR}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_ASM_FLAGS_INIT \"--target=\\\"\${RINGOS_TARGET_TRIPLE}\\\" -fno-stack-protector -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" -I \\\"\${RINGOS_SYSROOT_INCLUDE_DIR}\\\"\")\n"
+    "set(CMAKE_EXE_LINKER_FLAGS_INIT \"--target=\\\"\${RINGOS_TARGET_TRIPLE}\\\" -resource-dir \\\"\${RINGOS_CLANG_RESOURCE_DIR}\\\" ${toolchain_link_flags_string} \\\"\${RINGOS_SYSROOT_CRT0_OBJECT}\\\" \\\"\${RINGOS_SYSROOT_LIBC_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_SDK_LIBRARY}\\\" \\\"\${RINGOS_SYSROOT_COMPILER_RT_LIBRARY}\\\"\")\n")
 
   string(CONCAT runtime_manifest_contents
     "toolchain_version=${toolchain_version}\n"
-    "toolchain_mode=${RINGOS_TOOLCHAIN_DRIVER_MODE}\n"
     "target_arch=${target_arch}\n"
     "target_triple=${native_target_triple}\n"
-    "driver_target_triple=${driver_target_triple}\n"
-    "bootstrap_target_triple=${bootstrap_target_triple}\n"
     "sysroot=sysroots/${native_target_triple}\n"
     "crt0=sysroots/${native_target_triple}/lib/crt0.obj\n"
     "sdk=sysroots/${native_target_triple}/lib/ringos_sdk.lib\n"
@@ -240,11 +220,8 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   string(CONCAT manifest_contents
     "{\n"
     "  \"toolchain_version\": \"${toolchain_version}\",\n"
-    "  \"toolchain_mode\": \"${RINGOS_TOOLCHAIN_DRIVER_MODE}\",\n"
     "  \"target_arch\": \"${target_arch}\",\n"
     "  \"target_triple\": \"${native_target_triple}\",\n"
-    "  \"driver_target_triple\": \"${driver_target_triple}\",\n"
-    "  \"bootstrap_target_triple\": \"${bootstrap_target_triple}\",\n"
     "  \"llvm_ref\": \"${llvm_ref}\",\n"
     "  \"clang_resource_version\": \"${clang_resource_version}\",\n"
     "  \"sysroot\": \"sysroots/${native_target_triple}\"\n"

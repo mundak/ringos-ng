@@ -4,7 +4,7 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd "${script_dir}/../.." && pwd)"
+repo_root="$(cd "${script_dir}/.." && pwd)"
 
 release_repo="${GITHUB_REPOSITORY:-}"
 github_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
@@ -15,7 +15,7 @@ install_root_explicit=0
 usage()
 {
   cat <<EOF
-Usage: tools/toolchain/download-latest-toolchain.sh [options]
+Usage: tests/download-latest-toolchain.sh [options]
 
 Options:
   --archive-dir <path>      Read or download toolchain archives here first.
