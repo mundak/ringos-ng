@@ -2,7 +2,7 @@ include_guard(GLOBAL)
 
 include(${CMAKE_CURRENT_LIST_DIR}/ringos_sdk_sysroot.cmake)
 
-get_filename_component(RINGOS_REPO_ROOT ${CMAKE_CURRENT_LIST_DIR}/.. ABSOLUTE)
+get_filename_component(RINGOS_REPO_ROOT ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)
 
 function(ringos_get_native_target_triple target_arch out_target_triple)
   if(target_arch STREQUAL "x64")
@@ -54,9 +54,10 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
   ringos_collect_custom_llvm_input_files(custom_llvm_input_files)
 
   set(input_files
-    ${RINGOS_REPO_ROOT}/cmake/ringos_sdk_sysroot.cmake
-    ${RINGOS_REPO_ROOT}/cmake/ringos_installed_toolchain.cmake
-    ${RINGOS_REPO_ROOT}/cmake/ringos_toolchain_common.cmake
+    ${RINGOS_REPO_ROOT}/tools/toolchain/ringos-llvm-root.cmake
+    ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_sdk_sysroot.cmake
+    ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_installed_toolchain.cmake
+    ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_toolchain_common.cmake
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/console.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/debug.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/handle.h

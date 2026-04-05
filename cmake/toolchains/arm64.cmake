@@ -1,4 +1,4 @@
-include(${CMAKE_CURRENT_LIST_DIR}/ringos-llvm-root.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../tools/toolchain/ringos-llvm-root.cmake)
 
 set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)

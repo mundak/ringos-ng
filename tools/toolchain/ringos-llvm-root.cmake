@@ -1,3 +1,5 @@
+include_guard(GLOBAL)
+
 get_filename_component(RINGOS_LLVM_ROOT_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 
 function(ringos_get_default_compiler_root out_compiler_root)
@@ -34,6 +36,11 @@ function(ringos_resolve_llvm_root out_compiler_root)
   endif()
 
   set(${out_compiler_root} ${compiler_root} PARENT_SCOPE)
+endfunction()
+
+function(ringos_get_active_llvm_root out_llvm_root)
+  ringos_resolve_llvm_root(llvm_root)
+  set(${out_llvm_root} ${llvm_root} PARENT_SCOPE)
 endfunction()
 
 function(ringos_find_llvm_tool tool_name out_tool_path)

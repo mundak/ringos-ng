@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.27)
 
 project(ringos LANGUAGES C CXX ASM)
 
-include(cmake/ringos_toolchain_common.cmake)
-include(cmake/ringos_installed_toolchain.cmake)
+include(tools/toolchain/ringos_toolchain_common.cmake)
+include(tools/toolchain/ringos_installed_toolchain.cmake)
 
 if(NOT DEFINED RINGOS_TARGET_ARCH)
   message(FATAL_ERROR "RINGOS_TARGET_ARCH is not set. Use a CMake preset (e.g. cmake --preset x64-debug).")

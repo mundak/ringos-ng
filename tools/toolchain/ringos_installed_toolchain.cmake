@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-include(${CMAKE_SOURCE_DIR}/cmake/ringos_toolchain_common.cmake)
+include(${CMAKE_SOURCE_DIR}/tools/toolchain/ringos_toolchain_common.cmake)
 
 function(ringos_get_toolchain_version out_version)
   if(DEFINED RINGOS_TOOLCHAIN_VERSION AND NOT RINGOS_TOOLCHAIN_VERSION STREQUAL "")
@@ -87,19 +87,19 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   find_program(RINGOS_TOOLCHAIN_LD_LLD NAMES ld.lld ld.lld-18 ld.lld-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
   find_program(RINGOS_TOOLCHAIN_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
 
-  set(toolchain_clang_name clang)
-  set(toolchain_clangxx_name clang++)
-  set(toolchain_lld_link_name lld-link)
-  set(toolchain_llvm_ar_name llvm-ar)
-  set(toolchain_llvm_ranlib_name llvm-ranlib)
-  set(toolchain_llvm_objcopy_name llvm-objcopy)
+  get_filename_component(toolchain_clang_name ${RINGOS_TOOLCHAIN_CLANG} NAME)
+  get_filename_component(toolchain_clangxx_name ${RINGOS_TOOLCHAIN_CLANGXX} NAME)
+  get_filename_component(toolchain_lld_link_name ${RINGOS_TOOLCHAIN_LLD_LINK} NAME)
+  get_filename_component(toolchain_llvm_ar_name ${RINGOS_TOOLCHAIN_LLVM_AR} NAME)
+  get_filename_component(toolchain_llvm_ranlib_name ${RINGOS_TOOLCHAIN_LLVM_RANLIB} NAME)
+  get_filename_component(toolchain_llvm_objcopy_name ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY} NAME)
 
   if(RINGOS_TOOLCHAIN_LD_LLD)
-    set(toolchain_ld_lld_name ld.lld)
+    get_filename_component(toolchain_ld_lld_name ${RINGOS_TOOLCHAIN_LD_LLD} NAME)
   endif()
 
   if(RINGOS_TOOLCHAIN_LLVM_LIB)
-    set(toolchain_llvm_lib_name llvm-lib)
+    get_filename_component(toolchain_llvm_lib_name ${RINGOS_TOOLCHAIN_LLVM_LIB} NAME)
   endif()
 
   ringos_get_toolchain_version(toolchain_version)

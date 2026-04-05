@@ -1,6 +1,8 @@
 include_guard(GLOBAL)
 
-get_filename_component(RINGOS_SDK_SYSROOT_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+get_filename_component(RINGOS_SDK_SYSROOT_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
+include(${CMAKE_CURRENT_LIST_DIR}/ringos-llvm-root.cmake)
 
 function(ringos_get_sdk_target_triple target_arch out_target_triple)
   if(target_arch STREQUAL "x64")
@@ -40,32 +42,6 @@ function(ringos_collect_libcxx_headers out_headers)
   endif()
 
   set(${out_headers} ${libcxx_headers} PARENT_SCOPE)
-endfunction()
-
-function(ringos_get_active_llvm_root out_llvm_root)
-  if(DEFINED RINGOS_ACTIVE_LLVM_ROOT AND NOT RINGOS_ACTIVE_LLVM_ROOT STREQUAL "" AND EXISTS ${RINGOS_ACTIVE_LLVM_ROOT}/bin/clang)
-    set(llvm_root ${RINGOS_ACTIVE_LLVM_ROOT})
-  elseif(DEFINED ENV{RINGOS_ACTIVE_LLVM_ROOT} AND NOT "$ENV{RINGOS_ACTIVE_LLVM_ROOT}" STREQUAL "")
-    file(TO_CMAKE_PATH "$ENV{RINGOS_ACTIVE_LLVM_ROOT}" env_active_llvm_root)
-
-    if(EXISTS ${env_active_llvm_root}/bin/clang)
-      set(llvm_root ${env_active_llvm_root})
-    endif()
-  elseif(DEFINED RINGOS_TOOLCHAIN_ROOT AND NOT RINGOS_TOOLCHAIN_ROOT STREQUAL "" AND EXISTS ${RINGOS_TOOLCHAIN_ROOT}/bin/clang)
-    set(llvm_root ${RINGOS_TOOLCHAIN_ROOT})
-  elseif(DEFINED ENV{RINGOS_TOOLCHAIN_ROOT} AND NOT "$ENV{RINGOS_TOOLCHAIN_ROOT}" STREQUAL "")
-    file(TO_CMAKE_PATH "$ENV{RINGOS_TOOLCHAIN_ROOT}" env_toolchain_root)
-
-    if(EXISTS ${env_toolchain_root}/bin/clang)
-      set(llvm_root ${env_toolchain_root})
-    endif()
-  endif()
-
-  if(NOT DEFINED llvm_root)
-    set(llvm_root ${RINGOS_SDK_SYSROOT_REPO_ROOT}/build/toolchain-build/bootstrap-llvm/install)
-  endif()
-
-  set(${out_llvm_root} ${llvm_root} PARENT_SCOPE)
 endfunction()
 
 function(ringos_append_sdk_link_flags target_arch out_link_flags)
@@ -523,7 +499,9 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${process_source}
         ${crt0_source}
         ${libc_errno_source}
+        ${libc_puts_source}
         ${libc_stdio_source}
+        ${libc_exit_source}
         ${libc_stdlib_source}
         ${libc_string_source}
         ${compiler_rt_source}
@@ -533,20 +511,6 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${target_triple_file_source}
         ${runtime_manifest_source}
       BYPRODUCTS
-        ${syscall_object}
-        ${rpc_object}
-        ${console_object}
-        ${debug_object}
-        ${process_object}
-        ${crt0_object}
-        ${libc_errno_object}
-        ${libc_stdio_object}
-        ${libc_stdlib_object}
-        ${libc_string_object}
-        ${compiler_rt_object}
-        ${staging_library}
-        ${staging_libc}
-        ${staging_compiler_rt}
         ${sysroot_crt0}
         ${sysroot_library}
         ${sysroot_libc}
@@ -556,7 +520,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${toolchain_file}
         ${target_triple_file}
         ${runtime_manifest}
-      COMMENT "Staging ringos SDK sysroot for ${target_triple}"
+      COMMENT "Building staged ringos ${target_arch} SDK sysroot"
       VERBATIM
     )
 

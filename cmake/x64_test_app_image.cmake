@@ -4,9 +4,9 @@ function(
   output_format
   output_architecture
   out_object)
-  include(${CMAKE_SOURCE_DIR}/cmake/ringos_sdk_sysroot.cmake)
-  include(${CMAKE_SOURCE_DIR}/cmake/ringos_installed_toolchain.cmake)
-  include(${CMAKE_SOURCE_DIR}/cmake/toolchains/ringos-llvm-root.cmake)
+  include(${CMAKE_SOURCE_DIR}/tools/toolchain/ringos_sdk_sysroot.cmake)
+  include(${CMAKE_SOURCE_DIR}/tools/toolchain/ringos_installed_toolchain.cmake)
+  include(${CMAKE_SOURCE_DIR}/tools/toolchain/ringos-llvm-root.cmake)
 
   set(options)
   set(oneValueArgs BINARY_STEM SOURCE_PATH PROJECT_PATH PROJECT_TARGET PROJECT_OUTPUT_NAME)
