@@ -22,7 +22,13 @@ function(ringos_resolve_tool_program tool_name out_path)
       "Active LLVM root does not contain bin/clang: ${active_llvm_root}")
   endif()
 
-  find_program(tool_path NAMES ${ARGN} HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
+  string(MAKE_C_IDENTIFIER "${tool_name}" tool_path_suffix)
+  set(tool_path_var "ringos_resolved_tool_path_${tool_path_suffix}")
+  unset(${tool_path_var})
+  unset(${tool_path_var} CACHE)
+
+  find_program(${tool_path_var} NAMES ${ARGN} HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
+  set(tool_path ${${tool_path_var}})
 
   if(NOT tool_path)
     message(FATAL_ERROR "Unable to find required tool '${tool_name}'.")
