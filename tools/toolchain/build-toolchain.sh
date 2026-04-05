@@ -325,6 +325,10 @@ mkdir -p "${repo_root}/build" "${toolchain_build_root}" "${build_llvm_root}"
 rm -rf "${install_root}" "${staging_root}"
 mkdir -p "${install_root}" "${staging_root}"
 
+# Recreate the payload configure trees so cached CMakeSystem.cmake files do not
+# hold on to deleted toolchain-file paths from earlier layout revisions.
+rm -rf "${x64_build_dir}" "${arm64_build_dir}"
+
 llvm_repo_url="${RINGOS_LLVM_REPO_URL:-https://github.com/llvm/llvm-project.git}"
 llvm_ref="${RINGOS_LLVM_REF:-3b5b5c1ec4a3095ab096dd780e84d7ab81f3d7ff}"
 llvm_repo_archive_base="${llvm_repo_url%.git}"
@@ -408,14 +412,10 @@ validate_packaged_toolchain()
 }
 
 run_with_heartbeat "Configuring x64 installed-toolchain build in ${x64_build_dir}" \
-  cmake -S "${repo_root}" \
+  cmake -S "${repo_root}/tools/toolchain" \
     -B "${x64_build_dir}" \
     -G Ninja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DRINGOS_ENABLE_TESTING=OFF \
     -DRINGOS_ACTIVE_LLVM_ROOT="${llvm_install_dir}" \
-    -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/x64.cmake" \
     -DRINGOS_TARGET_ARCH=x64 \
     -DRINGOS_TOOLCHAIN_VERSION="${toolchain_version}" \
     -DRINGOS_TOOLCHAIN_ROOT="${install_root}"
@@ -423,14 +423,10 @@ run_with_heartbeat "Building x64 installed-toolchain payload" \
   cmake --build "${x64_build_dir}" --target ringos_installed_toolchain --parallel "${payload_build_jobs}"
 
 run_with_heartbeat "Configuring arm64 installed-toolchain build in ${arm64_build_dir}" \
-  cmake -S "${repo_root}" \
+  cmake -S "${repo_root}/tools/toolchain" \
     -B "${arm64_build_dir}" \
     -G Ninja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-    -DRINGOS_ENABLE_TESTING=OFF \
     -DRINGOS_ACTIVE_LLVM_ROOT="${llvm_install_dir}" \
-    -DCMAKE_TOOLCHAIN_FILE="${repo_root}/cmake/toolchains/arm64.cmake" \
     -DRINGOS_TARGET_ARCH=arm64 \
     -DRINGOS_TOOLCHAIN_VERSION="${toolchain_version}" \
     -DRINGOS_TOOLCHAIN_ROOT="${install_root}"

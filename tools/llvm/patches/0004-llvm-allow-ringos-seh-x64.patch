@@ -1,0 +1,15 @@
+diff --git a/llvm/lib/Target/X86/X86MCInstLower.cpp b/llvm/lib/Target/X86/X86MCInstLower.cpp
+index 5899afd..608ca2f 100644
+--- a/llvm/lib/Target/X86/X86MCInstLower.cpp
++++ b/llvm/lib/Target/X86/X86MCInstLower.cpp
+@@ -1586,8 +1586,8 @@ static void printBroadcast(const MachineInstr *MI, MCStreamer &OutStreamer,
+ 
+ void X86AsmPrinter::EmitSEHInstruction(const MachineInstr *MI) {
+   assert(MF->hasWinCFI() && "SEH_ instruction in function without WinCFI?");
+-  assert((getSubtarget().isOSWindows() || TM.getTargetTriple().isUEFI()) &&
+-         "SEH_ instruction Windows and UEFI only");
++  assert((getSubtarget().isOSWindows() || TM.getTargetTriple().isOSRingos() || TM.getTargetTriple().isUEFI()) &&
++         "SEH_ instruction Windows, RingOS, and UEFI only");
+ 
+   // Use the .cv_fpo directives if we're emitting CodeView on 32-bit x86.
+   if (EmitFPOData) {

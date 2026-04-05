@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-include(${CMAKE_SOURCE_DIR}/tools/toolchain/ringos_toolchain_common.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/ringos_toolchain_common.cmake)
 
 function(ringos_get_toolchain_version out_version)
   if(DEFINED RINGOS_TOOLCHAIN_VERSION AND NOT RINGOS_TOOLCHAIN_VERSION STREQUAL "")

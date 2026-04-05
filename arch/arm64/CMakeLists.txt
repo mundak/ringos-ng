@@ -1,7 +1,7 @@
 set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
 
-include(${CMAKE_SOURCE_DIR}/cmake/arm64_test_app_image.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/x64_test_app_image.cmake)
+include(${CMAKE_SOURCE_DIR}/tools/toolchain/arm64_test_app_image.cmake)
+include(${CMAKE_SOURCE_DIR}/tools/toolchain/x64_test_app_image.cmake)
 
 ringos_add_embedded_arm64_test_app(
   ringos_arm64_console_driver

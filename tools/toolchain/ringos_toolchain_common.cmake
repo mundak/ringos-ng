@@ -54,6 +54,7 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
   ringos_collect_custom_llvm_input_files(custom_llvm_input_files)
 
   set(input_files
+    ${RINGOS_REPO_ROOT}/tools/toolchain/CMakeLists.txt
     ${RINGOS_REPO_ROOT}/tools/toolchain/ringos-llvm-root.cmake
     ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_sdk_sysroot.cmake
     ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_installed_toolchain.cmake

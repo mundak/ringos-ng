@@ -101,6 +101,8 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
 
   if(NOT TARGET ${target_name})
     ringos_get_active_llvm_root(active_llvm_root)
+    ringos_find_llvm_tool(clang RINGOS_SDK_CLANG clang clang-18 clang-17)
+    ringos_find_llvm_tool(clang++ RINGOS_SDK_CLANGXX clang++ clang++-18 clang++-17)
 
     if(NOT EXISTS ${active_llvm_root}/bin/clang)
       message(FATAL_ERROR
@@ -113,45 +115,45 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       find_program(RINGOS_LLVM_AR NAMES llvm-ar llvm-ar-18 llvm-ar-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH REQUIRED)
     endif()
 
-    set(sdk_include_dir ${CMAKE_SOURCE_DIR}/user/sdk/include)
+    set(sdk_include_dir ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include)
     set(sdk_headers
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/console.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/debug.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/handle.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/process.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/rpc.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/sdk.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/status.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/syscalls.h
-      ${CMAKE_SOURCE_DIR}/user/sdk/include/ringos/types.h)
-    set(libc_include_dir ${CMAKE_SOURCE_DIR}/user/libc/include)
-    set(libcxx_config_site ${CMAKE_SOURCE_DIR}/user/libcxx/__config_site)
-    set(libcxx_assertion_handler ${CMAKE_SOURCE_DIR}/user/libcxx/__assertion_handler)
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/console.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/debug.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/handle.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/process.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/rpc.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/sdk.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/status.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/syscalls.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/types.h)
+    set(libc_include_dir ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include)
+    set(libcxx_config_site ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libcxx/__config_site)
+    set(libcxx_assertion_handler ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libcxx/__assertion_handler)
     set(libc_headers
-      ${CMAKE_SOURCE_DIR}/user/libc/include/errno.h
-      ${CMAKE_SOURCE_DIR}/user/libc/include/stdio.h
-      ${CMAKE_SOURCE_DIR}/user/libc/include/stdlib.h
-      ${CMAKE_SOURCE_DIR}/user/libc/include/string.h)
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include/errno.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include/stdio.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include/stdlib.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include/string.h)
     ringos_get_libcxx_include_dir(libcxx_include_dir)
     ringos_collect_libcxx_headers(libcxx_headers)
 
-    set(rpc_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_rpc.c)
-    set(console_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_console.c)
-    set(debug_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_debug.c)
-    set(process_source ${CMAKE_SOURCE_DIR}/user/sdk/src/ringos_process.c)
-    set(crt0_source ${CMAKE_SOURCE_DIR}/user/crt/src/crt0.c)
-    set(libc_errno_source ${CMAKE_SOURCE_DIR}/user/libc/src/errno.cpp)
-    set(libc_puts_source ${CMAKE_SOURCE_DIR}/user/libc/src/puts.cpp)
-    set(libc_stdio_source ${CMAKE_SOURCE_DIR}/user/libc/src/stdio.cpp)
-    set(libc_exit_source ${CMAKE_SOURCE_DIR}/user/libc/src/exit.cpp)
-    set(libc_stdlib_source ${CMAKE_SOURCE_DIR}/user/libc/src/stdlib.cpp)
-    set(libc_string_source ${CMAKE_SOURCE_DIR}/user/libc/src/string.cpp)
-    set(compiler_rt_source ${CMAKE_SOURCE_DIR}/user/compiler_rt/src/builtins.c)
+    set(rpc_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_rpc.c)
+    set(console_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_console.c)
+    set(debug_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_debug.c)
+    set(process_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_process.c)
+    set(crt0_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/crt/src/crt0.c)
+    set(libc_errno_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/errno.cpp)
+    set(libc_puts_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/puts.cpp)
+    set(libc_stdio_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/stdio.cpp)
+    set(libc_exit_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/exit.cpp)
+    set(libc_stdlib_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/stdlib.cpp)
+    set(libc_string_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/string.cpp)
+    set(compiler_rt_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/compiler_rt/src/builtins.c)
 
     if(target_arch STREQUAL "x64")
-      set(syscall_source ${CMAKE_SOURCE_DIR}/user/sdk/x64/ringos_syscall.S)
+      set(syscall_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/x64/ringos_syscall.S)
     elseif(target_arch STREQUAL "arm64")
-      set(syscall_source ${CMAKE_SOURCE_DIR}/user/sdk/arm64/ringos_syscall.S)
+      set(syscall_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/arm64/ringos_syscall.S)
     else()
       message(FATAL_ERROR "Unsupported ringos SDK target architecture: ${target_arch}")
     endif()
@@ -305,13 +307,13 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
           COMMAND ${CMAKE_COMMAND} -E make_directory ${include_dir}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${lib_dir}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${share_dir}
-          COMMAND ${CMAKE_ASM_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -ffreestanding
             -fno-stack-protector
             -c ${syscall_source}
             -o ${syscall_object}
-          COMMAND ${CMAKE_C_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -324,7 +326,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${rpc_source}
             -o ${rpc_object}
-          COMMAND ${CMAKE_C_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -337,7 +339,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${console_source}
             -o ${console_object}
-          COMMAND ${CMAKE_C_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -350,7 +352,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${debug_source}
             -o ${debug_object}
-          COMMAND ${CMAKE_C_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -363,7 +365,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${process_source}
             -o ${process_object}
-          COMMAND ${CMAKE_C_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -377,7 +379,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${libc_include_dir}
             -c ${crt0_source}
             -o ${crt0_object}
-          COMMAND ${CMAKE_CXX_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -392,7 +394,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${libc_include_dir}
             -c ${libc_errno_source}
             -o ${libc_errno_object}
-          COMMAND ${CMAKE_CXX_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -407,7 +409,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${libc_include_dir}
             -c ${libc_puts_source}
             -o ${libc_puts_object}
-          COMMAND ${CMAKE_CXX_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -422,7 +424,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${libc_include_dir}
             -c ${libc_stdio_source}
             -o ${libc_stdio_object}
-          COMMAND ${CMAKE_CXX_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -437,7 +439,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${libc_include_dir}
             -c ${libc_exit_source}
             -o ${libc_exit_object}
-          COMMAND ${CMAKE_CXX_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -452,7 +454,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${libc_include_dir}
             -c ${libc_stdlib_source}
             -o ${libc_stdlib_object}
-          COMMAND ${CMAKE_CXX_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
@@ -467,7 +469,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${libc_include_dir}
             -c ${libc_string_source}
             -o ${libc_string_object}
-          COMMAND ${CMAKE_C_COMPILER}
+          COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -O2
             -ffreestanding
