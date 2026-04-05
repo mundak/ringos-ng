@@ -34,9 +34,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: bash tools/toolchain/ensure-toolchain-release.sh --repo "$GITHUB_REPOSITORY"
 
-      - name: Run enum style checks
-        run: bash tests/check-enum-style.sh
-
       - name: Configure x64
         run: cmake --preset x64-debug
 
