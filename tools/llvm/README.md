@@ -4,10 +4,10 @@ This directory holds the Stage 8 llvm-project patch series that `tools/toolchain
 
 Default bootstrap layout:
 
-- `build/toolchain-build/bootstrap-llvm/src/llvm-project` for the pinned upstream source tree
-- `build/toolchain-build/bootstrap-llvm/build` for the CMake and Ninja build tree
+- `build/toolchain-build/bootstrap-llvm/src/llvm-project-<llvm-ref>` for the pinned upstream source tree extracted from the downloaded archive name
+- `build/toolchain-build/bootstrap-llvm/build-<llvm-ref>` for the CMake and Ninja build tree paired with that pinned source tree
 - `build/toolchain-build/bootstrap-llvm/install` for the installed Clang and lld bootstrap
-- `build/toolchain-build/bootstrap-llvm/downloads` for the cached pinned source archive
+- `build/toolchain-build/bootstrap-llvm/downloads` for the pinned source archives fetched from GitHub
 - `tools/llvm/patches` for the in-repo RingOS patch series
 
 The full bootstrap path in `tools/toolchain/build-toolchain.sh` downloads the
@@ -17,6 +17,10 @@ result into the versioned toolchain archive.
 
 That build script fetches only that exact pinned revision by default rather than
 refreshing against moving tags or the latest upstream branch state.
+
+If the versioned source directory for the downloaded archive already exists, the
+script assumes that tree was already downloaded, extracted, and patched, and it
+skips those preparation steps on subsequent runs.
 
 Patch order:
 

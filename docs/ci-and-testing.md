@@ -116,9 +116,10 @@ workflow, mounts a persistent Docker named volume into `/workspace/build`, and
 then runs `tools/toolchain/run-toolchain-release.sh`. That layout keeps the
 installed toolchain bundle under `build/toolchain`, the LLVM clone, the Ninja
 build tree, and the bootstrap compiler install under `build/toolchain-build`
-on Linux-native Docker storage, so subsequent patch iterations do not restart
-the LLVM bootstrap from scratch just because the Windows host filesystem is
-slow.
+on Linux-native Docker storage, so repeated runs can reuse the cached bootstrap
+LLVM source, build tree, and install tree when the pinned LLVM ref and patch
+set are unchanged instead of restarting from scratch because the Windows host
+filesystem is slow.
 
 The wrapper still writes the final versioned `ringos-toolchain-*.tar.xz`
 archive into the repo-local `build` directory by default, or into the explicit
@@ -127,11 +128,12 @@ override the default volume name `ringos-toolchain-build`, and use
 `docker volume rm <name>` when you want to discard the cached toolchain build
 state.
 
-Before configuring, each wrapper now mounts the repo-local `build` directory
-into the container and runs `tools/toolchain/download-latest-toolchain.sh` so
-the installed-toolchain bundle is fetched into `build/toolchain` from the
-latest GitHub Release and the wrapper fails immediately if no published release
-is available or the archive is incomplete.
+Before configuring, the Windows run/test wrappers mount the repo-local `build`
+directory into the container and run
+`tools/toolchain/download-latest-toolchain.sh` so the installed-toolchain
+bundle is fetched into `build/toolchain` from the latest GitHub Release and
+the wrapper fails immediately if no published release is available or the
+archive is incomplete.
 
 When the repository is private, pass `GH_TOKEN` or `GITHUB_TOKEN` through the
 wrapper environment so the container can authenticate release downloads.

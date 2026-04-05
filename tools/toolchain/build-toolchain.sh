@@ -6,11 +6,6 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/../.." && pwd)"
 
-default_llvm_cache_root()
-{
-  printf '%s\n' "${repo_root}/build/toolchain-build/bootstrap-llvm"
-}
-
 need_tool()
 {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -126,6 +121,32 @@ cleanup_llvm_bootstrap()
   fi
 }
 
+archive_stem_from_path()
+{
+  local archive_path="$1"
+  local archive_name=""
+
+  archive_name="$(basename "${archive_path}")"
+
+  case "${archive_name}" in
+    *.tar.gz)
+      printf '%s\n' "${archive_name%.tar.gz}"
+      ;;
+    *.tar.xz)
+      printf '%s\n' "${archive_name%.tar.xz}"
+      ;;
+    *.tgz)
+      printf '%s\n' "${archive_name%.tgz}"
+      ;;
+    *.zip)
+      printf '%s\n' "${archive_name%.zip}"
+      ;;
+    *)
+      printf '%s\n' "${archive_name%.*}"
+      ;;
+  esac
+}
+
 prepare_llvm_source_tree()
 {
   local archive_parent_dir=""
@@ -159,6 +180,7 @@ prepare_llvm_source_tree()
   fi
 
   log_step "Extracting LLVM source tree into ${llvm_source_dir}"
+  rm -rf "${llvm_source_dir}"
   tar -xzf "${llvm_source_archive}" -C "${extract_root}"
 
   extracted_source_dir="${extract_root}/${extracted_root_name}"
@@ -167,8 +189,9 @@ prepare_llvm_source_tree()
     exit 1
   fi
 
-  llvm_source_dir="${extracted_source_dir}"
-  log_step "Using extracted LLVM source tree at ${llvm_source_dir} for this build run"
+  mkdir -p "${archive_parent_dir}"
+  mv "${extracted_source_dir}" "${llvm_source_dir}"
+  log_step "Prepared extracted LLVM source tree at ${llvm_source_dir}"
 
   if [[ ! -d "${llvm_source_dir}/.git" ]]; then
     log_step "Initializing temporary git metadata in extracted LLVM source tree"
@@ -218,7 +241,7 @@ apply_llvm_patches()
 
 build_bootstrap_llvm()
 {
-  rm -rf "${llvm_build_dir}" "${llvm_install_dir}"
+  mkdir -p "${llvm_build_dir}" "${llvm_install_dir}"
 
   run_with_heartbeat "Configuring bootstrap LLVM build in ${llvm_build_dir}" \
     cmake -S "${llvm_source_dir}/llvm" -B "${llvm_build_dir}" -G Ninja \
@@ -302,17 +325,17 @@ mkdir -p "${repo_root}/build" "${toolchain_build_root}" "${build_llvm_root}"
 rm -rf "${install_root}" "${staging_root}"
 mkdir -p "${install_root}" "${staging_root}"
 
-llvm_cache_root="${RINGOS_LLVM_CACHE_ROOT:-$(default_llvm_cache_root)}"
 llvm_repo_url="${RINGOS_LLVM_REPO_URL:-https://github.com/llvm/llvm-project.git}"
 llvm_ref="${RINGOS_LLVM_REF:-3b5b5c1ec4a3095ab096dd780e84d7ab81f3d7ff}"
 llvm_repo_archive_base="${llvm_repo_url%.git}"
 llvm_source_archive_url="${RINGOS_LLVM_SOURCE_ARCHIVE_URL:-${llvm_repo_archive_base}/archive/${llvm_ref}.tar.gz}"
-llvm_root="${RINGOS_LLVM_ROOT:-${repo_root}/tools/llvm}"
-llvm_source_dir="${RINGOS_LLVM_SOURCE_DIR:-${build_llvm_root}/src/llvm-project}"
-llvm_build_dir="${RINGOS_LLVM_BUILD_DIR:-${build_llvm_root}/build}"
-llvm_install_dir="${RINGOS_LLVM_INSTALL_DIR:-${bootstrap_toolchain_root}}"
 llvm_download_dir="${RINGOS_LLVM_DOWNLOAD_DIR:-${build_llvm_root}/downloads}"
 llvm_source_archive="${RINGOS_LLVM_SOURCE_ARCHIVE:-${llvm_download_dir}/llvm-project-${llvm_ref}.tar.gz}"
+llvm_source_dir_name="$(archive_stem_from_path "${llvm_source_archive}")"
+llvm_root="${RINGOS_LLVM_ROOT:-${repo_root}/tools/llvm}"
+llvm_source_dir="${RINGOS_LLVM_SOURCE_DIR:-${build_llvm_root}/src/${llvm_source_dir_name}}"
+llvm_build_dir="${RINGOS_LLVM_BUILD_DIR:-${build_llvm_root}/build-${llvm_ref}}"
+llvm_install_dir="${RINGOS_LLVM_INSTALL_DIR:-${bootstrap_toolchain_root}}"
 llvm_patch_dir="${RINGOS_LLVM_PATCH_DIR:-${llvm_root}/patches}"
 llvm_projects="${RINGOS_LLVM_ENABLE_PROJECTS:-clang;lld}"
 llvm_runtimes="${RINGOS_LLVM_ENABLE_RUNTIMES:-compiler-rt}"
@@ -330,6 +353,11 @@ mkdir -p "${llvm_root}" "$(dirname "${llvm_source_dir}")" "$(dirname "${llvm_ins
 
 trap cleanup_llvm_bootstrap EXIT
 
+if [[ -z "${llvm_source_dir_name}" ]]; then
+  echo "Unable to derive an LLVM source directory name from ${llvm_source_archive}." >&2
+  exit 1
+fi
+
 if [[ "${skip_bootstrap}" == "1" ]]; then
   if [[ ! -x "${llvm_install_dir}/bin/clang" ]]; then
     echo "Cannot skip bootstrap LLVM build because ${llvm_install_dir}/bin/clang is missing." >&2
@@ -338,13 +366,20 @@ if [[ "${skip_bootstrap}" == "1" ]]; then
 
   log_step "Skipping bootstrap LLVM rebuild and reusing ${llvm_install_dir}"
 else
-  log_step "Preparing pinned LLVM source tree"
-  prepare_llvm_source_tree
-  log_step "Preparing pinned LLVM source tree completed."
+  if [[ -d "${llvm_build_dir}" ]]; then
+    log_step "Reusing bootstrap build tree at ${llvm_build_dir}"
+  elif [[ -d "${llvm_source_dir}" ]]; then
+    log_step "Reusing prepared LLVM source tree at ${llvm_source_dir}"
+  else
+    log_step "Preparing pinned LLVM source tree"
+    prepare_llvm_source_tree
+    log_step "Preparing pinned LLVM source tree completed."
 
-  log_step "Applying RingOS LLVM patch series"
-  apply_llvm_patches
-  log_step "Applying RingOS LLVM patch series completed."
+    log_step "Applying RingOS LLVM patch series"
+    apply_llvm_patches
+    log_step "Applying RingOS LLVM patch series completed."
+  fi
+
   log_step "Using ${bootstrap_compile_jobs} bootstrap compile job(s), ${bootstrap_link_jobs} bootstrap link job(s), and ${payload_build_jobs} payload build job(s)"
   build_bootstrap_llvm
 fi
