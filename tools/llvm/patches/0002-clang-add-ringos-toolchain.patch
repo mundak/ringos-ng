@@ -1,5 +1,23 @@
+diff --git a/clang/lib/Basic/Targets.cpp b/clang/lib/Basic/Targets.cpp
+index e328351..c3cdee7 100644
+--- a/clang/lib/Basic/Targets.cpp
++++ b/clang/lib/Basic/Targets.cpp
+@@ -174,6 +174,13 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
+       default: // Assume MSVC for unknown environments
+         return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
+       }
++    case llvm::Triple::Ringos:
++      switch (Triple.getEnvironment()) {
++      case llvm::Triple::MSVC:
++        return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
++      default:
++        return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
++      }
+     default:
+       return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
+     }
 diff --git a/clang/lib/Driver/CMakeLists.txt b/clang/lib/Driver/CMakeLists.txt
-index 58427e3f83c4201f4b6e7b996c5175aa1ffc2638..fe8fc88600fbbf224d85706119e5a75ff96ed3f8 100644
+index 58427e3..fe8fc886 100644
 --- a/clang/lib/Driver/CMakeLists.txt
 +++ b/clang/lib/Driver/CMakeLists.txt
 @@ -75,6 +75,7 @@ add_clang_library(clangDriver
@@ -11,7 +29,7 @@ index 58427e3f83c4201f4b6e7b996c5175aa1ffc2638..fe8fc88600fbbf224d85706119e5a75f
    ToolChains/SPIRV.cpp
    ToolChains/TCE.cpp
 diff --git a/clang/lib/Driver/Driver.cpp b/clang/lib/Driver/Driver.cpp
-index 93cddf742d521d25dc9ad397804cd829e44cbbd3..dc4b8c7c0763e861239aa360deceaf0551737b65 100644
+index 93cddf7..dc4b8c7 100644
 --- a/clang/lib/Driver/Driver.cpp
 +++ b/clang/lib/Driver/Driver.cpp
 @@ -42,6 +42,7 @@
@@ -32,26 +50,9 @@ index 93cddf742d521d25dc9ad397804cd829e44cbbd3..dc4b8c7c0763e861239aa360deceaf05
      case llvm::Triple::LiteOS:
        TC = std::make_unique<toolchains::OHOS>(*this, Target, Args);
        break;
-diff --git a/clang/lib/Basic/Targets.cpp b/clang/lib/Basic/Targets.cpp
---- a/clang/lib/Basic/Targets.cpp
-+++ b/clang/lib/Basic/Targets.cpp
-@@ -174,6 +174,13 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
-       default: // Assume MSVC for unknown environments
-         return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
-       }
-+    case llvm::Triple::Ringos:
-+      switch (Triple.getEnvironment()) {
-+      case llvm::Triple::MSVC:
-+        return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
-+      default:
-+        return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
-+      }
-     default:
-       return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
-     }
 diff --git a/clang/lib/Driver/ToolChains/RingOS.cpp b/clang/lib/Driver/ToolChains/RingOS.cpp
 new file mode 100644
-index 0000000000000000000000000000000000000000..56e97d3e7cc7f844cd2d05213a586c2fb44067ac
+index 0000000..56e97d3
 --- /dev/null
 +++ b/clang/lib/Driver/ToolChains/RingOS.cpp
 @@ -0,0 +1,221 @@
@@ -278,7 +279,7 @@ index 0000000000000000000000000000000000000000..56e97d3e7cc7f844cd2d05213a586c2f
 +}
 diff --git a/clang/lib/Driver/ToolChains/RingOS.h b/clang/lib/Driver/ToolChains/RingOS.h
 new file mode 100644
-index 0000000000000000000000000000000000000000..91942f6fb76ced046e9ecda5086e327c156e9286
+index 0000000..91942f6
 --- /dev/null
 +++ b/clang/lib/Driver/ToolChains/RingOS.h
 @@ -0,0 +1,87 @@
@@ -371,7 +372,7 @@ index 0000000000000000000000000000000000000000..91942f6fb76ced046e9ecda5086e327c
 +#endif // LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_RINGOS_H
 diff --git a/clang/test/Driver/ringos.c b/clang/test/Driver/ringos.c
 new file mode 100644
-index 0000000000000000000000000000000000000000..77e0b4603e28e74c4151175ce172e1d9555f0e4b
+index 0000000..d908b86
 --- /dev/null
 +++ b/clang/test/Driver/ringos.c
 @@ -0,0 +1,23 @@

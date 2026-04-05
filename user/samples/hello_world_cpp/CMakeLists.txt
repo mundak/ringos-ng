@@ -15,7 +15,7 @@ endif()
 if(NOT DEFINED RINGOS_SYSROOT_CXX_INCLUDE_DIR OR NOT EXISTS "${RINGOS_SYSROOT_CXX_INCLUDE_DIR}/type_traits")
   message(FATAL_ERROR
     "This toolchain bundle does not include staged libc++ headers. "
-    "Refresh the installed toolchain bundle after running tools/llvm/ensure-libcxx-source.sh.")
+    "Refresh the installed toolchain bundle by rebuilding it with tools/toolchain/build-toolchain.sh.")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)

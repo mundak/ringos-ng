@@ -8,19 +8,7 @@ repo_root="$(cd "${script_dir}/../.." && pwd)"
 
 release_repo="${GITHUB_REPOSITORY:-}"
 github_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-
-default_install_root()
-{
-  if [[ -n "${LOCALAPPDATA:-}" ]]; then
-    printf '%s\n' "${LOCALAPPDATA}/ringos/toolchain"
-  elif [[ -n "${HOME:-}" ]]; then
-    printf '%s\n' "${HOME}/.cache/ringos/toolchain"
-  else
-    printf '%s\n' "${repo_root}/build/installed-toolchain"
-  fi
-}
-
-install_root="$(default_install_root)"
+install_root="${repo_root}/build/toolchain"
 
 usage()
 {

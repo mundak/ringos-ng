@@ -17,27 +17,13 @@ function(ringos_get_native_target_triple target_arch out_target_triple)
 endfunction()
 
 function(ringos_get_default_toolchain_install_root out_install_root)
-  if(WIN32 AND DEFINED ENV{LOCALAPPDATA})
-    file(TO_CMAKE_PATH "$ENV{LOCALAPPDATA}/ringos/toolchain" install_root)
-  elseif(DEFINED ENV{HOME})
-    file(TO_CMAKE_PATH "$ENV{HOME}/.cache/ringos/toolchain" install_root)
+  if(DEFINED ENV{RINGOS_TOOLCHAIN_ROOT} AND NOT "$ENV{RINGOS_TOOLCHAIN_ROOT}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{RINGOS_TOOLCHAIN_ROOT}" install_root)
   else()
-    set(install_root ${RINGOS_REPO_ROOT}/build/installed-toolchain)
+    set(install_root ${RINGOS_REPO_ROOT}/build/toolchain)
   endif()
 
   set(${out_install_root} ${install_root} PARENT_SCOPE)
-endfunction()
-
-function(ringos_get_default_previous_stage_toolchain_root out_toolchain_root)
-  if(WIN32 AND DEFINED ENV{LOCALAPPDATA})
-    file(TO_CMAKE_PATH "$ENV{LOCALAPPDATA}/ringos/native-llvm-toolchain" toolchain_root)
-  elseif(DEFINED ENV{HOME})
-    file(TO_CMAKE_PATH "$ENV{HOME}/.cache/ringos/native-llvm-toolchain" toolchain_root)
-  else()
-    set(toolchain_root ${RINGOS_REPO_ROOT}/build/native-llvm-toolchain)
-  endif()
-
-  set(${out_toolchain_root} ${toolchain_root} PARENT_SCOPE)
 endfunction()
 
 function(ringos_get_llvm_ref out_llvm_ref)
@@ -57,8 +43,7 @@ function(ringos_collect_custom_llvm_input_files out_input_files)
   list(SORT llvm_patch_files)
 
   set(input_files
-    ${RINGOS_REPO_ROOT}/tools/llvm/build-clang-toolchain.sh
-    ${RINGOS_REPO_ROOT}/tools/llvm/ensure-libcxx-source.sh
+    ${RINGOS_REPO_ROOT}/tools/toolchain/build-toolchain.sh
     ${llvm_patch_files})
 
   set(${out_input_files} ${input_files} PARENT_SCOPE)

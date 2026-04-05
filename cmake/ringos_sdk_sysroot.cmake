@@ -1,5 +1,7 @@
 include_guard(GLOBAL)
 
+get_filename_component(RINGOS_SDK_SYSROOT_REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
+
 function(ringos_get_sdk_target_triple target_arch out_target_triple)
   if(target_arch STREQUAL "x64")
     set(target_triple x86_64-pc-windows-msvc)
@@ -38,6 +40,32 @@ function(ringos_collect_libcxx_headers out_headers)
   endif()
 
   set(${out_headers} ${libcxx_headers} PARENT_SCOPE)
+endfunction()
+
+function(ringos_get_active_llvm_root out_llvm_root)
+  if(DEFINED RINGOS_ACTIVE_LLVM_ROOT AND NOT RINGOS_ACTIVE_LLVM_ROOT STREQUAL "" AND EXISTS ${RINGOS_ACTIVE_LLVM_ROOT}/bin/clang)
+    set(llvm_root ${RINGOS_ACTIVE_LLVM_ROOT})
+  elseif(DEFINED ENV{RINGOS_ACTIVE_LLVM_ROOT} AND NOT "$ENV{RINGOS_ACTIVE_LLVM_ROOT}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{RINGOS_ACTIVE_LLVM_ROOT}" env_active_llvm_root)
+
+    if(EXISTS ${env_active_llvm_root}/bin/clang)
+      set(llvm_root ${env_active_llvm_root})
+    endif()
+  elseif(DEFINED RINGOS_TOOLCHAIN_ROOT AND NOT RINGOS_TOOLCHAIN_ROOT STREQUAL "" AND EXISTS ${RINGOS_TOOLCHAIN_ROOT}/bin/clang)
+    set(llvm_root ${RINGOS_TOOLCHAIN_ROOT})
+  elseif(DEFINED ENV{RINGOS_TOOLCHAIN_ROOT} AND NOT "$ENV{RINGOS_TOOLCHAIN_ROOT}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{RINGOS_TOOLCHAIN_ROOT}" env_toolchain_root)
+
+    if(EXISTS ${env_toolchain_root}/bin/clang)
+      set(llvm_root ${env_toolchain_root})
+    endif()
+  endif()
+
+  if(NOT DEFINED llvm_root)
+    set(llvm_root ${RINGOS_SDK_SYSROOT_REPO_ROOT}/build/toolchain-build/bootstrap-llvm/install)
+  endif()
+
+  set(${out_llvm_root} ${llvm_root} PARENT_SCOPE)
 endfunction()
 
 function(ringos_append_sdk_link_flags target_arch out_link_flags)
@@ -88,15 +116,17 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
   set(stamp_file ${share_dir}/sysroot.stamp)
 
   if(NOT TARGET ${target_name})
-    if(NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
+    ringos_get_active_llvm_root(active_llvm_root)
+
+    if(NOT EXISTS ${active_llvm_root}/bin/clang)
       message(FATAL_ERROR
-        "RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT must point to an installed ringos-aware compiler root.")
+        "Active LLVM root does not contain bin/clang: ${active_llvm_root}")
     endif()
 
-    find_program(RINGOS_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17 HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin NO_DEFAULT_PATH)
+    find_program(RINGOS_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
 
     if(NOT RINGOS_LLVM_LIB)
-      find_program(RINGOS_LLVM_AR NAMES llvm-ar llvm-ar-18 llvm-ar-17 HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin NO_DEFAULT_PATH REQUIRED)
+      find_program(RINGOS_LLVM_AR NAMES llvm-ar llvm-ar-18 llvm-ar-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH REQUIRED)
     endif()
 
     set(sdk_include_dir ${CMAKE_SOURCE_DIR}/user/sdk/include)

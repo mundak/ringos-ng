@@ -15,12 +15,14 @@ function(ringos_get_toolchain_version out_version)
 endfunction()
 
 function(ringos_resolve_tool_program tool_name out_path)
-  if(NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
+  ringos_get_active_llvm_root(active_llvm_root)
+
+  if(NOT EXISTS ${active_llvm_root}/bin/clang)
     message(FATAL_ERROR
-      "RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT must point to an installed ringos-aware compiler root.")
+      "Active LLVM root does not contain bin/clang: ${active_llvm_root}")
   endif()
 
-  find_program(tool_path NAMES ${ARGN} HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin NO_DEFAULT_PATH)
+  find_program(tool_path NAMES ${ARGN} HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
 
   if(NOT tool_path)
     message(FATAL_ERROR "Unable to find required tool '${tool_name}'.")
@@ -47,9 +49,11 @@ function(ringos_resolve_clang_resource_dir clang_path out_resource_dir out_resou
 endfunction()
 
 function(ringos_generate_installed_toolchain_bundle target_arch out_target out_bundle_root out_toolchain_file)
-  if(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "ringos-native" AND NOT RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT)
+  ringos_get_active_llvm_root(active_llvm_root)
+
+  if(RINGOS_TOOLCHAIN_DRIVER_MODE STREQUAL "ringos-native" AND NOT EXISTS ${active_llvm_root}/bin/clang)
     message(FATAL_ERROR
-      "RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT must point to an installed ringos-aware compiler "
+      "Active LLVM root must contain an installed ringos-aware compiler "
       "when RINGOS_TOOLCHAIN_DRIVER_MODE is 'ringos-native'.")
   endif()
 
@@ -80,22 +84,22 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   ringos_resolve_tool_program(llvm-ranlib RINGOS_TOOLCHAIN_LLVM_RANLIB llvm-ranlib llvm-ranlib-18 llvm-ranlib-17)
   ringos_resolve_tool_program(llvm-objcopy RINGOS_TOOLCHAIN_LLVM_OBJCOPY llvm-objcopy llvm-objcopy-18 llvm-objcopy-17)
 
-  find_program(RINGOS_TOOLCHAIN_LD_LLD NAMES ld.lld ld.lld-18 ld.lld-17 HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin NO_DEFAULT_PATH)
-  find_program(RINGOS_TOOLCHAIN_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17 HINTS ${RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT}/bin NO_DEFAULT_PATH)
+  find_program(RINGOS_TOOLCHAIN_LD_LLD NAMES ld.lld ld.lld-18 ld.lld-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
+  find_program(RINGOS_TOOLCHAIN_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
 
-  get_filename_component(toolchain_clang_name ${RINGOS_TOOLCHAIN_CLANG} NAME)
-  get_filename_component(toolchain_clangxx_name ${RINGOS_TOOLCHAIN_CLANGXX} NAME)
-  get_filename_component(toolchain_lld_link_name ${RINGOS_TOOLCHAIN_LLD_LINK} NAME)
-  get_filename_component(toolchain_llvm_ar_name ${RINGOS_TOOLCHAIN_LLVM_AR} NAME)
-  get_filename_component(toolchain_llvm_ranlib_name ${RINGOS_TOOLCHAIN_LLVM_RANLIB} NAME)
-  get_filename_component(toolchain_llvm_objcopy_name ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY} NAME)
+  set(toolchain_clang_name clang)
+  set(toolchain_clangxx_name clang++)
+  set(toolchain_lld_link_name lld-link)
+  set(toolchain_llvm_ar_name llvm-ar)
+  set(toolchain_llvm_ranlib_name llvm-ranlib)
+  set(toolchain_llvm_objcopy_name llvm-objcopy)
 
   if(RINGOS_TOOLCHAIN_LD_LLD)
-    get_filename_component(toolchain_ld_lld_name ${RINGOS_TOOLCHAIN_LD_LLD} NAME)
+    set(toolchain_ld_lld_name ld.lld)
   endif()
 
   if(RINGOS_TOOLCHAIN_LLVM_LIB)
-    get_filename_component(toolchain_llvm_lib_name ${RINGOS_TOOLCHAIN_LLVM_LIB} NAME)
+    set(toolchain_llvm_lib_name llvm-lib)
   endif()
 
   ringos_get_toolchain_version(toolchain_version)
@@ -105,7 +109,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   ringos_collect_installed_toolchain_input_files(${target_arch} toolchain_input_files)
 
   set(target_name ringos_${target_arch}_installed_toolchain)
-  set(bundle_root ${RINGOS_TOOLCHAIN_INSTALL_ROOT})
+  set(bundle_root ${RINGOS_TOOLCHAIN_ROOT})
   set(bundle_bin_dir ${bundle_root}/bin)
   set(bundle_lib_dir ${bundle_root}/lib)
   set(bundle_resource_dir ${bundle_lib_dir}/clang/${clang_resource_version})

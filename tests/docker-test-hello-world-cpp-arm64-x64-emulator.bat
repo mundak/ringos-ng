@@ -6,15 +6,10 @@ setlocal
 
 set IMAGE_NAME=ringos-ci
 set CONTEXT_DIR=%~dp0..
+set HOST_BUILD_DIR=%CONTEXT_DIR%\build
 
-if defined LOCALAPPDATA (
-    set HOST_RINGOS_CACHE=%LOCALAPPDATA%\ringos
-) else (
-    set HOST_RINGOS_CACHE=%CONTEXT_DIR%\build\ringos-cache
-)
-
-if not exist "%HOST_RINGOS_CACHE%" (
-    mkdir "%HOST_RINGOS_CACHE%"
+if not exist "%HOST_BUILD_DIR%" (
+    mkdir "%HOST_BUILD_DIR%"
 )
 
 set TOOLCHAIN_TOKEN_ARG=
@@ -25,7 +20,7 @@ if defined GH_TOKEN (
 )
 
 echo === Building Docker image: %IMAGE_NAME% ===
-docker build -f "%CONTEXT_DIR%\docker\Dockerfile" -t %IMAGE_NAME% "%CONTEXT_DIR%"
+docker build -f "%CONTEXT_DIR%\tools\toolchain\Dockerfile" -t %IMAGE_NAME% "%CONTEXT_DIR%"
 if %errorlevel% neq 0 (
     echo ERROR: Docker image build failed.
     exit /b %errorlevel%
@@ -33,7 +28,7 @@ if %errorlevel% neq 0 (
 
 echo.
 echo === Running hello_world_cpp arm64 x64-emulator sample test in %IMAGE_NAME% container ===
-docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_RINGOS_CACHE%:/root/.cache/ringos" %IMAGE_NAME% bash -lc "bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng && cmake --preset arm64-debug && cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator_hello_world_cpp && ctest --preset sample_hello_world_cpp_arm64_x64_emulator"
+docker run --rm %TOOLCHAIN_TOKEN_ARG% -v "%HOST_BUILD_DIR%:/workspace/build" %IMAGE_NAME% bash -lc "bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng && cmake --preset arm64-debug && cmake --build --preset build-arm64-debug --target ringos_arm64_x64_emulator_hello_world_cpp && ctest --preset sample_hello_world_cpp_arm64_x64_emulator"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%

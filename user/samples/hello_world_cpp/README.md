@@ -22,10 +22,10 @@ bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
 For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` first so the helper can authenticate the download.
 
 If you are rebuilding the toolchain bundle locally rather than downloading a published release,
-populate the pinned LLVM libc++ headers first:
+rebuild the full installed-toolchain bundle first:
 
 ```bash
-bash tools/llvm/ensure-libcxx-source.sh
+bash tools/toolchain/build-toolchain.sh
 ```
 
 ## Configure And Build
@@ -49,13 +49,6 @@ cmake --build build/user-samples/hello_world_cpp-x64
 ```
 
 Swap `x64` for `arm64` in both the build directory name and `RINGOS_TARGET_ARCH` when you want the arm64 sample output.
-
-For a direct bundled-compiler invocation instead of CMake, use:
-
-```bash
-bash scripts/build-bootstrap-hosted-cpp.sh x64 user/samples/hello_world_cpp/hello_world.cpp
-bash scripts/build-bootstrap-hosted-cpp.sh arm64 user/samples/hello_world_cpp/hello_world.cpp
-```
 
 ## What The Toolchain Still Needs
 

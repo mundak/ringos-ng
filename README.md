@@ -44,8 +44,8 @@ code, and verifies the bring-up path with smoke tests for each architecture.
 ### Recommended on Windows: Docker
 
 The repository includes Windows batch wrappers that build the shared toolchain
-image from [docker/Dockerfile](docker/Dockerfile) and run the full build inside
-that container.
+image from [tools/toolchain/Dockerfile](tools/toolchain/Dockerfile) and run the
+full build inside that container.
 
 Requirements:
 
@@ -74,9 +74,10 @@ tests\docker-test-console-service-write-arm64-x64-emulator.bat
 
 These wrappers now resolve the latest published toolchain release asset
 (`ringos-toolchain-YYYY.MM.DD.N.tar.xz`) before configuring the tree. The
-extracted bundle is cached under the host-side
-`%LOCALAPPDATA%\ringos` directory and mounted into the container so repeated
-local Docker runs reuse the published toolchain instead of rebuilding it.
+extracted bundle is cached under the repo-local `build/toolchain` directory.
+The wrappers mount the repo-local `build` directory into `/workspace/build` so
+repeated local Docker runs reuse the published toolchain instead of rebuilding
+it.
 If the repository is private, set `GH_TOKEN` or `GITHUB_TOKEN` in the host
 environment so the container can authenticate release downloads instead of
 falling back to a local rebuild.
@@ -87,10 +88,20 @@ Build the shared external toolchain package tar.xz archive from Windows:
 tools\toolchain\docker-build-toolchain.bat
 ```
 
+That wrapper now builds the same Docker image and runs the same
+`tools/toolchain/run-toolchain-release.sh` entry point as the manual
+`toolchain_release` GitHub Actions job. The local distinction is that it mounts
+the repo-local `build` directory into `/workspace/build` so the bootstrap LLVM
+state persists under `build/toolchain-build` and the resulting archive is
+written to local disk instead of publishing.
+
+For direct shell invocation without the Windows wrapper, run
+`tools/toolchain/run-toolchain-release.sh`.
+
 If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
-docker build -f docker/Dockerfile -t ringos-ci .
+docker build -f tools/toolchain/Dockerfile -t ringos-ci .
 docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --preset build-x64-debug && ctest --preset x64_emulator_unit && ctest --preset x64_win32_loader_unit && ctest --preset sample_hello_world_x64_native && ctest --preset sample_hello_world_cpp_x64_native && ctest --preset sample_console_service_write_x64_native"
 docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset sample_hello_world_arm64_native && ctest --preset sample_hello_world_cpp_arm64_native && ctest --preset sample_console_service_write_arm64_native && ctest --preset sample_hello_world_arm64_x64_emulator && ctest --preset sample_hello_world_cpp_arm64_x64_emulator && ctest --preset sample_console_service_write_arm64_x64_emulator"
 ```
@@ -119,7 +130,7 @@ published release bundle expected by CI and fails immediately when that bundle
 is missing or incomplete:
 
 ```bash
-bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
+bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng
 ```
 
 For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` first so the
@@ -223,7 +234,7 @@ compiler paths.
 Use the hosted helpers for standalone `.c` or `.cpp` samples:
 
 ```bash
-bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
+bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng
 bash scripts/build-bootstrap-hosted-c.sh x64 user/samples/hello_world/hello_world.c
 bash scripts/build-bootstrap-hosted-c.sh arm64 user/samples/hello_world/hello_world.c
 bash scripts/build-bootstrap-hosted-cpp.sh x64 user/samples/hello_world_cpp/hello_world.cpp
@@ -257,8 +268,9 @@ hosted C++ path still keeps `-fno-exceptions`, `-fno-rtti`, and
 │   └── toolchains/
 │       ├── arm64.cmake
 │       └── x64.cmake
-├── docker/
-│   └── Dockerfile          # Shared Linux toolchain image for local container runs
+├── tools/
+│   └── toolchain/
+│       └── Dockerfile      # Shared Linux container image for local runs and toolchain release
 ├── kernel/                 # Architecture-neutral kernel code and public headers
 ├── scripts/
 │   ├── debug-arm64.sh

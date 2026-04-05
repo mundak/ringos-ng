@@ -30,7 +30,7 @@ Use these layers:
 5. `tests/*.sh` contains test assertions and deterministic wrapper checks.
 6. `tests/docker-*.bat` wraps the Windows container workflow.
 7. `.github/workflows/*.yml` installs dependencies and runs the same presets.
-8. `tools/toolchain/ensure-toolchain-release.sh` resolves and downloads the
+8. `tools/toolchain/download-latest-toolchain.sh` resolves and downloads the
 	shared installed-toolchain bundle for test and run flows, while the dedicated
 	toolchain workflow handles build and publish operations.
 
@@ -92,25 +92,14 @@ tests\docker-test-console-service-write-arm64-x64-emulator.bat
 ```
 
 These wrappers rebuild the shared `ringos-ci` image from
-`docker/Dockerfile`, then run the requested configure, build, and test or run
+`tools/toolchain/Dockerfile`, then run the requested configure, build, and test or run
 sequence inside the container.
 
-Stage 8 toolchain bring-up currently starts from the Linux shell inside that
-same container image:
-
-```bash
-scripts/build-clang-toolchain.sh
-tools/toolchain/build-toolchain-local.sh
-scripts/build-bootstrap-hosted-c.sh x64
-scripts/build-bootstrap-hosted-c.sh arm64
-scripts/build-bootstrap-hosted-cpp.sh x64
-scripts/build-bootstrap-hosted-cpp.sh arm64
-```
-
-The first script builds the repo-owned host Clang toolchain scaffolding. The
-second script reuses a persistent previous-stage LLVM cache when one is
-available, then rebuilds the installed RingOS toolchain bundle against that
-cached compiler. The hosted C and bootstrap hosted C++ sample scripts resolve
+The toolchain release path uses the same `tools/toolchain/run-toolchain-release.sh`
+entry point that powers the manual `toolchain_release` GitHub Actions job. The
+Windows wrapper mounts the repo-local `build` directory so iterative LLVM patch
+work can reuse the clone, build directory, and bootstrap install root locally.
+The hosted C and bootstrap hosted C++ sample scripts resolve
 the published installed-toolchain bundle and compile against the downloaded
 compiler configs and sysroot for the selected target. Those sample lanes no
 longer depend on repo-local staged bootstrap config files or arbitrary host
@@ -119,35 +108,39 @@ compiler paths.
 For Windows Docker iteration on native LLVM patches, use:
 
 ```bat
-scripts\docker-build-toolchain-local.bat
+tools\toolchain\docker-build-toolchain.bat
 ```
 
-That wrapper bind-mounts the worktree into `/workspace`, mounts a persistent
-host cache into `/root/.cache/ringos`, normalizes the touched shell scripts to
-LF inside the container, and then runs `tools/toolchain/build-toolchain-local.sh`.
-The cache preserves the LLVM clone, Ninja build tree, and previous-stage
-compiler install under `/root/.cache/ringos/native-llvm-toolchain-local`, so
-subsequent patch iterations do not restart the LLVM bootstrap from scratch.
+That wrapper builds the same Docker image used by the `toolchain_release`
+workflow, mounts the repo-local `build` directory into `/workspace/build`, and
+then runs `tools/toolchain/run-toolchain-release.sh`. That layout
+preserves the installed toolchain bundle under `build/toolchain`, the LLVM
+clone, Ninja build tree, and bootstrap compiler install under
+`build/toolchain-build`, so subsequent patch iterations do not restart the LLVM
+bootstrap from scratch.
 
-Before configuring, each wrapper now mounts a host-side cache directory into the
-container and runs `tools/toolchain/ensure-toolchain-release.sh` so the
-installed-toolchain bundle is fetched from the latest GitHub Release and the
-wrapper fails immediately if no published release is available or the archive is
-incomplete.
+`scripts\docker-build-toolchain-local.bat` remains as a compatibility wrapper
+that forwards to `tools\toolchain\docker-build-toolchain.bat`.
+
+Before configuring, each wrapper now mounts the repo-local `build` directory
+into the container and runs `tools/toolchain/download-latest-toolchain.sh` so
+the installed-toolchain bundle is fetched into `build/toolchain` from the
+latest GitHub Release and the wrapper fails immediately if no published release
+is available or the archive is incomplete.
 
 When the repository is private, pass `GH_TOKEN` or `GITHUB_TOKEN` through the
 wrapper environment so the container can authenticate release downloads.
 
 ### Native Linux
 
-Install the same core packages used by `docker/Dockerfile`, including
+Install the same core packages used by `tools/toolchain/Dockerfile`, including
 `gdb-multiarch` for the debugger-launch and debug-host test surface.
 
 Resolve the published installed-toolchain bundle before native Linux configure
 or test steps by running:
 
 ```bash
-bash tools/toolchain/ensure-toolchain-release.sh --repo mundak/ringos-ng
+bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng
 ```
 
 For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` before invoking
@@ -259,7 +252,7 @@ Each sample workflow configures the matching architecture, builds only the
 single kernel target for that sample-platform lane, and runs exactly one CTest
 preset that asserts both platform bring-up and the sample-specific output.
 
-If the dependency stack changes, update `docker/Dockerfile` and
+If the dependency stack changes, update `tools/toolchain/Dockerfile` and
 the workflow files under `.github/workflows/` together so local container runs
 and CI stay in sync.
 

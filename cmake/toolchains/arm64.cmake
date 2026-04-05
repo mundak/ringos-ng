@@ -4,10 +4,12 @@ set(CMAKE_SYSTEM_NAME Generic)
 set(CMAKE_SYSTEM_PROCESSOR aarch64)
 
 ringos_resolve_llvm_root(ringos_arm64_llvm_root)
-set(RINGOS_LLVM_TOOLCHAIN_ROOT ${ringos_arm64_llvm_root})
+if(NOT DEFINED RINGOS_TOOLCHAIN_ROOT OR RINGOS_TOOLCHAIN_ROOT STREQUAL "")
+  set(RINGOS_TOOLCHAIN_ROOT ${ringos_arm64_llvm_root})
+endif()
 list(APPEND CMAKE_TRY_COMPILE_PLATFORM_VARIABLES
-	RINGOS_PREVIOUS_STAGE_TOOLCHAIN_ROOT
-	RINGOS_LLVM_TOOLCHAIN_ROOT)
+	RINGOS_ACTIVE_LLVM_ROOT
+	RINGOS_TOOLCHAIN_ROOT)
 
 ringos_find_llvm_tool(clang RINGOS_CLANG clang clang-18 clang-17)
 ringos_find_llvm_tool(clang++ RINGOS_CLANGXX clang++ clang++-18 clang++-17)

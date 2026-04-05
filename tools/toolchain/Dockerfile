@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   cmake \
   ninja-build \
   git \
+  gh \
   python3 \
   curl \
   gdb-multiarch \

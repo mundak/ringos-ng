@@ -18,47 +18,17 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Normalize shell script line endings
-        run: git ls-files '*.sh' -z | xargs -0 sed -i 's/\r$//'
-
-      - name: Install dependencies
+      - name: Build toolchain release container
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            cmake \
-            ninja-build \
-            git \
-            curl \
-            python3
+          docker build -f tools/toolchain/Dockerfile -t ringos-ci-toolchain-release .
 
-      - name: Resolve release version
-        id: release_version
+      - name: Build and publish shared toolchain release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          bash tools/toolchain/resolve-toolchain-release-version.sh --repo "$GITHUB_REPOSITORY" > "${RUNNER_TEMP}/toolchain-release-info.txt"
-          cat "${RUNNER_TEMP}/toolchain-release-info.txt" >> "$GITHUB_OUTPUT"
-
-      - name: Build shared toolchain bundle
-        env:
-          RINGOS_TOOLCHAIN_VERSION: ${{ steps.release_version.outputs.release_version }}
-          RELEASE_ASSET_NAME: ${{ steps.release_version.outputs.release_asset_name }}
-        run: bash tools/toolchain/build-toolchain.sh --output "${RUNNER_TEMP}/${RELEASE_ASSET_NAME}"
-
-      - name: Publish shared toolchain release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ steps.release_version.outputs.release_tag }}
-          RELEASE_VERSION: ${{ steps.release_version.outputs.release_version }}
-          RELEASE_ASSET_NAME: ${{ steps.release_version.outputs.release_asset_name }}
-        run: |
-          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$RELEASE_TAG" "${RUNNER_TEMP}/${RELEASE_ASSET_NAME}" --clobber --repo "$GITHUB_REPOSITORY"
-          else
-            gh release create "$RELEASE_TAG" \
-              "${RUNNER_TEMP}/${RELEASE_ASSET_NAME}" \
-              --repo "$GITHUB_REPOSITORY" \
-              --title "$RELEASE_TAG" \
-              --notes "Shared ringos toolchain bundle version $RELEASE_VERSION."
-          fi
+          docker run --rm \
+            -e GH_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -v "${RUNNER_TEMP}:/toolchain-output" \
+            ringos-ci-toolchain-release \
+            bash -lc "tools/toolchain/run-toolchain-release.sh --repo \"$GITHUB_REPOSITORY\" --output-dir /toolchain-output --publish"
