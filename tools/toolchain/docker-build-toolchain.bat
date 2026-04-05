@@ -6,7 +6,11 @@ setlocal EnableExtensions EnableDelayedExpansion
 
 set IMAGE_NAME=ringos-ci-toolchain-release
 set CONTEXT_DIR=%~dp0..\..
-set HOST_BUILD_DIR=%CONTEXT_DIR%\build
+set BUILD_VOLUME_NAME=%RINGOS_TOOLCHAIN_BUILD_VOLUME%
+
+if not defined BUILD_VOLUME_NAME (
+    set BUILD_VOLUME_NAME=ringos-toolchain-build
+)
 
 set RELEASE_REPO=
 if defined GITHUB_REPOSITORY (
@@ -34,10 +38,6 @@ if not exist "%OUTPUT_DIR%" (
     mkdir "%OUTPUT_DIR%"
 )
 
-if not exist "%HOST_BUILD_DIR%" (
-    mkdir "%HOST_BUILD_DIR%"
-)
-
 set DOCKER_ENV_ARGS=
 if defined GH_TOKEN (
     set DOCKER_ENV_ARGS=!DOCKER_ENV_ARGS! -e GH_TOKEN
@@ -61,13 +61,23 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
+docker volume inspect "%BUILD_VOLUME_NAME%" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo === Creating Docker build volume: %BUILD_VOLUME_NAME% ===
+    docker volume create "%BUILD_VOLUME_NAME%" >nul
+    if errorlevel 1 (
+        echo ERROR: Docker volume creation failed.
+        exit /b %errorlevel%
+    )
+)
+
 echo.
 if "%~1"=="" (
     echo === Building shared toolchain archive under %OUTPUT_DIR% ===
-    docker run --rm !DOCKER_ENV_ARGS! -v "%HOST_BUILD_DIR%:/workspace/build" %IMAGE_NAME% bash -lc "tools/toolchain/run-toolchain-release.sh !RELEASE_ARGS! --output-dir /workspace/build"
+    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/toolchain-output" %IMAGE_NAME% bash -lc "tools/toolchain/run-toolchain-release.sh !RELEASE_ARGS! --output-dir /toolchain-output"
 ) else (
     echo === Building shared toolchain archive at %OUTPUT_ARCHIVE% ===
-    docker run --rm !DOCKER_ENV_ARGS! -v "%HOST_BUILD_DIR%:/workspace/build" -v "%OUTPUT_DIR%:/toolchain-output" %IMAGE_NAME% bash -lc "tools/toolchain/run-toolchain-release.sh !RELEASE_ARGS! --output-archive /toolchain-output/%OUTPUT_NAME%"
+    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/toolchain-output" %IMAGE_NAME% bash -lc "tools/toolchain/run-toolchain-release.sh !RELEASE_ARGS! --output-archive /toolchain-output/%OUTPUT_NAME%"
 )
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
@@ -89,4 +99,5 @@ if not defined OUTPUT_ARCHIVE (
 
 echo.
 echo Shared toolchain archive: %OUTPUT_ARCHIVE%
+echo Persistent Docker build volume: %BUILD_VOLUME_NAME%
 echo === Done ===

@@ -112,15 +112,20 @@ tools\toolchain\docker-build-toolchain.bat
 ```
 
 That wrapper builds the same Docker image used by the `toolchain_release`
-workflow, mounts the repo-local `build` directory into `/workspace/build`, and
-then runs `tools/toolchain/run-toolchain-release.sh`. That layout
-preserves the installed toolchain bundle under `build/toolchain`, the LLVM
-clone, Ninja build tree, and bootstrap compiler install under
-`build/toolchain-build`, so subsequent patch iterations do not restart the LLVM
-bootstrap from scratch.
+workflow, mounts a persistent Docker named volume into `/workspace/build`, and
+then runs `tools/toolchain/run-toolchain-release.sh`. That layout keeps the
+installed toolchain bundle under `build/toolchain`, the LLVM clone, the Ninja
+build tree, and the bootstrap compiler install under `build/toolchain-build`
+on Linux-native Docker storage, so subsequent patch iterations do not restart
+the LLVM bootstrap from scratch just because the Windows host filesystem is
+slow.
 
-`scripts\docker-build-toolchain-local.bat` remains as a compatibility wrapper
-that forwards to `tools\toolchain\docker-build-toolchain.bat`.
+The wrapper still writes the final versioned `ringos-toolchain-*.tar.xz`
+archive into the repo-local `build` directory by default, or into the explicit
+path you pass on the command line. Set `RINGOS_TOOLCHAIN_BUILD_VOLUME` to
+override the default volume name `ringos-toolchain-build`, and use
+`docker volume rm <name>` when you want to discard the cached toolchain build
+state.
 
 Before configuring, each wrapper now mounts the repo-local `build` directory
 into the container and runs `tools/toolchain/download-latest-toolchain.sh` so
@@ -243,10 +248,6 @@ tracked CI workflows:
 
 Each workflow installs the Linux dependency set and builds the matching target.
 Most workflows then run exactly one scenario-specific CTest preset.
-
-The `x64_emulator_unit` workflow also runs `bash tests/check-enum-style.sh`
-before configure/build so CI rejects `enum class` and legacy SDK numeric
-`#define` blocks without needing a dedicated standalone workflow.
 
 Each sample workflow configures the matching architecture, builds only the
 single kernel target for that sample-platform lane, and runs exactly one CTest
