@@ -72,23 +72,11 @@ function(ringos_get_active_llvm_root out_llvm_root)
 endfunction()
 
 function(ringos_resolve_llvm_source_root out_source_root)
-  if(DEFINED RINGOS_LLVM_SOURCE_DIR AND NOT RINGOS_LLVM_SOURCE_DIR STREQUAL "" AND EXISTS ${RINGOS_LLVM_SOURCE_DIR})
-    set(source_root ${RINGOS_LLVM_SOURCE_DIR})
-  elseif(DEFINED ENV{RINGOS_LLVM_SOURCE_DIR} AND NOT "$ENV{RINGOS_LLVM_SOURCE_DIR}" STREQUAL "")
-    file(TO_CMAKE_PATH "$ENV{RINGOS_LLVM_SOURCE_DIR}" env_source_root)
+  ringos_get_default_llvm_source_dir_name(source_dir_name)
+  set(versioned_source_root ${RINGOS_LLVM_ROOT_REPO_ROOT}/build/toolchain-build/bootstrap-llvm/src/${source_dir_name})
 
-    if(EXISTS ${env_source_root})
-      set(source_root ${env_source_root})
-    endif()
-  endif()
-
-  if(NOT DEFINED source_root)
-    ringos_get_default_llvm_source_dir_name(source_dir_name)
-    set(versioned_source_root ${RINGOS_LLVM_ROOT_REPO_ROOT}/build/toolchain-build/bootstrap-llvm/src/${source_dir_name})
-
-    if(EXISTS ${versioned_source_root})
-      set(source_root ${versioned_source_root})
-    endif()
+  if(EXISTS ${versioned_source_root})
+    set(source_root ${versioned_source_root})
   endif()
 
   if(DEFINED source_root)
