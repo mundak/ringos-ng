@@ -1,43 +1,11 @@
 # ringos-ng
 
-ringos-ng is a bare-metal operating system project targeting x64 and arm64. The
-current repository boots both targets in QEMU, converges into shared C++ kernel
-code, and verifies the bring-up path with smoke tests for each architecture.
-
-## Current State
-
-- x64 boots in QEMU, reaches the shared C++ kernel entry point, and emits the
-  expected host-side debug trace.
-- x64 also loads a minimal statically linked PE64 user test image and proves
-  the first ring3 entry, syscall, and exit path.
-- arm64 boots in QEMU virt, reaches the same shared C++ kernel entry point,
-  emits the expected host-side debug trace through semihosting, and now covers
-  both a native arm64 user image path and an interpreter-backed x64 PE64 user
-  image path.
-- Both targets now install a per-process user address space with explicit MMU
-  boundaries, while keeping the kernel mapped in every process context.
-- Shared kernel code owns the boot handoff contract, debug-host logging path,
-  and panic handling.
-- CI exposes dedicated workflows for the x64 emulator unit tests, the x64 Win32
-  loader unit tests, and nine sample lanes that explicitly cover
-  `hello_world`, `hello_world_cpp`, and `console_service_write` on x64 native,
-  arm64 native, and x64 emulation on arm64.
+ringos-ng is a bare-metal operating system project targeting x64 and arm64. 
 
 ## Supported Targets
 
 - x64 in QEMU
 - arm64 in QEMU virt
-
-## Not Implemented Yet
-
-- SMP
-- interrupts and timers
-- scheduler and process model
-- userspace services and drivers
-- filesystem or storage
-- framebuffer output
-- real hardware support
-- user-mode page allocators and paging APIs beyond the initial large-page region
 
 ## Development Workflow
 
@@ -231,66 +199,7 @@ build toolchains on demand.
 ## User-Space Samples
 
 The user-facing sample entry points under `user/samples/` should consume only
-the published installed-toolchain bundle and its bundled sysroots. Do not point
-sample builds at repo-local `build/<preset>/sysroot` trees or arbitrary host
-compiler paths.
-
-Use the hosted helpers for standalone `.c` or `.cpp` samples:
-
-```bash
-bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain
-bash scripts/build-bootstrap-hosted-c.sh x64 user/samples/hello_world/hello_world.c
-bash scripts/build-bootstrap-hosted-c.sh arm64 user/samples/hello_world/hello_world.c
-bash scripts/build-bootstrap-hosted-cpp.sh x64 user/samples/hello_world_cpp/hello_world.cpp
-bash scripts/build-bootstrap-hosted-cpp.sh arm64 user/samples/hello_world_cpp/hello_world.cpp
-```
-
-For the CMake-based hello-world samples, see `user/samples/hello_world/README.md`
-for the ANSI C entry point and `user/samples/hello_world_cpp/README.md` for
-the hosted C++20 variant that consumes staged libc++ headers from the installed
-toolchain bundle.
-
-The installed toolchain now exposes the first hosted-C++ surface for user
-programs: staged libc++ headers, PE constructor startup via `.CRT$X*`, and
-`atexit()` teardown through the packaged ringos libc and SDK. The current
-hosted C++ path still keeps `-fno-exceptions`, `-fno-rtti`, and
-`-fno-threadsafe-statics`, and it does not yet ship `libc++.lib`,
-`libc++abi.lib`, unwind support, or a real allocator for containers.
-
-## Repository Layout
-
-```text
-.
-├── CMakeLists.txt          # Top-level CMake project
-├── CMakePresets.json       # Configure, build, and test presets for both targets
-├── arch/
-│   ├── arm64/              # arm64-specific boot, UART, linker, and entry code
-│   └── x64/                # x64-specific boot, serial, linker, and entry code
-├── cmake/
-│   ├── tests/
-│   │   └── smoke_tests.cmake
-│   └── toolchains/
-│       ├── arm64.cmake
-│       └── x64.cmake
-├── tools/
-│   └── toolchain/
-│       └── Dockerfile      # Shared Linux container image for local runs and toolchain release
-├── kernel/                 # Architecture-neutral kernel code and public headers
-├── scripts/
-│   ├── debug-arm64.sh
-│   ├── debug-x64.sh
-│   ├── docker-run-os-arm64.bat
-│   ├── docker-run-os-x64.bat
-│   ├── run-arm64.sh
-│   ├── run-x64.sh
-├── tests/
-│   ├── docker-test-*.bat     # aggregate and sample-specific Docker test wrappers
-│   ├── test-sample-*.sh      # sample-specific QEMU assertions for each platform lane
-│   └── test-smoke-*.sh       # legacy wrappers kept for reference during transition
-└── docs/
-    ├── ci-and-testing.md
-    └── contributing.md
-```
+the published installed-toolchain bundle and its bundled sysroots. 
 
 ## Architecture Overview
 
