@@ -72,12 +72,14 @@ tests\docker-test-hello-world-cpp-arm64-x64-emulator.bat
 tests\docker-test-console-service-write-arm64-x64-emulator.bat
 ```
 
-These wrappers now resolve the latest published toolchain release asset
-(`ringos-toolchain-YYYY.MM.DD.N.tar.xz`) before configuring the tree. The
-extracted bundle is cached under the repo-local `build/toolchain` directory.
-The wrappers mount the repo-local `build` directory into `/workspace/build` so
-repeated local Docker runs reuse the published toolchain instead of rebuilding
-it.
+These wrappers now look for a versioned toolchain archive
+(`ringos-toolchain-YYYY.MM.DD.N.tar.xz`) under the repo-local `build`
+directory before configuring the tree. If one is already present, the wrappers
+extract that archive into `build/toolchain`. If no archive is present, they
+download the latest published release asset into `build/` first and then
+extract it into `build/toolchain`. The wrappers mount the repo-local `build`
+directory into `/workspace/build` so repeated local Docker runs reuse the same
+downloaded archive and extracted bundle instead of rebuilding it.
 If the repository is private, set `GH_TOKEN` or `GITHUB_TOKEN` in the host
 environment so the container can authenticate release downloads instead of
 falling back to a local rebuild.
@@ -127,10 +129,12 @@ sudo apt-get install -y \
 
 Resolve the shared toolchain bundle before configuring so the build uses the
 published release bundle expected by CI and fails immediately when that bundle
-is missing or incomplete:
+is missing or incomplete. If `build/ringos-toolchain-*.tar.xz` already exists,
+the helper extracts that local archive; otherwise it downloads the latest
+release archive into `build/` first:
 
 ```bash
-bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng
+bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain
 ```
 
 For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` first so the
@@ -234,7 +238,7 @@ compiler paths.
 Use the hosted helpers for standalone `.c` or `.cpp` samples:
 
 ```bash
-bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng
+bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain
 bash scripts/build-bootstrap-hosted-c.sh x64 user/samples/hello_world/hello_world.c
 bash scripts/build-bootstrap-hosted-c.sh arm64 user/samples/hello_world/hello_world.c
 bash scripts/build-bootstrap-hosted-cpp.sh x64 user/samples/hello_world_cpp/hello_world.cpp

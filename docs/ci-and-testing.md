@@ -10,8 +10,8 @@ entry points.
 - CI runs on `ubuntu-latest`.
 - Windows users are expected to use the Docker-based test wrappers in `tests/`.
 - Native Linux is supported for direct shell iteration and GDB-based debugging.
-- Shared installed-toolchain consumers should prefer the published
-	latest `ringos-toolchain-YYYY.MM.DD.N.tar.xz` release asset when a published bundle exists.
+- Shared installed-toolchain consumers should prefer a versioned
+	`ringos-toolchain-YYYY.MM.DD.N.tar.xz` archive already present under `build/`, and otherwise download the latest published release asset into that same directory.
 
 The repository should keep one canonical build and test interface even when it
 is executed through different shells.
@@ -130,10 +130,12 @@ state.
 
 Before configuring, the Windows run/test wrappers mount the repo-local `build`
 directory into the container and run
-`tools/toolchain/download-latest-toolchain.sh` so the installed-toolchain
-bundle is fetched into `build/toolchain` from the latest GitHub Release and
-the wrapper fails immediately if no published release is available or the
-archive is incomplete.
+`tools/toolchain/download-latest-toolchain.sh --archive-dir /workspace/build --install-root /workspace/build/toolchain`. If a versioned `ringos-toolchain-*.tar.xz`
+archive is already present under the mounted `build` directory, the helper
+extracts that archive into `build/toolchain`. Otherwise it downloads the latest
+GitHub Release archive into `build/` first and then extracts it. The wrapper
+still fails immediately if no published release is available or the archive is
+incomplete.
 
 When the repository is private, pass `GH_TOKEN` or `GITHUB_TOKEN` through the
 wrapper environment so the container can authenticate release downloads.
@@ -147,7 +149,7 @@ Resolve the published installed-toolchain bundle before native Linux configure
 or test steps by running:
 
 ```bash
-bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng
+bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain
 ```
 
 For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` before invoking

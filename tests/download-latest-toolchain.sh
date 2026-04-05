@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Download the latest published shared toolchain bundle and extract it into the local cache.
+# Extract a local shared toolchain archive from build/, or download the latest release there first.
 
 set -euo pipefail
 
@@ -8,7 +8,9 @@ repo_root="$(cd "${script_dir}/../.." && pwd)"
 
 release_repo="${GITHUB_REPOSITORY:-}"
 github_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
-install_root="${repo_root}/build/toolchain"
+archive_dir="${repo_root}/build"
+install_root="${archive_dir}/toolchain"
+install_root_explicit=0
 
 usage()
 {
@@ -16,6 +18,7 @@ usage()
 Usage: tools/toolchain/download-latest-toolchain.sh [options]
 
 Options:
+  --archive-dir <path>      Read or download toolchain archives here first.
   --install-root <path>     Extract the shared toolchain bundle here.
   --repo <owner/name>       GitHub repository that owns the release assets.
   --help                    Show this help text.
@@ -24,8 +27,18 @@ EOF
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
+    --archive-dir)
+      archive_dir="$2"
+
+      if [[ "${install_root_explicit}" != "1" ]]; then
+        install_root="${archive_dir}/toolchain"
+      fi
+
+      shift 2
+      ;;
     --install-root)
       install_root="$2"
+      install_root_explicit=1
       shift 2
       ;;
     --repo)
@@ -44,11 +57,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "${release_repo}" ]]; then
-  echo "Set --repo or GITHUB_REPOSITORY before downloading toolchain releases." >&2
-  exit 1
-fi
-
 need_tool()
 {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -58,7 +66,6 @@ need_tool()
 }
 
 need_tool cmake
-need_tool curl
 need_tool python3
 need_tool mktemp
 
@@ -70,6 +77,40 @@ release_version=""
 asset_name=""
 asset_api_url=""
 asset_download_url=""
+
+select_local_archive()
+{
+  local search_root="$1"
+
+  python3 - "${search_root}" <<'PY'
+import pathlib
+import sys
+
+archive_root = pathlib.Path(sys.argv[1])
+archives = sorted(
+    archive_root.glob("ringos-toolchain-*.tar.xz"),
+    key=lambda entry: (entry.stat().st_mtime_ns, entry.name),
+)
+
+if archives:
+    print(archives[-1])
+PY
+}
+
+read_archive_version()
+{
+  local archive_path="$1"
+  local archive_name=""
+
+  archive_name="$(basename "${archive_path}")"
+
+  if [[ "${archive_name}" =~ ^ringos-toolchain-(.+)\.tar\.xz$ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  return 1
+}
 
 read_bundle_version()
 {
@@ -104,6 +145,13 @@ cached_bundle_matches_release()
 
 load_latest_release_metadata()
 {
+  if [[ -z "${release_repo}" ]]; then
+    echo "Set --repo or GITHUB_REPOSITORY before downloading toolchain releases." >&2
+    exit 1
+  fi
+
+  need_tool curl
+
   local release_info_file="${work_root}/latest-release.json"
   local -a curl_args=(--fail --location --retry 3 --silent --show-error -H "Accept: application/vnd.github+json")
 
@@ -129,18 +177,11 @@ if not tag_name:
     sys.exit("Latest release metadata is missing tag_name")
 
 toolchain_version = tag_name.removeprefix("ringos-toolchain-")
-asset = None
-asset_name = ""
-
-for candidate_name in (f"{tag_name}.tar.xz", f"{tag_name}.zip"):
-  candidate_asset = next((entry for entry in release.get("assets", []) if entry.get("name") == candidate_name), None)
-  if candidate_asset is not None:
-    asset_name = candidate_name
-    asset = candidate_asset
-    break
+asset_name = f"{tag_name}.tar.xz"
+asset = next((entry for entry in release.get("assets", []) if entry.get("name") == asset_name), None)
 
 if asset is None:
-  sys.exit(f"Latest release {tag_name} does not contain a supported toolchain archive")
+  sys.exit(f"Latest release {tag_name} does not contain {asset_name}")
 
 print(f"release_tag={tag_name}")
 print(f"release_version={toolchain_version}")
@@ -224,21 +265,40 @@ download_release_archive()
     "${asset_download_url}"
 }
 
-load_latest_release_metadata
+mkdir -p "${archive_dir}"
 
-if cached_bundle_matches_release "${install_root}" "${release_version}"; then
-  echo "Using cached shared toolchain bundle at ${install_root}"
-  echo "Latest release tag: ${release_tag}"
-  echo "Latest toolchain version: ${release_version}"
-  exit 0
+local_archive="$(select_local_archive "${archive_dir}")"
+
+if [[ -n "${local_archive}" ]]; then
+  archive_version="$(read_archive_version "${local_archive}")" || archive_version=""
+
+  if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
+    echo "Using extracted shared toolchain bundle at ${install_root}"
+    echo "Toolchain archive: ${local_archive}"
+    echo "Toolchain version: ${archive_version}"
+    exit 0
+  fi
+
+  install_archive "${local_archive}"
+
+  if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
+    echo "Extracted shared toolchain archive ${local_archive} into ${install_root}"
+    exit 0
+  fi
+
+  echo "Extracted archive ${local_archive}, but the extracted bundle version does not match ${archive_version}." >&2
+  exit 1
 fi
 
-downloaded_archive="${work_root}/${asset_name}"
+load_latest_release_metadata
+
+downloaded_archive="${archive_dir}/${asset_name}"
 download_release_archive "${downloaded_archive}"
 install_archive "${downloaded_archive}"
 
 if cached_bundle_matches_release "${install_root}" "${release_version}"; then
-  echo "Downloaded shared toolchain release ${release_tag} into ${install_root}"
+  echo "Downloaded shared toolchain release ${release_tag} into ${downloaded_archive}"
+  echo "Extracted shared toolchain bundle into ${install_root}"
   exit 0
 fi
 
