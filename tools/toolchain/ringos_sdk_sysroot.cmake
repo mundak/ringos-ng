@@ -6,7 +6,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/ringos-llvm-root.cmake)
 
 function(ringos_get_sdk_target_triple target_arch out_target_triple)
   if(target_arch STREQUAL "x64")
-    set(target_triple x86_64-pc-windows-msvc)
+    set(target_triple x86_64-unknown-ringos-msvc)
   elseif(target_arch STREQUAL "arm64")
     set(target_triple aarch64-pc-windows-msvc)
   else()
