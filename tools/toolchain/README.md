@@ -67,15 +67,6 @@ wrapper run picks up your in-volume source edit directly.
 Once the cached LLVM edit is validated, persist it under `tools/llvm/patches/`
 as a numbered patch so fresh toolchain builds apply it automatically.
 
-The current RingOS patch series is:
-
-```text
-tools/llvm/patches/0001-llvm-add-ringos-triple.patch
-tools/llvm/patches/0002-clang-add-ringos-toolchain.patch
-tools/llvm/patches/0003-llvm-enable-ringos-coff-mc.patch
-tools/llvm/patches/0004-llvm-allow-ringos-seh-x64.patch
-```
-
 The expected workflow is:
 
 1. Reproduce the issue using `tools\toolchain\docker-build-toolchain.bat`.

@@ -1,0 +1,28 @@
+diff --git a/llvm/lib/Target/AArch64/AArch64MCInstLower.cpp b/llvm/lib/Target/AArch64/AArch64MCInstLower.cpp
+index 2a3c7fd..4bd2a6a 100644
+--- a/llvm/lib/Target/AArch64/AArch64MCInstLower.cpp
++++ b/llvm/lib/Target/AArch64/AArch64MCInstLower.cpp
+@@ -47,8 +47,8 @@ MCSymbol *AArch64MCInstLower::GetGlobalValueSymbol(const GlobalValue *GV,
+   if (!TheTriple.isOSBinFormatCOFF())
+     return Printer.getSymbolPreferLocal(*GV);
+ 
+-  assert(TheTriple.isOSWindows() &&
+-         "Windows is the only supported COFF target");
++  assert((TheTriple.isOSWindows() || TheTriple.isOSRingos()) &&
++         "Windows and RingOS are the only supported COFF targets");
+ 
+   bool IsIndirect =
+       (TargetFlags & (AArch64II::MO_DLLIMPORT | AArch64II::MO_COFFSTUB));
+diff --git a/llvm/lib/Target/AArch64/AArch64Subtarget.cpp b/llvm/lib/Target/AArch64/AArch64Subtarget.cpp
+index 1f19aa7..0d77c29 100644
+--- a/llvm/lib/Target/AArch64/AArch64Subtarget.cpp
++++ b/llvm/lib/Target/AArch64/AArch64Subtarget.cpp
+@@ -463,7 +463,7 @@ AArch64Subtarget::ClassifyGlobalReference(const GlobalValue *GV,
+     if (GV->hasDLLImportStorageClass()) {
+       return AArch64II::MO_GOT | AArch64II::MO_DLLIMPORT;
+     }
+-    if (getTargetTriple().isOSWindows())
++    if (getTargetTriple().isOSWindows() || getTargetTriple().isOSRingos())
+       return AArch64II::MO_GOT | AArch64II::MO_COFFSTUB;
+     return AArch64II::MO_GOT;
+   }
