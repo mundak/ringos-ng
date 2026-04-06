@@ -1,7 +1,25 @@
 set(LINKER_SCRIPT ${CMAKE_CURRENT_SOURCE_DIR}/linker.ld)
 
-include(${CMAKE_SOURCE_DIR}/tools/toolchain/arm64_test_app_image.cmake)
-include(${CMAKE_SOURCE_DIR}/tools/toolchain/x64_test_app_image.cmake)
+include(${CMAKE_SOURCE_DIR}/tests/common/arm64_test_app_image.cmake)
+include(${CMAKE_SOURCE_DIR}/tests/common/x64_test_app_image.cmake)
+
+set(RINGOS_ARM64_HELLO_WORLD_TEST_APP_ARGS
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
+  PROJECT_TARGET hello_world)
+
+if(DEFINED RINGOS_TEST_APP_HELLO_WORLD_ARM64_BINARY AND NOT RINGOS_TEST_APP_HELLO_WORLD_ARM64_BINARY STREQUAL "")
+  set(RINGOS_ARM64_HELLO_WORLD_TEST_APP_ARGS
+    BINARY_PATH ${RINGOS_TEST_APP_HELLO_WORLD_ARM64_BINARY})
+endif()
+
+set(RINGOS_ARM64_X64_HELLO_WORLD_TEST_APP_ARGS
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
+  PROJECT_TARGET hello_world)
+
+if(DEFINED RINGOS_TEST_APP_HELLO_WORLD_X64_BINARY AND NOT RINGOS_TEST_APP_HELLO_WORLD_X64_BINARY STREQUAL "")
+  set(RINGOS_ARM64_X64_HELLO_WORLD_TEST_APP_ARGS
+    BINARY_PATH ${RINGOS_TEST_APP_HELLO_WORLD_X64_BINARY})
+endif()
 
 ringos_add_embedded_arm64_test_app(
   ringos_arm64_console_driver
@@ -25,8 +43,7 @@ ringos_add_embedded_arm64_test_app(
   aarch64
   ARM64_HELLO_WORLD_IMAGE_OBJECT
   BINARY_STEM ringos_hello_world_arm64_pe64_image
-  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
-  PROJECT_TARGET hello_world)
+  ${RINGOS_ARM64_HELLO_WORLD_TEST_APP_ARGS})
 
 ringos_add_embedded_arm64_test_app(
   ringos_arm64_hello_world_cpp_test_app
@@ -43,8 +60,7 @@ ringos_add_embedded_x64_test_app(
   aarch64
   X64_HELLO_WORLD_IMAGE_OBJECT
   BINARY_STEM ringos_hello_world_x64_pe64_image
-  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world
-  PROJECT_TARGET hello_world)
+  ${RINGOS_ARM64_X64_HELLO_WORLD_TEST_APP_ARGS})
 
 ringos_add_embedded_x64_test_app(
   ringos_arm64_x64_hello_world_cpp_test_app

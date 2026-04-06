@@ -9,4 +9,6 @@ repo_root="$(cd "${script_dir}/../../.." && pwd)"
   "${script_dir}" \
   x64 \
   hello_world_x64_on_arm64 \
-  hello_world
+  hello_world \
+  arm64 \
+  ringos_arm64_x64_emulator

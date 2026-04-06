@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   dos2unix \
   ninja-build \
   python3 \
+  qemu-system-arm \
+  qemu-system-misc \
+  qemu-system-x86 \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /workspace

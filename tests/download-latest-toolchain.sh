@@ -134,10 +134,23 @@ cached_bundle_matches_release()
   local bundle_root="$1"
   local expected_version="$2"
   local actual_version=""
+  local required_path=""
 
-  if [[ ! -f "${bundle_root}/cmake/ringos-toolchain.cmake" ]]; then
-    return 1
-  fi
+  for required_path in \
+    cmake/ringos-toolchain.cmake \
+    cmake/ringos-x64-toolchain.cmake \
+    cmake/ringos-arm64-toolchain.cmake \
+    bin/clang \
+    bin/clang++ \
+    bin/ld.lld \
+    bin/lld-link \
+    bin/llvm-ar \
+    bin/llvm-ranlib \
+    bin/llvm-objcopy; do
+    if [[ ! -e "${bundle_root}/${required_path}" ]]; then
+      return 1
+    fi
+  done
 
   actual_version="$(read_bundle_version "${bundle_root}")" || return 1
   [[ "${actual_version}" == "${expected_version}" ]]

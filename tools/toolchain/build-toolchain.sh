@@ -391,14 +391,23 @@ fi
 validate_packaged_toolchain()
 {
   local bundle_root="$1"
-  local -a expected_tools=(clang clang++ lld-link llvm-ar llvm-ranlib llvm-objcopy)
+  local -a expected_tools=(clang clang++ ld.lld lld-link llvm-ar llvm-ranlib llvm-objcopy)
+  local -a expected_cmake_files=(ringos-toolchain.cmake ringos-x64-toolchain.cmake ringos-arm64-toolchain.cmake)
   local -a expected_target_triples=(x86_64-unknown-ringos-msvc aarch64-unknown-ringos-msvc)
   local tool_name=""
+  local cmake_file=""
   local target_triple=""
 
   for tool_name in "${expected_tools[@]}"; do
     if [[ ! -e "${bundle_root}/bin/${tool_name}" ]]; then
       echo "Packaged toolchain bundle is missing bin/${tool_name}." >&2
+      exit 1
+    fi
+  done
+
+  for cmake_file in "${expected_cmake_files[@]}"; do
+    if [[ ! -e "${bundle_root}/cmake/${cmake_file}" ]]; then
+      echo "Packaged toolchain bundle is missing cmake/${cmake_file}." >&2
       exit 1
     fi
   done

@@ -75,20 +75,16 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   ringos_resolve_tool_program(llvm-ar RINGOS_TOOLCHAIN_LLVM_AR llvm-ar llvm-ar-18 llvm-ar-17)
   ringos_resolve_tool_program(llvm-ranlib RINGOS_TOOLCHAIN_LLVM_RANLIB llvm-ranlib llvm-ranlib-18 llvm-ranlib-17)
   ringos_resolve_tool_program(llvm-objcopy RINGOS_TOOLCHAIN_LLVM_OBJCOPY llvm-objcopy llvm-objcopy-18 llvm-objcopy-17)
-
-  find_program(RINGOS_TOOLCHAIN_LD_LLD NAMES ld.lld ld.lld-18 ld.lld-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
+  ringos_resolve_tool_program(ld.lld RINGOS_TOOLCHAIN_LD_LLD ld.lld ld.lld-18 ld.lld-17)
   find_program(RINGOS_TOOLCHAIN_LLVM_LIB NAMES llvm-lib llvm-lib-18 llvm-lib-17 HINTS ${active_llvm_root}/bin NO_DEFAULT_PATH)
 
   get_filename_component(toolchain_clang_name ${RINGOS_TOOLCHAIN_CLANG} NAME)
   get_filename_component(toolchain_clangxx_name ${RINGOS_TOOLCHAIN_CLANGXX} NAME)
   get_filename_component(toolchain_lld_link_name ${RINGOS_TOOLCHAIN_LLD_LINK} NAME)
+  get_filename_component(toolchain_ld_lld_name ${RINGOS_TOOLCHAIN_LD_LLD} NAME)
   get_filename_component(toolchain_llvm_ar_name ${RINGOS_TOOLCHAIN_LLVM_AR} NAME)
   get_filename_component(toolchain_llvm_ranlib_name ${RINGOS_TOOLCHAIN_LLVM_RANLIB} NAME)
   get_filename_component(toolchain_llvm_objcopy_name ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY} NAME)
-
-  if(RINGOS_TOOLCHAIN_LD_LLD)
-    get_filename_component(toolchain_ld_lld_name ${RINGOS_TOOLCHAIN_LD_LLD} NAME)
-  endif()
 
   if(RINGOS_TOOLCHAIN_LLVM_LIB)
     get_filename_component(toolchain_llvm_lib_name ${RINGOS_TOOLCHAIN_LLVM_LIB} NAME)
@@ -211,6 +207,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "toolchain_version=${toolchain_version}\n"
     "target_arch=${target_arch}\n"
     "target_triple=${native_target_triple}\n"
+    "ld_lld=bin/${toolchain_ld_lld_name}\n"
     "sysroot=sysroots/${native_target_triple}\n"
     "crt0=sysroots/${native_target_triple}/lib/crt0.obj\n"
     "sdk=sysroots/${native_target_triple}/lib/ringos_sdk.lib\n"
@@ -224,6 +221,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "  \"target_triple\": \"${native_target_triple}\",\n"
     "  \"llvm_ref\": \"${llvm_ref}\",\n"
     "  \"clang_resource_version\": \"${clang_resource_version}\",\n"
+    "  \"ld_lld\": \"bin/${toolchain_ld_lld_name}\",\n"
     "  \"sysroot\": \"sysroots/${native_target_triple}\"\n"
     "}\n")
 
@@ -267,6 +265,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_CLANG} ${bundle_bin_dir}/${toolchain_clang_name}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_CLANGXX} ${bundle_bin_dir}/${toolchain_clangxx_name}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLD_LINK} ${bundle_bin_dir}/${toolchain_lld_link_name}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LD_LLD} ${bundle_bin_dir}/${toolchain_ld_lld_name}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLVM_AR} ${bundle_bin_dir}/${toolchain_llvm_ar_name}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLVM_RANLIB} ${bundle_bin_dir}/${toolchain_llvm_ranlib_name}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY} ${bundle_bin_dir}/${toolchain_llvm_objcopy_name}
@@ -285,6 +284,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
         ${RINGOS_TOOLCHAIN_CLANG}
         ${RINGOS_TOOLCHAIN_CLANGXX}
         ${RINGOS_TOOLCHAIN_LLD_LINK}
+        ${RINGOS_TOOLCHAIN_LD_LLD}
         ${RINGOS_TOOLCHAIN_LLVM_AR}
         ${RINGOS_TOOLCHAIN_LLVM_RANLIB}
         ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY}

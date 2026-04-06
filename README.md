@@ -7,6 +7,66 @@ ringos-ng is a bare-metal operating system project targeting x64 and arm64.
 - x64 in QEMU
 - arm64 in QEMU virt
 
+## Build Layer Boundaries
+
+The repository is intentionally split into separate build-consumer layers. Keep
+those boundaries strict.
+
+### 1. Toolchain Archive Builder
+
+Everything under `tools/toolchain/` exists only to build and publish the shared
+toolchain archive.
+
+It builds LLVM, packages clang/lld/binutils, and assemble sysroots.
+
+The output of that layer is a versioned archive such as
+`build/ringos-toolchain-YYYY.MM.DD.N.tar.xz`, which extracts into
+`build/toolchain/`.
+
+### 2. Kernel Build Consumer
+
+Kernel builds consumes only the extracted toolchain archive under
+`build/toolchain/`.
+
+- Kernel configuration and linking must not read files directly from
+  `tools/toolchain/`.
+- If the kernel needs a CMake toolchain file or other build metadata, that file
+  must be shipped inside the extracted toolchain bundle.
+- The kernel build may consume the bundled compiler binaries, linker, objcopy,
+  sysroots, and bundled CMake toolchain files.
+
+In practice, that means the kernel-side build graph under `kernel/`, `arch/`,
+and the top-level CMake entry points should treat `build/toolchain/` as the
+only toolchain input.
+
+### 3. Sample Projects
+
+Projects under `user/samples/` must stay independent from both the kernel build
+rules and the toolchain-builder implementation.
+
+- Samples should know only about the SDK surface under `user/` and the
+  extracted toolchain bundle under `build/toolchain/`.
+- Samples must not read files directly from `tools/toolchain/`.
+- Samples must not require knowledge of kernel internals just to build their
+  own `.exe` payloads.
+
+The client-facing CMake configuration that sample apps use belongs in the
+shipped bundle files such as `build/toolchain/cmake/ringos-toolchain.cmake`
+and its per-target variants, not in repo-local `tools/toolchain/` sources.
+
+### Temporary Workaround: Embedded App Images
+
+The kernel cannot load files from a filesystem yet. Until that exists, sample
+tests may temporarily combine two steps:
+
+1. Build the sample executable against the extracted bundle in `build/toolchain`.
+2. Rebuild a kernel image that embeds that executable as an app image and boot
+   it under QEMU.
+
+Even in that temporary path, the sample test flow must still consume only the
+extracted toolchain bundle and the public SDK surface under `user/`. It should
+not reach back into `tools/toolchain/` during configure or build steps.
+
 ## Development Workflow
 
 ### Recommended on Windows: Docker
@@ -76,77 +136,7 @@ docker run --rm ringos-ci bash -lc "cmake --preset x64-debug && cmake --build --
 docker run --rm ringos-ci bash -lc "cmake --preset arm64-debug && cmake --build --preset build-arm64-debug && ctest --preset sample_hello_world_arm64_native && ctest --preset sample_hello_world_cpp_arm64_native && ctest --preset sample_console_service_write_arm64_native && ctest --preset sample_hello_world_arm64_x64_emulator && ctest --preset sample_hello_world_cpp_arm64_x64_emulator && ctest --preset sample_console_service_write_arm64_x64_emulator"
 ```
 
-### Native Linux Workflow
-
-Native Linux remains useful for direct shell iteration and GDB-based debugging.
-Install the same core dependencies used by the shared container image,
-including `gdb-multiarch` for the debug-launch and debug-host test surface:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y \
-  build-essential \
-  cmake \
-  ninja-build \
-  curl \
-  qemu-system-arm \
-  qemu-system-misc \
-  qemu-system-x86 \
-  gdb-multiarch
-```
-
-Resolve the shared toolchain bundle before configuring so the build uses the
-published release bundle expected by CI and fails immediately when that bundle
-is missing or incomplete. If `build/ringos-toolchain-*.tar.xz` already exists,
-the helper extracts that local archive; otherwise it downloads the latest
-release archive into `build/` first:
-
-```bash
 bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain
-```
-
-For private repositories, export `GH_TOKEN` or `GITHUB_TOKEN` first so the
-helper can authenticate release downloads.
-
-Configure and build:
-
-```bash
-cmake --preset x64-debug
-cmake --build --preset build-x64-debug
-
-cmake --preset arm64-debug
-cmake --build --preset build-arm64-debug
-```
-
-Build the shared external toolchain package tar.xz archive:
-
-```bash
-tools/toolchain/build-toolchain.sh
-```
-
-Run the kernels directly:
-
-```bash
-scripts/run-x64.sh build/x64-debug/arch/x64/ringos_x64
-scripts/run-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
-```
-
-Both direct run wrappers now route boot-time `debug_semihost_log()` output to
-the host stream instead of relying on a shared serial console abstraction.
-
-Debug with QEMU's GDB stub:
-
-```bash
-scripts/debug-x64.sh build/x64-debug/arch/x64/ringos_x64
-gdb-multiarch -ex "target remote :1234" build/x64-debug/arch/x64/ringos_x64.elf64
-
-scripts/debug-arm64.sh build/arm64-debug/arch/arm64/ringos_arm64
-gdb-multiarch -ex "target remote :1234" build/arm64-debug/arch/arm64/ringos_arm64
-```
-
-Both debug launchers also accept `RINGOS_GDB_PORT` when you need a non-default
-stub port. For deterministic testing or custom tooling, they also accept
-`RINGOS_QEMU_BIN` to override the QEMU executable path. The x64 launcher also
 accepts `RINGOS_DEBUGCON` to redirect the port `0xe9` debug console sink.
 
 Inside the kernel, include `debug.h` when you want lightweight trace markers or
@@ -163,7 +153,7 @@ debug_break("inspect scheduler state");
 session. On x64, `scripts/debug-x64.sh` routes port `0xe9` through QEMU's x86
 debug console.
 
-Run smoke tests with CTest:
+Run smoke tests with CTest.
 
 ```bash
 ctest --preset x64_emulator_unit
@@ -178,9 +168,6 @@ ctest --preset sample_hello_world_arm64_x64_emulator
 ctest --preset sample_hello_world_cpp_arm64_x64_emulator
 ctest --preset sample_console_service_write_arm64_x64_emulator
 ```
-
-More detail on the local and CI verification contract lives in
-[docs/ci-and-testing.md](docs/ci-and-testing.md).
 
 ## Shared Toolchain Release
 
@@ -199,7 +186,11 @@ build toolchains on demand.
 ## User-Space Samples
 
 The user-facing sample entry points under `user/samples/` should consume only
-the published installed-toolchain bundle and its bundled sysroots. 
+the published installed-toolchain bundle and its bundled sysroots.
+
+They should not depend on repo-local `tools/toolchain/` implementation details,
+and they should not depend on kernel-private headers or build rules just to
+produce their own user executable payload.
 
 ## Architecture Overview
 
