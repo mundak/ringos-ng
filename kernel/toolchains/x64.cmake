@@ -1,4 +1,4 @@
 set(RINGOS_KERNEL_SYSTEM_PROCESSOR x86_64)
-set(RINGOS_KERNEL_TARGET_TRIPLE x86_64-unknown-ringos-msvc)
+set(RINGOS_KERNEL_TARGET_TRIPLE x86_64-none-elf)
 
 include(${CMAKE_CURRENT_LIST_DIR}/common.cmake)

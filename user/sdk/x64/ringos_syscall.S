@@ -10,14 +10,14 @@
 .global ringos_syscall6
 
 ringos_syscall0:
-  movq %rcx, %rax
+  movq %rdi, %rax
   syscall
   ret
 
 ringos_syscall1:
   pushq %rdi
-  movq %rcx, %rax
-  movq %rdx, %rdi
+  movq %rdi, %rax
+  movq %rsi, %rdi
   syscall
   popq %rdi
   ret
@@ -25,9 +25,9 @@ ringos_syscall1:
 ringos_syscall2:
   pushq %rdi
   pushq %rsi
-  movq %rcx, %rax
-  movq %rdx, %rdi
-  movq %r8, %rsi
+  movq %rdi, %rax
+  movq %rsi, %rdi
+  movq %rdx, %rsi
   syscall
   popq %rsi
   popq %rdi
@@ -36,10 +36,10 @@ ringos_syscall2:
 ringos_syscall3:
   pushq %rdi
   pushq %rsi
-  movq %rcx, %rax
-  movq %rdx, %rdi
-  movq %r8, %rsi
-  movq %r9, %rdx
+  movq %rdi, %rax
+  movq %rsi, %rdi
+  movq %rdx, %rsi
+  movq %rcx, %rdx
   syscall
   popq %rsi
   popq %rdi
@@ -48,11 +48,11 @@ ringos_syscall3:
 ringos_syscall4:
   pushq %rdi
   pushq %rsi
-  movq %rcx, %rax
-  movq %rdx, %rdi
-  movq %r8, %rsi
-  movq %r9, %rdx
-  movq 56(%rsp), %r10
+  movq %rdi, %rax
+  movq %rsi, %rdi
+  movq %rdx, %rsi
+  movq %rcx, %rdx
+  movq %r8, %r10
   syscall
   popq %rsi
   popq %rdi
@@ -61,12 +61,12 @@ ringos_syscall4:
 ringos_syscall5:
   pushq %rdi
   pushq %rsi
-  movq %rcx, %rax
-  movq %rdx, %rdi
-  movq %r8, %rsi
-  movq %r9, %rdx
-  movq 56(%rsp), %r10
-  movq 64(%rsp), %r8
+  movq %rdi, %rax
+  movq %rsi, %rdi
+  movq %rdx, %rsi
+  movq %rcx, %rdx
+  movq %r8, %r10
+  movq %r9, %r8
   syscall
   popq %rsi
   popq %rdi
@@ -75,13 +75,13 @@ ringos_syscall5:
 ringos_syscall6:
   pushq %rdi
   pushq %rsi
-  movq %rcx, %rax
-  movq %rdx, %rdi
-  movq %r8, %rsi
-  movq %r9, %rdx
-  movq 56(%rsp), %r10
-  movq 64(%rsp), %r8
-  movq 72(%rsp), %r9
+  movq %rdi, %rax
+  movq %rsi, %rdi
+  movq %rdx, %rsi
+  movq %rcx, %rdx
+  movq %r8, %r10
+  movq %r9, %r8
+  movq 24(%rsp), %r9
   syscall
   popq %rsi
   popq %rdi
