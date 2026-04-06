@@ -129,10 +129,16 @@ fi
 
 debug_log="$(mktemp)"
 qemu_pid=""
+log_stream_pid=""
 timeout_seconds="${RINGOS_QEMU_TIMEOUT_SECONDS:-15}"
 
 cleanup()
 {
+  if [[ -n "${log_stream_pid}" ]]; then
+    kill "${log_stream_pid}" 2>/dev/null || true
+    wait "${log_stream_pid}" 2>/dev/null || true
+  fi
+
   if [[ -n "${qemu_pid}" ]]; then
     kill "${qemu_pid}" 2>/dev/null || true
     wait "${qemu_pid}" 2>/dev/null || true
@@ -188,6 +194,8 @@ all_expected_lines_present()
 
 trap cleanup EXIT
 launch_qemu
+tail -n +1 -f "${debug_log}" &
+log_stream_pid="$!"
 
 deadline="$((SECONDS + timeout_seconds))"
 test_passed=0
@@ -226,7 +234,4 @@ if [[ -n "${qemu_pid}" ]]; then
 else
   echo "FAIL: QEMU exited before expected output from ${kernel_target} (status ${qemu_exit_status})" >&2
 fi
-
-echo "--- debug output ---" >&2
-cat "${debug_log}" >&2
 exit 1

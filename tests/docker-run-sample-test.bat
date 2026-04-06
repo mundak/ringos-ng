@@ -22,6 +22,11 @@ if not exist "%BUILD_DIR%" (
     mkdir "%BUILD_DIR%"
 )
 
+set BUILD_TMPFS_SIZE=4g
+if defined RINGOS_SAMPLE_BUILD_TMPFS_SIZE (
+    set BUILD_TMPFS_SIZE=%RINGOS_SAMPLE_BUILD_TMPFS_SIZE%
+)
+
 set DOCKER_ENV_ARGS=
 if defined GH_TOKEN (
     set DOCKER_ENV_ARGS=!DOCKER_ENV_ARGS! -e GH_TOKEN
@@ -41,7 +46,7 @@ if errorlevel 1 (
 )
 
 echo === Running %TEST_SCRIPT% ===
-docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_DIR%:/workspace/build" %IMAGE_NAME% bash -lc "%TEST_SCRIPT%"
+docker run --rm !DOCKER_ENV_ARGS! --tmpfs "/workspace/build:exec,size=%BUILD_TMPFS_SIZE%" -v "%BUILD_DIR%:/host-build:ro" %IMAGE_NAME% bash -lc "set -euo pipefail; if ls /host-build/ringos-toolchain-*.tar.xz ^>/dev/null 2^>^&1; then cp /host-build/ringos-toolchain-*.tar.xz /workspace/build/; fi; %TEST_SCRIPT%"
 if errorlevel 1 (
     echo ERROR: Docker test failed.
     exit /b %errorlevel%

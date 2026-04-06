@@ -80,20 +80,28 @@ scripts\docker-run-os-arm64.bat
 Build and smoke-test a target:
 
 ```bat
-tests\docker-test-hello-world-x64-native.bat
-tests\docker-test-hello-world-cpp-x64-native.bat
-tests\docker-test-console-service-write-x64-native.bat
-tests\docker-test-hello-world-arm64-native.bat
-tests\docker-test-hello-world-cpp-arm64-native.bat
-tests\docker-test-console-service-write-arm64-native.bat
-tests\docker-test-hello-world-arm64-x64-emulator.bat
-tests\docker-test-hello-world-cpp-arm64-x64-emulator.bat
-tests\docker-test-console-service-write-arm64-x64-emulator.bat
+user\samples\hello_world\docker-test-hello-world-x64.bat
+user\samples\hello_world\docker-test-hello-world-arm64.bat
+user\samples\hello_world\docker-test-hello-world-x64-on-arm64.bat
 ```
 
-These wrappers rebuild the shared `ringos-ci` image from
-`tools/toolchain/Dockerfile`, then run the requested configure, build, and test or run
-sequence inside the container.
+The current sample-local Windows wrappers live under `user/samples/hello_world/`
+and call the shared `tests\docker-run-sample-test.bat` helper.
+
+That helper rebuilds the sample-test image from `tests/tests.Dockerfile`, mounts
+the repo-local `build/` directory read-only at `/host-build`, and keeps the
+active container build tree on Linux `tmpfs` at `/workspace/build`. If a local
+`ringos-toolchain-*.tar.xz` archive is present under the host `build/`
+directory, the helper copies it into tmpfs before invoking the sample script.
+Otherwise the sample flow downloads the latest published installed-toolchain
+bundle into tmpfs first. This keeps `build/toolchain` off the Windows bind
+mount while still preferring the newest local archive from the main checkout.
+
+The tmpfs size defaults to `4g`. Override it with
+`RINGOS_SAMPLE_BUILD_TMPFS_SIZE` when a lane needs more space.
+
+Outputs under `/workspace/build` are ephemeral in this mode. Use a manual Docker
+command when you need to inspect the in-container build tree after the test run.
 
 The toolchain release path uses the same `tools/toolchain/run-toolchain-release.sh`
 entry point that powers the manual `toolchain_release` GitHub Actions job. The
@@ -128,14 +136,13 @@ override the default volume name `ringos-toolchain-build`, and use
 `docker volume rm <name>` when you want to discard the cached toolchain build
 state.
 
-Before configuring, the Windows run/test wrappers mount the repo-local `build`
-directory into the container and run
-`tools/toolchain/download-latest-toolchain.sh --archive-dir /workspace/build --install-root /workspace/build/toolchain`. If a versioned `ringos-toolchain-*.tar.xz`
-archive is already present under the mounted `build` directory, the helper
-extracts that archive into `build/toolchain`. Otherwise it downloads the latest
-GitHub Release archive into `build/` first and then extracts it. The wrapper
-still fails immediately if no published release is available or the archive is
-incomplete.
+Before configuring, the sample test flow runs
+`tools/toolchain/download-latest-toolchain.sh --archive-dir /workspace/build --install-root /workspace/build/toolchain`
+inside tmpfs. If the wrapper copied a local `ringos-toolchain-*.tar.xz` archive
+into `/workspace/build`, the helper extracts that archive there. Otherwise it
+downloads the latest GitHub Release archive into tmpfs first and then extracts
+it. The wrapper still fails immediately if no published release is available or
+the archive is incomplete.
 
 When the repository is private, pass `GH_TOKEN` or `GITHUB_TOKEN` through the
 wrapper environment so the container can authenticate release downloads.

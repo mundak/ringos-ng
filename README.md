@@ -89,25 +89,27 @@ scripts\docker-run-os-arm64.bat
 Build and smoke-test a target from Windows:
 
 ```bat
-tests\docker-test-hello-world-x64-native.bat
-tests\docker-test-hello-world-cpp-x64-native.bat
-tests\docker-test-console-service-write-x64-native.bat
-tests\docker-test-hello-world-arm64-native.bat
-tests\docker-test-hello-world-cpp-arm64-native.bat
-tests\docker-test-console-service-write-arm64-native.bat
-tests\docker-test-hello-world-arm64-x64-emulator.bat
-tests\docker-test-hello-world-cpp-arm64-x64-emulator.bat
-tests\docker-test-console-service-write-arm64-x64-emulator.bat
+user\samples\hello_world\docker-test-hello-world-x64.bat
+user\samples\hello_world\docker-test-hello-world-arm64.bat
+user\samples\hello_world\docker-test-hello-world-x64-on-arm64.bat
 ```
 
-These wrappers now look for a versioned toolchain archive
-(`ringos-toolchain-YYYY.MM.DD.N.tar.xz`) under the repo-local `build`
-directory before configuring the tree. If one is already present, the wrappers
-extract that archive into `build/toolchain`. If no archive is present, they
-download the latest published release asset into `build/` first and then
-extract it into `build/toolchain`. The wrappers mount the repo-local `build`
-directory into `/workspace/build` so repeated local Docker runs reuse the same
-downloaded archive and extracted bundle instead of rebuilding it.
+The current sample-local Windows wrappers live under `user/samples/hello_world/`
+and delegate to `tests\docker-run-sample-test.bat`.
+
+That shared wrapper now keeps `/workspace/build` on Linux `tmpfs` and mounts the
+repo-local `build/` directory read-only at `/host-build`. If a versioned
+`ringos-toolchain-YYYY.MM.DD.N.tar.xz` archive is already present under the
+host `build/` directory, the wrapper copies it into tmpfs before running the
+sample test script. If no local archive is present, the test flow downloads the
+latest published release into tmpfs first. This avoids unpacking
+`build/toolchain` onto the Windows bind mount.
+
+The tmpfs size defaults to `4g`. Override it with
+`RINGOS_SAMPLE_BUILD_TMPFS_SIZE` if a local sample lane needs more space.
+
+Outputs under `/workspace/build` are ephemeral in this mode. Use a manual Docker
+invocation if you need to inspect the in-container build tree after the test.
 If the repository is private, set `GH_TOKEN` or `GITHUB_TOKEN` in the host
 environment so the container can authenticate release downloads instead of
 falling back to a local rebuild.

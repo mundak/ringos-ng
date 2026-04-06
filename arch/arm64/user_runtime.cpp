@@ -81,7 +81,7 @@ namespace
     translation_table root_table;
     translation_table lower_block_table;
     translation_table kernel_block_table;
-    alignas(LARGE_PAGE_SIZE) uint8_t user_region[USER_REGION_SIZE];
+    alignas(PAGE_SIZE) uint8_t user_region_storage[USER_REGION_SIZE + LARGE_PAGE_SIZE];
   };
 
   struct arm64_syscall_frame
@@ -254,6 +254,18 @@ namespace
     return (static_cast<uint64_t>(address) & ~0x1FFFFFULL) | flags | BLOCK_DESCRIPTOR;
   }
 
+  uintptr_t align_up(uintptr_t value, size_t alignment)
+  {
+    const uintptr_t alignment_mask = static_cast<uintptr_t>(alignment - 1);
+    return (value + alignment_mask) & ~alignment_mask;
+  }
+
+  uint8_t* get_user_region(arm64_process_storage& storage)
+  {
+    return reinterpret_cast<uint8_t*>(
+      align_up(reinterpret_cast<uintptr_t>(storage.user_region_storage), LARGE_PAGE_SIZE));
+  }
+
   void load_arm64_syscall_frame(arm64_syscall_frame* frame, const thread& current_thread)
   {
     if (frame == nullptr)
@@ -291,8 +303,9 @@ namespace
     storage.root_table.entries[0] = make_table_descriptor(reinterpret_cast<uintptr_t>(&storage.lower_block_table));
     storage.root_table.entries[KERNEL_ROOT_INDEX]
       = make_table_descriptor(reinterpret_cast<uintptr_t>(&storage.kernel_block_table));
+    uint8_t* const user_region = get_user_region(storage);
     storage.lower_block_table.entries[USER_BLOCK_INDEX] = make_block_descriptor(
-      reinterpret_cast<uintptr_t>(storage.user_region),
+      reinterpret_cast<uintptr_t>(user_region),
       ATTRIBUTE_INDEX_NORMAL | ACCESS_PERMISSION_USER_RW | INNER_SHAREABLE | ACCESS_FLAG);
 
     for (uint32_t block_index = 0; block_index < KERNEL_BLOCK_COUNT; ++block_index)
@@ -311,6 +324,7 @@ namespace
   uintptr_t arm64_initial_user_runtime_platform::initialize_arm64_pe_image(
     const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage)
   {
+    uint8_t* const user_region = get_user_region(storage);
     const pe_image_load_config load_config {
       .expected_machine = PE_MACHINE_ARM64,
       .expected_image_base = USER_REGION_VIRTUAL_ADDRESS,
@@ -322,7 +336,7 @@ namespace
     };
     pe_image_load_result load_result {};
     const pe_image_load_status load_status
-      = load_pe32_plus_image(image_bytes, image_size, storage.user_region, load_config, &load_result);
+      = load_pe32_plus_image(image_bytes, image_size, user_region, load_config, &load_result);
 
     if (load_status != PE_IMAGE_LOAD_STATUS_OK)
     {
@@ -335,14 +349,16 @@ namespace
   uintptr_t arm64_initial_user_runtime_platform::initialize_x64_emulator_image(
     const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage)
   {
-    memset(storage.user_region, 0, sizeof(storage.user_region));
+    uint8_t* const user_region = get_user_region(storage);
+
+    memset(user_region, 0, USER_REGION_SIZE);
 
     x64_pe64_image_info image_info {};
     const x64_pe64_image_load_status load_status = load_x64_pe64_image(
       image_bytes,
       image_size,
       X64_USER_IMAGE_VIRTUAL_ADDRESS,
-      storage.user_region,
+      user_region,
       X64_USER_REGION_SIZE,
       &INITIAL_WINDOWS_IMPORT_RESOLVER,
       &image_info);
@@ -352,7 +368,7 @@ namespace
       panic(describe_x64_pe64_image_load_status(load_status));
     }
 
-    *reinterpret_cast<uint64_t*>(storage.user_region + X64_USER_REGION_SIZE - sizeof(uint64_t)) = 0;
+    *reinterpret_cast<uint64_t*>(user_region + X64_USER_REGION_SIZE - sizeof(uint64_t)) = 0;
     return image_info.entry_point;
   }
 
@@ -365,20 +381,21 @@ namespace
   {
     initialize_process_storage(storage);
     initialize_translation_tables(storage);
+    uint8_t* const user_region = get_user_region(storage);
     const uintptr_t entry_point
       = initialize_arm64_pe_image(image_start, static_cast<size_t>(image_end - image_start), storage);
 
     address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.root_table);
     address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
     address_space_info.user_size = USER_REGION_SIZE;
-    address_space_info.user_host_base = reinterpret_cast<uintptr_t>(storage.user_region);
+    address_space_info.user_host_base = reinterpret_cast<uintptr_t>(user_region);
     address_space_info.rpc_transfer_user_address = X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
     address_space_info.rpc_transfer_host_address = reinterpret_cast<uintptr_t>(
-      storage.user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
+      user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
     address_space_info.rpc_transfer_size = PAGE_SIZE;
     address_space_info.device_memory_user_address = X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS;
     address_space_info.device_memory_host_address = reinterpret_cast<uintptr_t>(
-      storage.user_region + (X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
+      user_region + (X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
     address_space_info.device_memory_size = PAGE_SIZE;
 
     thread_context_info.instruction_pointer = entry_point;
@@ -396,20 +413,21 @@ namespace
   {
     initialize_process_storage(storage);
     initialize_translation_tables(storage);
+    uint8_t* const user_region = get_user_region(storage);
     const uintptr_t entry_point
       = initialize_x64_emulator_image(image_start, static_cast<size_t>(image_end - image_start), storage);
 
     address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.root_table);
     address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
     address_space_info.user_size = X64_USER_REGION_SIZE;
-    address_space_info.user_host_base = reinterpret_cast<uintptr_t>(storage.user_region);
+    address_space_info.user_host_base = reinterpret_cast<uintptr_t>(user_region);
     address_space_info.rpc_transfer_user_address = X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
     address_space_info.rpc_transfer_host_address = reinterpret_cast<uintptr_t>(
-      storage.user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
+      user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
     address_space_info.rpc_transfer_size = PAGE_SIZE;
     address_space_info.device_memory_user_address = X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS;
     address_space_info.device_memory_host_address = reinterpret_cast<uintptr_t>(
-      storage.user_region + (X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
+      user_region + (X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
     address_space_info.device_memory_size = PAGE_SIZE;
 
     thread_context_info.instruction_pointer = entry_point;
@@ -626,7 +644,7 @@ namespace
         = initial_thread.get_user_context().stack_pointer;
       const x64_emulator_memory memory {
         X64_USER_IMAGE_VIRTUAL_ADDRESS,
-        m_process_storage[0].user_region,
+        get_user_region(m_process_storage[0]),
         X64_USER_REGION_SIZE,
       };
       const x64_emulator_callbacks callbacks {

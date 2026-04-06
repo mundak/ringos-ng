@@ -131,6 +131,7 @@ function(
       COMMENT "Building embedded arm64 PE64 test app against the extracted ringos toolchain bundle"
       VERBATIM)
   elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".cpp")
+    # Temporary workaround for the current arm64 Windows-target LLVM frame-lowering crash.
     add_custom_command(
       OUTPUT ${ARM64_TEST_APP_IMAGE_OBJECT}
       COMMAND ${ARM64_TEST_APP_CLANGXX}
@@ -140,6 +141,7 @@ function(
               -Wall
               -Wextra
               -Wpedantic
+          -fomit-frame-pointer
               ${ARM64_TEST_APP_SOURCE}
               -o ${ARM64_TEST_APP_WINDOWS_EXE}
       COMMAND ${CMAKE_COMMAND} -E copy ${ARM64_TEST_APP_WINDOWS_EXE} ${ARM64_TEST_APP_IMAGE}
