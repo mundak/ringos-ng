@@ -1,5 +1,8 @@
 # ringos-ng
 
+[![x64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64.yml)
+[![arm64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-arm64.yml)
+
 ringos-ng is a bare-metal operating system project targeting x64 and arm64. 
 
 ## Supported Targets
