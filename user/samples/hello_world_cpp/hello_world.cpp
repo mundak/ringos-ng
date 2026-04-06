@@ -1,5 +1,7 @@
+#include <ringos/debug.h>
+#include <ringos/status.h>
+
 #include <cstdint>
-#include <stdio.h>
 #include <type_traits>
 
 namespace
@@ -9,7 +11,10 @@ namespace
   class greeting_initializer
   {
   public:
-    greeting_initializer() { g_status = std::is_integral<int32_t>::value ? 0 : 1; }
+    greeting_initializer()
+    {
+      g_status = std::is_integral<int32_t>::value ? 0 : 1;
+    }
   };
 
   greeting_initializer g_initializer {};
@@ -22,7 +27,7 @@ int main()
     return g_status;
   }
 
-  if (puts("hello world from libc++") == EOF)
+  if (ringos_debug_log("hello world from libc++") != RINGOS_STATUS_OK)
   {
     return 1;
   }

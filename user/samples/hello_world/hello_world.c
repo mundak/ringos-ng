@@ -1,8 +1,9 @@
-#include <stdio.h>
+#include <ringos/debug.h>
+#include <ringos/status.h>
 
 int main(void)
 {
-  if (puts("hello world from ANSI C") == EOF)
+  if (ringos_debug_log("hello world from ANSI C") != RINGOS_STATUS_OK)
   {
     return 1;
   }
