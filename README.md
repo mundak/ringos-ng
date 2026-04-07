@@ -1,11 +1,7 @@
 # ringos-ng
 
-[![x64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64.yml)
-[![arm64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-arm64.yml)
-[![x64 on arm64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64-on-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64-on-arm64.yml)
-[![x64 C++ CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64.yml)
-[![arm64 C++ CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-arm64.yml)
-[![x64 on arm64 C++ CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64-on-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64-on-arm64.yml)
+[![hello_world CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world.yml)
+[![hello_world_cpp CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp.yml)
 
 ringos-ng is a bare-metal operating system project targeting x64 and arm64. 
 

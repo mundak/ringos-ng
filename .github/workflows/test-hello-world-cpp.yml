@@ -1,0 +1,55 @@
+name: test-hello-world-cpp
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: test-hello-world-cpp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test_hello_world_cpp:
+    name: hello_world_cpp (${{ matrix.display_name }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: x64
+            display_name: x64
+            script_path: user/samples/hello_world_cpp/test-hello-world-cpp-x64.sh
+          - lane: arm64
+            display_name: arm64
+            script_path: user/samples/hello_world_cpp/test-hello-world-cpp-arm64.sh
+          - lane: x64-on-arm64
+            display_name: x64 on arm64 emulator path
+            script_path: user/samples/hello_world_cpp/test-hello-world-cpp-x64-on-arm64.sh
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build sample test container
+        run: |
+          docker build -f tests/tests.Dockerfile -t ringos-sample-tests .
+
+      - name: Run hello world C++ sample test (${{ matrix.display_name }})
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/ringos-build"
+
+          docker run --rm \
+            -e GH_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -v "${RUNNER_TEMP}/ringos-build:/workspace/build" \
+            ringos-sample-tests \
+            bash -lc "${{ matrix.script_path }}"
