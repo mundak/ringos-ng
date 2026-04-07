@@ -11,6 +11,15 @@ if(DEFINED RINGOS_TEST_APP_HELLO_WORLD_X64_BINARY AND NOT RINGOS_TEST_APP_HELLO_
     BINARY_PATH ${RINGOS_TEST_APP_HELLO_WORLD_X64_BINARY})
 endif()
 
+set(RINGOS_X64_HELLO_WORLD_CPP_TEST_APP_ARGS
+  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp
+  PROJECT_TARGET hello_world_cpp)
+
+if(DEFINED RINGOS_TEST_APP_HELLO_WORLD_CPP_X64_BINARY AND NOT RINGOS_TEST_APP_HELLO_WORLD_CPP_X64_BINARY STREQUAL "")
+  set(RINGOS_X64_HELLO_WORLD_CPP_TEST_APP_ARGS
+    BINARY_PATH ${RINGOS_TEST_APP_HELLO_WORLD_CPP_X64_BINARY})
+endif()
+
 ringos_add_embedded_x64_test_app(
   ringos_x64_console_driver
   elf64-x86-64
@@ -33,8 +42,7 @@ ringos_add_embedded_x64_test_app(
   i386:x86-64
   X64_HELLO_WORLD_CPP_IMAGE_OBJECT
   BINARY_STEM ringos_hello_world_cpp_x64_pe64_image
-  PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp
-  PROJECT_TARGET hello_world_cpp)
+  ${RINGOS_X64_HELLO_WORLD_CPP_TEST_APP_ARGS})
 
 ringos_add_embedded_x64_test_app(
   ringos_x64_console_service_write_test_app

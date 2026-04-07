@@ -83,10 +83,14 @@ Build and smoke-test a target:
 user\samples\hello_world\docker-test-hello-world-x64.bat
 user\samples\hello_world\docker-test-hello-world-arm64.bat
 user\samples\hello_world\docker-test-hello-world-x64-on-arm64.bat
+user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64.bat
+user\samples\hello_world_cpp\docker-test-hello-world-cpp-arm64.bat
+user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64-on-arm64.bat
 ```
 
 The current sample-local Windows wrappers live under `user/samples/hello_world/`
-and call the shared `tests\docker-run-sample-test.bat` helper.
+and `user/samples/hello_world_cpp/` and call the shared
+`tests\docker-run-sample-test.bat` helper.
 
 That helper rebuilds the sample-test image from `tests/tests.Dockerfile`, mounts
 the repo-local `build/` directory read-only at `/host-build`, and keeps the

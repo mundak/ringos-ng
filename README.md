@@ -3,6 +3,9 @@
 [![x64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64.yml)
 [![arm64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-arm64.yml)
 [![x64 on arm64 CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64-on-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-x64-on-arm64.yml)
+[![x64 C++ CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64.yml)
+[![arm64 C++ CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-arm64.yml)
+[![x64 on arm64 C++ CI](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64-on-arm64.yml/badge.svg?branch=main)](https://github.com/mundak/ringos-ng/actions/workflows/test-hello-world-cpp-x64-on-arm64.yml)
 
 ringos-ng is a bare-metal operating system project targeting x64 and arm64. 
 
@@ -96,10 +99,14 @@ Build and smoke-test a target from Windows:
 user\samples\hello_world\docker-test-hello-world-x64.bat
 user\samples\hello_world\docker-test-hello-world-arm64.bat
 user\samples\hello_world\docker-test-hello-world-x64-on-arm64.bat
+user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64.bat
+user\samples\hello_world_cpp\docker-test-hello-world-cpp-arm64.bat
+user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64-on-arm64.bat
 ```
 
 The current sample-local Windows wrappers live under `user/samples/hello_world/`
-and delegate to `tests\docker-run-sample-test.bat`.
+and `user/samples/hello_world_cpp/` and delegate to
+`tests\docker-run-sample-test.bat`.
 
 That shared wrapper now keeps `/workspace/build` on Linux `tmpfs` and mounts the
 repo-local `build/` directory read-only at `/host-build`. If a versioned

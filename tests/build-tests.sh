@@ -92,13 +92,28 @@ case "${kernel_target}" in
     expected_kernel_banner_line="[gdb] ringos x64"
     expected_runtime_ready_line="[gdb] x64 initial user runtime ready"
     ;;
+  ringos_x64_hello_world_cpp)
+    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_CPP_X64_BINARY=${sample_executable}"
+    expected_kernel_banner_line="[gdb] ringos x64"
+    expected_runtime_ready_line="[gdb] x64 initial user runtime ready"
+    ;;
   ringos_arm64)
     kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_ARM64_BINARY=${sample_executable}"
     expected_kernel_banner_line="[gdb] ringos arm64"
     expected_runtime_ready_line="[gdb] arm64 initial user runtime ready"
     ;;
+  ringos_arm64_hello_world_cpp)
+    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_CPP_ARM64_BINARY=${sample_executable}"
+    expected_kernel_banner_line="[gdb] ringos arm64"
+    expected_runtime_ready_line="[gdb] arm64 initial user runtime ready"
+    ;;
   ringos_arm64_x64_emulator)
     kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_X64_BINARY=${sample_executable}"
+    expected_kernel_banner_line="[gdb] ringos arm64"
+    expected_runtime_ready_line="[gdb] arm64 x64 emulator runtime ready"
+    ;;
+  ringos_arm64_x64_emulator_hello_world_cpp)
+    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_CPP_X64_BINARY=${sample_executable}"
     expected_kernel_banner_line="[gdb] ringos arm64"
     expected_runtime_ready_line="[gdb] arm64 x64 emulator runtime ready"
     ;;
