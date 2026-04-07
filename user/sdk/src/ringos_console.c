@@ -23,13 +23,13 @@ int32_t ringos_console_get_info(ringos_handle channel_handle, ringos_console_get
 
   ringos_rpc_request request = { 0 };
   request.operation = RINGOS_CONSOLE_OPERATION_GET_INFO;
-
   ringos_rpc_response response = { 0 };
-  const int32_t transport_status = ringos_rpc_call(channel_handle, &request, &response);
 
-  if (transport_status != RINGOS_STATUS_OK)
+  const ringos_rpc_status call_status = ringos_rpc_call(channel_handle, &request, &response);
+
+  if (call_status != RINGOS_STATUS_OK)
   {
-    return transport_status;
+    return call_status;
   }
 
   if (response.status != RINGOS_STATUS_OK)
@@ -58,13 +58,13 @@ int32_t ringos_console_write(
   request.operation = RINGOS_CONSOLE_OPERATION_WRITE;
   request.argument0 = (uintptr_t) buffer;
   request.argument1 = (uintptr_t) buffer_size;
-
   ringos_rpc_response response = { 0 };
-  const int32_t transport_status = ringos_rpc_call(channel_handle, &request, &response);
 
-  if (transport_status != RINGOS_STATUS_OK)
+  const ringos_rpc_status call_status = ringos_rpc_call(channel_handle, &request, &response);
+
+  if (call_status != RINGOS_STATUS_OK)
   {
-    return transport_status;
+    return call_status;
   }
 
   if (out_bytes_written != NULL)
