@@ -104,7 +104,10 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   set(bundle_sysroot_dir ${bundle_root}/sysroots/${native_target_triple})
   set(bundle_share_dir ${bundle_root}/share/ringos)
   set(bundle_cmake_dir ${bundle_root}/cmake)
+  set(bundle_cmake_modules_dir ${bundle_cmake_dir}/modules)
+  set(bundle_platform_dir ${bundle_cmake_modules_dir}/Platform)
   set(bundle_toolchain_file ${bundle_cmake_dir}/ringos-${target_arch}-toolchain.cmake)
+  set(bundle_platform_file ${bundle_platform_dir}/RingOS.cmake)
   set(bundle_manifest_file ${bundle_share_dir}/toolchain-manifest-${target_arch}.json)
   set(bundle_runtime_manifest_file ${bundle_share_dir}/runtime-manifest-${target_arch}.txt)
   set(bundle_compile_config ${bundle_share_dir}/compile-${target_arch}.cfg)
@@ -119,6 +122,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
   set(compile_config_source ${generated_root}/compile-${target_arch}.cfg)
   set(link_config_source ${generated_root}/link-${target_arch}.cfg)
   set(generic_toolchain_source ${generated_root}/ringos-toolchain.cmake)
+  set(platform_module_source ${RINGOS_REPO_ROOT}/tools/toolchain/modules/Platform/RingOS.cmake)
 
   file(MAKE_DIRECTORY ${generated_root})
 
@@ -173,10 +177,11 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     "set(RINGOS_SYSROOT_COMPILER_RT_LIBRARY \"\${RINGOS_SYSROOT_LIB_DIR}/clang_rt.builtins.lib\")\n"
     "set(RINGOS_CLANG_COMPILE_CONFIG \"\${RINGOS_SHARE_DIR}/compile-${target_arch}.cfg\")\n"
     "set(RINGOS_CLANG_LINK_CONFIG \"\${RINGOS_SHARE_DIR}/link-${target_arch}.cfg\")\n"
-    "set(CMAKE_SYSTEM_NAME Generic)\n"
+    "get_filename_component(RINGOS_CMAKE_MODULE_DIR \"\${RINGOS_TOOLCHAIN_ROOT}/cmake/modules\" ABSOLUTE)\n"
+    "list(PREPEND CMAKE_MODULE_PATH \"\${RINGOS_CMAKE_MODULE_DIR}\")\n"
+    "set(CMAKE_SYSTEM_NAME RingOS)\n"
     "set(CMAKE_SYSTEM_PROCESSOR ${system_processor})\n"
     "set(CMAKE_TRY_COMPILE_TARGET_TYPE EXECUTABLE)\n"
-    "set(CMAKE_EXECUTABLE_SUFFIX \".exe\")\n"
     "set(CMAKE_C_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clang_name}\")\n"
     "set(CMAKE_CXX_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clangxx_name}\")\n"
     "set(CMAKE_ASM_COMPILER \"\${RINGOS_TOOLCHAIN_ROOT}/bin/${toolchain_clang_name}\")\n"
@@ -259,6 +264,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
       COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_lib_dir}/clang
       COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_share_dir}
       COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_cmake_dir}
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${bundle_platform_dir}
       COMMAND ${CMAKE_COMMAND} -E remove_directory ${bundle_sysroot_dir}
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${RINGOS_SDK_SYSROOT_DIR} ${bundle_sysroot_dir}
       COMMAND ${CMAKE_COMMAND} -E copy_directory ${clang_resource_dir} ${bundle_resource_dir}
@@ -271,6 +277,7 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY} ${bundle_bin_dir}/${toolchain_llvm_objcopy_name}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${compile_config_source} ${bundle_compile_config}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${link_config_source} ${bundle_link_config}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${platform_module_source} ${bundle_platform_file}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${toolchain_file_source} ${bundle_toolchain_file}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${manifest_file_source} ${bundle_manifest_file}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${runtime_manifest_source} ${bundle_runtime_manifest_file}
@@ -289,12 +296,14 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
         ${RINGOS_TOOLCHAIN_LLVM_RANLIB}
         ${RINGOS_TOOLCHAIN_LLVM_OBJCOPY}
         ${clang_resource_files}
+        ${platform_module_source}
         ${compile_config_source}
         ${link_config_source}
         ${toolchain_file_source}
         ${manifest_file_source}
         ${runtime_manifest_source}
       BYPRODUCTS
+        ${bundle_platform_file}
         ${bundle_toolchain_file}
         ${bundle_manifest_file}
         ${bundle_runtime_manifest_file}

@@ -88,6 +88,8 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
   set(cxx_include_dir ${include_dir}/c++/v1)
   set(lib_dir ${sysroot_dir}/lib)
   set(share_dir ${sysroot_dir}/share/ringos)
+  set(cmake_module_dir ${share_dir}/cmake/modules)
+  set(platform_dir ${cmake_module_dir}/Platform)
   set(sysroot_library ${lib_dir}/ringos_sdk.lib)
   set(sysroot_libc ${lib_dir}/ringos_c.lib)
   set(sysroot_compiler_rt ${lib_dir}/clang_rt.builtins.lib)
@@ -95,6 +97,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
   set(compile_config ${share_dir}/bootstrap-compile.cfg)
   set(link_config ${share_dir}/bootstrap-link.cfg)
   set(toolchain_file ${share_dir}/bootstrap-toolchain.cmake)
+  set(platform_module ${platform_dir}/RingOS.cmake)
   set(target_triple_file ${share_dir}/target-triple.txt)
   set(runtime_manifest ${share_dir}/runtime-manifest.txt)
   set(stamp_file ${share_dir}/sysroot.stamp)
@@ -151,8 +154,10 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(compiler_rt_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/compiler_rt/src/builtins.c)
 
     if(target_arch STREQUAL "x64")
+      set(system_processor x86_64)
       set(syscall_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/x64/ringos_syscall.S)
     elseif(target_arch STREQUAL "arm64")
+      set(system_processor aarch64)
       set(syscall_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/arm64/ringos_syscall.S)
     else()
       message(FATAL_ERROR "Unsupported ringos SDK target architecture: ${target_arch}")
@@ -189,6 +194,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(compile_config_source ${generated_root}/bootstrap-compile.cfg)
     set(link_config_source ${generated_root}/bootstrap-link.cfg)
     set(toolchain_file_source ${generated_root}/bootstrap-toolchain.cmake)
+    set(platform_module_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/tools/toolchain/modules/Platform/RingOS.cmake)
     set(target_triple_file_source ${generated_root}/target-triple.txt)
     set(runtime_manifest_source ${generated_root}/runtime-manifest.txt)
 
@@ -224,7 +230,11 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     string(CONCAT toolchain_contents
       "get_filename_component(RINGOS_SHARE_DIR \"\${CMAKE_CURRENT_LIST_DIR}\" ABSOLUTE)\n"
       "get_filename_component(RINGOS_SYSROOT_DIR \"\${RINGOS_SHARE_DIR}/../..\" ABSOLUTE)\n"
+      "get_filename_component(RINGOS_CMAKE_MODULE_DIR \"\${RINGOS_SHARE_DIR}/cmake/modules\" ABSOLUTE)\n"
+      "list(PREPEND CMAKE_MODULE_PATH \"\${RINGOS_CMAKE_MODULE_DIR}\")\n"
       "set(RINGOS_TARGET_TRIPLE \"${target_triple}\")\n"
+      "set(CMAKE_SYSTEM_NAME RingOS)\n"
+      "set(CMAKE_SYSTEM_PROCESSOR ${system_processor})\n"
       "set(RINGOS_SYSROOT_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include\")\n"
       "set(RINGOS_SYSROOT_CXX_INCLUDE_DIR \"\${RINGOS_SYSROOT_DIR}/include/c++/v1\")\n"
       "set(RINGOS_SYSROOT_LIB_DIR \"\${RINGOS_SYSROOT_DIR}/lib\")\n"
@@ -307,6 +317,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
           COMMAND ${CMAKE_COMMAND} -E make_directory ${include_dir}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${lib_dir}
           COMMAND ${CMAKE_COMMAND} -E make_directory ${share_dir}
+          COMMAND ${CMAKE_COMMAND} -E make_directory ${platform_dir}
           COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -ffreestanding
@@ -492,6 +503,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${staging_compiler_rt} ${sysroot_compiler_rt}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${compile_config_source} ${compile_config}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${link_config_source} ${link_config}
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${platform_module_source} ${platform_module}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${toolchain_file_source} ${toolchain_file}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${target_triple_file_source} ${target_triple_file}
       COMMAND ${CMAKE_COMMAND} -E copy_if_different ${runtime_manifest_source} ${runtime_manifest}
@@ -517,6 +529,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${compiler_rt_source}
         ${compile_config_source}
         ${link_config_source}
+        ${platform_module_source}
         ${toolchain_file_source}
         ${target_triple_file_source}
         ${runtime_manifest_source}
@@ -527,6 +540,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${sysroot_compiler_rt}
         ${compile_config}
         ${link_config}
+        ${platform_module}
         ${toolchain_file}
         ${target_triple_file}
         ${runtime_manifest}
