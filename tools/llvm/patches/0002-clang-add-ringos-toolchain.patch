@@ -1,9 +1,9 @@
 diff --git a/clang/lib/Basic/Targets/OSTargets.h b/clang/lib/Basic/Targets/OSTargets.h
-index 64a267c..aca80c2 100644
+index 4366c11..65ae421 100644
 --- a/clang/lib/Basic/Targets/OSTargets.h
 +++ b/clang/lib/Basic/Targets/OSTargets.h
-@@ -857,6 +857,19 @@ public:
-   using OSTargetInfo<Target>::OSTargetInfo;
+@@ -873,6 +873,19 @@ public:
+   }
  };
  
 +template <typename Target>
@@ -19,14 +19,14 @@ index 64a267c..aca80c2 100644
 +  using OSTargetInfo<Target>::OSTargetInfo;
 +};
 +
- void addWindowsDefines(const llvm::Triple &Triple, const LangOptions &Opts,
-                        MacroBuilder &Builder);
-
+ // WebAssembly target
+ template <typename Target>
+ class LLVM_LIBRARY_VISIBILITY WebAssemblyOSTargetInfo
 diff --git a/clang/lib/Basic/Targets.cpp b/clang/lib/Basic/Targets.cpp
-index e328351..c3cdee7 100644
+index e328351..949f686 100644
 --- a/clang/lib/Basic/Targets.cpp
 +++ b/clang/lib/Basic/Targets.cpp
-@@ -174,6 +174,13 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
+@@ -174,6 +174,9 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
        default: // Assume MSVC for unknown environments
          return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
        }
@@ -36,17 +36,17 @@ index e328351..c3cdee7 100644
      default:
        return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
      }
-@@ -648,6 +645,8 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
-       default: // Assume MSVC for unknown environments
+@@ -636,6 +639,8 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
          return std::make_unique<MicrosoftX86_64TargetInfo>(Triple, Opts);
        }
+     }
 +    case llvm::Triple::Ringos:
 +      return std::make_unique<RingOSTargetInfo<X86_64TargetInfo>>(Triple, Opts);
      case llvm::Triple::Haiku:
        return std::make_unique<HaikuTargetInfo<X86_64TargetInfo>>(Triple, Opts);
-     case llvm::Triple::PS4:
+     case llvm::Triple::NaCl:
 diff --git a/clang/lib/Driver/CMakeLists.txt b/clang/lib/Driver/CMakeLists.txt
-index 58427e3..fe8fc886 100644
+index 58427e3..fe8fc88 100644
 --- a/clang/lib/Driver/CMakeLists.txt
 +++ b/clang/lib/Driver/CMakeLists.txt
 @@ -75,6 +75,7 @@ add_clang_library(clangDriver
@@ -401,10 +401,10 @@ index 0000000..91942f6
 +#endif // LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_RINGOS_H
 diff --git a/clang/test/Driver/ringos.c b/clang/test/Driver/ringos.c
 new file mode 100644
-index 0000000..7f36d4d
+index 0000000..f8d03d3
 --- /dev/null
 +++ b/clang/test/Driver/ringos.c
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,35 @@
 +// RUN: mkdir -p %t-sdk/include %t-sdk/lib
 +// RUN: touch %t-sdk/lib/crt0.obj %t-sdk/lib/ringos_sdk.lib %t-sdk/lib/ringos_c.lib %t-sdk/lib/clang_rt.builtins.lib
 +// RUN: %clang --target=x86_64-unknown-ringos-msvc --sysroot=%t-sdk -### %s 2>&1 | FileCheck %s --check-prefix=X64
