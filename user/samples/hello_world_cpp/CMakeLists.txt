@@ -18,11 +18,6 @@ add_executable(hello_world_cpp
   hello_world.cpp
 )
 
-target_compile_definitions(hello_world_cpp
-  PRIVATE
-    _LIBCPP_OBJECT_FORMAT_COFF
-)
-
 target_compile_options(hello_world_cpp
   PRIVATE
     -fno-ms-compatibility

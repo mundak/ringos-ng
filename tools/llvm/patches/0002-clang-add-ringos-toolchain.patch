@@ -1,3 +1,27 @@
+diff --git a/clang/lib/Basic/Targets/OSTargets.h b/clang/lib/Basic/Targets/OSTargets.h
+index 64a267c..aca80c2 100644
+--- a/clang/lib/Basic/Targets/OSTargets.h
++++ b/clang/lib/Basic/Targets/OSTargets.h
+@@ -857,6 +857,19 @@ public:
+   using OSTargetInfo<Target>::OSTargetInfo;
+ };
+ 
++template <typename Target>
++class LLVM_LIBRARY_VISIBILITY RingOSTargetInfo : public OSTargetInfo<Target> {
++protected:
++  void getOSDefines(const LangOptions &Opts, const llvm::Triple &,
++                    MacroBuilder &Builder) const override {
++    DefineStd(Builder, "ringos", Opts);
++    this->PlatformName = "ringos";
++  }
++
++public:
++  using OSTargetInfo<Target>::OSTargetInfo;
++};
++
+ void addWindowsDefines(const llvm::Triple &Triple, const LangOptions &Opts,
+                        MacroBuilder &Builder);
+
 diff --git a/clang/lib/Basic/Targets.cpp b/clang/lib/Basic/Targets.cpp
 index e328351..c3cdee7 100644
 --- a/clang/lib/Basic/Targets.cpp
@@ -7,15 +31,20 @@ index e328351..c3cdee7 100644
          return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
        }
 +    case llvm::Triple::Ringos:
-+      switch (Triple.getEnvironment()) {
-+      case llvm::Triple::MSVC:
-+        return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
-+      default:
-+        return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
-+      }
++      return std::make_unique<RingOSTargetInfo<AArch64leTargetInfo>>(Triple,
++                                                                     Opts);
      default:
        return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
      }
+@@ -648,6 +645,8 @@ std::unique_ptr<TargetInfo> AllocateTarget(const llvm::Triple &Triple,
+       default: // Assume MSVC for unknown environments
+         return std::make_unique<MicrosoftX86_64TargetInfo>(Triple, Opts);
+       }
++    case llvm::Triple::Ringos:
++      return std::make_unique<RingOSTargetInfo<X86_64TargetInfo>>(Triple, Opts);
+     case llvm::Triple::Haiku:
+       return std::make_unique<HaikuTargetInfo<X86_64TargetInfo>>(Triple, Opts);
+     case llvm::Triple::PS4:
 diff --git a/clang/lib/Driver/CMakeLists.txt b/clang/lib/Driver/CMakeLists.txt
 index 58427e3..fe8fc886 100644
 --- a/clang/lib/Driver/CMakeLists.txt
@@ -372,16 +401,18 @@ index 0000000..91942f6
 +#endif // LLVM_CLANG_LIB_DRIVER_TOOLCHAINS_RINGOS_H
 diff --git a/clang/test/Driver/ringos.c b/clang/test/Driver/ringos.c
 new file mode 100644
-index 0000000..d908b86
+index 0000000..7f36d4d
 --- /dev/null
 +++ b/clang/test/Driver/ringos.c
-@@ -0,0 +1,23 @@
+@@ -0,0 +1,33 @@
 +// RUN: mkdir -p %t-sdk/include %t-sdk/lib
 +// RUN: touch %t-sdk/lib/crt0.obj %t-sdk/lib/ringos_sdk.lib %t-sdk/lib/ringos_c.lib %t-sdk/lib/clang_rt.builtins.lib
 +// RUN: %clang --target=x86_64-unknown-ringos-msvc --sysroot=%t-sdk -### %s 2>&1 | FileCheck %s --check-prefix=X64
 +// RUN: %clang --target=aarch64-unknown-ringos-msvc --sysroot=%t-sdk -### %s 2>&1 | FileCheck %s --check-prefix=AARCH64
 +// RUN: %clang --target=x86_64-unknown-ringos-msvc --sysroot=%t-sdk -### -c %s 2>&1 | FileCheck %s --check-prefix=CC1
 +// RUN: %clang_cc1 -triple aarch64-unknown-ringos-msvc -emit-llvm -o - %s | FileCheck %s --check-prefix=CC1-AARCH64
++// RUN: %clang_cc1 -triple x86_64-unknown-ringos-msvc -E -dM -x c %s | FileCheck %s --check-prefix=MACROS-X64
++// RUN: %clang_cc1 -triple aarch64-unknown-ringos-msvc -E -dM -x c %s | FileCheck %s --check-prefix=MACROS-AARCH64
 +
 +// X64: "lld-link"
 +// X64: "/machine:x64"
@@ -399,3 +430,13 @@ index 0000000..d908b86
 +
 +// CC1: "-isystem" "{{.*}}include"
 +// CC1-AARCH64: target datalayout = "e-m:w-p:64:64-i32:32-i64:64-i128:128-n32:64-S128"
++
++// MACROS-X64: #define __ringos__ 1
++// MACROS-X64-NOT: #define _WIN32
++// MACROS-X64-NOT: #define _WIN64
++
++// MACROS-AARCH64: #define __aarch64__ 1
++// MACROS-AARCH64: #define __ringos__ 1
++// MACROS-AARCH64-NOT: #define _WIN32
++// MACROS-AARCH64-NOT: #define _WIN64
++// MACROS-AARCH64-NOT: #define _M_ARM64
