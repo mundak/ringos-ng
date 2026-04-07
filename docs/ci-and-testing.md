@@ -242,7 +242,7 @@ developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose eleven separately
+The current GitHub Actions setup should continue to expose twelve separately
 tracked CI workflows:
 
 1. `x64_emulator_unit`
@@ -256,6 +256,7 @@ tracked CI workflows:
 9. `sample_hello_world_arm64_x64_emulator`
 10. `sample_hello_world_cpp_arm64_x64_emulator`
 11. `sample_console_service_write_arm64_x64_emulator`
+12. `sample_hello_world_x64_on_arm64`
 
 Each workflow installs the Linux dependency set and builds the matching target.
 Most workflows then run exactly one scenario-specific CTest preset.
