@@ -18,11 +18,6 @@ add_executable(hello_world
   hello_world.c
 )
 
-set_target_properties(hello_world
-  PROPERTIES
-    SUFFIX ".exe"
-)
-
 target_compile_options(hello_world
   PRIVATE
     -O2
