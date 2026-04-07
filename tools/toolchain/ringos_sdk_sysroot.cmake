@@ -8,7 +8,7 @@ function(ringos_get_sdk_target_triple target_arch out_target_triple)
   if(target_arch STREQUAL "x64")
     set(target_triple x86_64-unknown-ringos-msvc)
   elseif(target_arch STREQUAL "arm64")
-    set(target_triple aarch64-pc-windows-msvc)
+    set(target_triple aarch64-unknown-ringos-msvc)
   else()
     message(FATAL_ERROR "Unsupported ringos SDK target architecture: ${target_arch}")
   endif()
@@ -30,7 +30,8 @@ function(ringos_get_libcxx_include_dir out_include_dir)
   if(DEFINED libcxx_source_dir)
     set(libcxx_include_dir ${libcxx_source_dir}/include)
   else()
-    set(libcxx_include_dir "")
+    ringos_get_active_llvm_root(active_llvm_root)
+    set(libcxx_include_dir ${active_llvm_root}/include/c++/v1)
   endif()
 
   if(EXISTS ${libcxx_include_dir}/__config)
@@ -213,8 +214,11 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(compile_config_lines
       --target=${target_triple}
       -fno-stack-protector
+      -nostdinc++
       -I
-      ${include_dir_for_config})
+      ${include_dir_for_config}
+      -isystem
+      ${cxx_include_dir})
     string(JOIN "\n" compile_config_contents ${compile_config_lines})
     string(APPEND compile_config_contents "\n")
 

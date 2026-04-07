@@ -138,10 +138,13 @@ function(ringos_generate_installed_toolchain_bundle target_arch out_target out_b
     --target=${native_target_triple}
     -fno-stack-protector
     -fno-builtin
+    -nostdinc++
     -resource-dir
     <CFGDIR>/../../lib/clang/${clang_resource_version}
     -I
-    <CFGDIR>/../../sysroots/${native_target_triple}/include)
+    <CFGDIR>/../../sysroots/${native_target_triple}/include
+    -isystem
+    <CFGDIR>/../../sysroots/${native_target_triple}/include/c++/v1)
   string(JOIN "\n" compile_config_contents ${compile_config_lines})
   string(APPEND compile_config_contents "\n")
 
