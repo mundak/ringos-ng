@@ -31,8 +31,8 @@ index e328351..949f686 100644
          return std::make_unique<MicrosoftARM64TargetInfo>(Triple, Opts);
        }
 +    case llvm::Triple::Ringos:
-+      return std::make_unique<RingOSTargetInfo<AArch64leTargetInfo>>(Triple,
-+                                                                     Opts);
++      return std::make_unique<RingOSTargetInfo<MicrosoftARM64TargetInfo>>(Triple,
++                                                                           Opts);
      default:
        return std::make_unique<AArch64leTargetInfo>(Triple, Opts);
      }
