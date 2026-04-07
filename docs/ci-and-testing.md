@@ -86,10 +86,11 @@ user\samples\hello_world\docker-test-hello-world-x64-on-arm64.bat
 user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64.bat
 user\samples\hello_world_cpp\docker-test-hello-world-cpp-arm64.bat
 user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64-on-arm64.bat
+user\samples\console_service_write\docker-test-console-service-write.bat
 ```
 
 The current sample-local Windows wrappers live under `user/samples/hello_world/`
-and `user/samples/hello_world_cpp/` and call the shared
+`user/samples/hello_world_cpp/`, and `user/samples/console_service_write/` and call the shared
 `tests\docker-run-sample-test.bat` helper.
 
 That helper rebuilds the sample-test image from `tests/tests.Dockerfile`, mounts

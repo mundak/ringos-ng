@@ -1,0 +1,51 @@
+name: test-console-service-write
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: test-console-service-write-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test_console_service_write:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: x64
+            display_name: x64
+          - lane: arm64
+            display_name: arm64
+          - lane: x64-on-arm64
+            display_name: x64 on arm64 emulator path
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build sample test container
+        run: |
+          docker build -f tests/tests.Dockerfile -t ringos-sample-tests .
+
+      - name: Run console_service_write sample test (${{ matrix.display_name }})
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/ringos-build"
+
+          docker run --rm \
+            -e GH_TOKEN \
+            -e GITHUB_REPOSITORY \
+            -v "${RUNNER_TEMP}/ringos-build:/workspace/build" \
+            ringos-sample-tests \
+            bash -lc "user/samples/console_service_write/test-console-service-write.sh ${{ matrix.lane }}"
