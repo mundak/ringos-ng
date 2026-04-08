@@ -1,5 +1,6 @@
 #include "qemu_arm64_virt_machine.h"
 
+#include "debug.h"
 #include "memory.h"
 
 namespace
@@ -184,6 +185,7 @@ namespace
 
     if (info.device_tree_blob_address == 0)
     {
+      debug_log("fdt: dtb address is zero");
       return false;
     }
 
@@ -192,14 +194,18 @@ namespace
 
     if (magic != FDT_MAGIC)
     {
+      debug_log("fdt: bad magic");
       return false;
     }
+
+    debug_log("fdt: magic ok");
 
     const size_t total_size
       = info.device_tree_blob_size != 0 ? info.device_tree_blob_size : read_big_endian_u32(blob + 4);
 
     if (total_size < FDT_HEADER_SIZE)
     {
+      debug_log("fdt: total_size too small");
       return false;
     }
 
@@ -212,6 +218,7 @@ namespace
       struct_offset > total_size || strings_offset > total_size || struct_size > total_size || strings_size > total_size
       || struct_offset + struct_size > total_size || strings_offset + strings_size > total_size)
     {
+      debug_log("fdt: offset/size checks failed");
       return false;
     }
 
@@ -652,25 +659,41 @@ bool try_initialize_qemu_arm64_virt_machine(const boot_info& info, machine_descr
 
   if (!initialize_fdt_view(info, device_tree))
   {
+    debug_log("fdt: initialize_fdt_view failed");
     return false;
   }
+
+  debug_log("fdt: view initialized");
 
   fdt_machine_scan_result machine_scan {};
 
-  if (!scan_qemu_virt_machine_metadata(device_tree, machine_scan) || !machine_scan.is_qemu_virt)
+  if (!scan_qemu_virt_machine_metadata(device_tree, machine_scan))
   {
+    debug_log("fdt: scan_qemu_virt_machine_metadata failed");
     return false;
   }
+
+  if (!machine_scan.is_qemu_virt)
+  {
+    debug_log("fdt: is_qemu_virt not set");
+    return false;
+  }
+
+  debug_log("fdt: machine metadata scanned");
 
   fdt_console_node_result console_node {};
 
   if (!scan_qemu_virt_console_node(device_tree, machine_scan, console_node))
   {
+    debug_log("fdt: scan_qemu_virt_console_node failed");
     return false;
   }
 
+  debug_log("fdt: console node scanned");
+
   if ((console_node.mmio_base & (FDT_MMIO_PAGE_ALIGNMENT - 1U)) != 0)
   {
+    debug_log("fdt: console MMIO not page-aligned");
     return false;
   }
 
