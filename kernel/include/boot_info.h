@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 static constexpr uint32_t ARCH_X64 = 0;
@@ -25,4 +26,6 @@ static constexpr uint32_t ARCH_ARM64 = 1;
 struct boot_info
 {
   uint32_t arch_id; // One of the ARCH_* constants defined above.
+  uintptr_t device_tree_blob_address;
+  size_t device_tree_blob_size;
 };

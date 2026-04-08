@@ -197,6 +197,8 @@ launch_qemu()
       -cpu cortex-a57 \
       -kernel "${kernel_image}" \
       -display none \
+      -serial stdio \
+      -monitor none \
       -semihosting-config enable=on,target=native \
       -no-reboot >"${debug_log}" 2>&1 &
   fi
