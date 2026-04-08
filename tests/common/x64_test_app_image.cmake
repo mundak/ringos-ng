@@ -131,6 +131,12 @@ function(
       COMMENT "Building embedded x64 PE64 test app against the extracted ringos toolchain bundle"
       VERBATIM)
   elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".cpp")
+    if(NOT EXISTS ${X64_TEST_APP_CXX_INCLUDE_DIR})
+      message(FATAL_ERROR
+        "Bundled C++ include directory is missing: ${X64_TEST_APP_CXX_INCLUDE_DIR}. "
+        "Extract a toolchain bundle that includes libc++ headers before building embedded x64 C++ test apps.")
+    endif()
+
     add_custom_command(
       OUTPUT ${X64_TEST_APP_IMAGE_OBJECT}
       COMMAND ${X64_TEST_APP_CLANGXX}
@@ -140,6 +146,7 @@ function(
               -Wall
               -Wextra
               -Wpedantic
+              ${X64_TEST_APP_CXX_COMPILE_FLAGS}
               ${X64_TEST_APP_SOURCE}
               -o ${X64_TEST_APP_WINDOWS_EXE}
       COMMAND ${CMAKE_COMMAND} -E copy ${X64_TEST_APP_WINDOWS_EXE} ${X64_TEST_APP_IMAGE}

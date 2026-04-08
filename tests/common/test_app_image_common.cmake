@@ -24,6 +24,16 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
   set(toolchain_file "${toolchain_root}/cmake/ringos-toolchain.cmake")
   set(compile_config "${toolchain_root}/share/ringos/compile-${target_arch}.cfg")
   set(link_config "${toolchain_root}/share/ringos/link-${target_arch}.cfg")
+  set(cxx_include_dir "${toolchain_root}/sysroots/${target_triple}/include/c++/v1")
+  set(cxx_compile_flags
+    -std=c++20
+    -fno-ms-compatibility
+    -fno-exceptions
+    -fno-rtti
+    -fno-threadsafe-statics
+    -nostdinc++
+    -isystem
+    "${cxx_include_dir}")
 
   foreach(required_path
       "${toolchain_file}"
@@ -61,6 +71,8 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
   set(${prefix}_TOOLCHAIN_FILE "${toolchain_file}" PARENT_SCOPE)
   set(${prefix}_COMPILE_CONFIG "${compile_config}" PARENT_SCOPE)
   set(${prefix}_LINK_CONFIG "${link_config}" PARENT_SCOPE)
+  set(${prefix}_CXX_INCLUDE_DIR "${cxx_include_dir}" PARENT_SCOPE)
+  set(${prefix}_CXX_COMPILE_FLAGS ${cxx_compile_flags} PARENT_SCOPE)
   set(${prefix}_TARGET_TRIPLE "${target_triple}" PARENT_SCOPE)
   set(${prefix}_CLANG "${test_app_clang}" PARENT_SCOPE)
   set(${prefix}_CLANGXX "${test_app_clangxx}" PARENT_SCOPE)
