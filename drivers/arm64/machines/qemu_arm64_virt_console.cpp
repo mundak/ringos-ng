@@ -10,6 +10,7 @@ namespace
   constexpr uintptr_t PL011_FLAG_REGISTER_OFFSET = 0x018;
   constexpr uintptr_t PL011_MINIMUM_REGISTER_WINDOW_SIZE = PL011_FLAG_REGISTER_OFFSET + sizeof(uint32_t);
   constexpr uint32_t PL011_FLAG_TRANSMIT_FIFO_FULL = 1U << 5;
+  // Allow a bounded amount of back-pressure for each byte while QEMU drains the PL011 FIFO.
   constexpr uint32_t PL011_TRANSMIT_FIFO_WAIT_RETRY_LIMIT = 1U << 20;
 
   void yield_processor()
@@ -112,10 +113,11 @@ void qemu_arm64_virt_console::write_transmit_byte(char value) const
 int32_t qemu_arm64_virt_console::write_console_bytes(const char* buffer, size_t length, size_t& out_bytes_written) const
 {
   out_bytes_written = 0;
-  uint32_t remaining_retries = PL011_TRANSMIT_FIFO_WAIT_RETRY_LIMIT;
 
   while (out_bytes_written < length)
   {
+    uint32_t remaining_retries = PL011_TRANSMIT_FIFO_WAIT_RETRY_LIMIT;
+
     while (is_transmit_fifo_full())
     {
       if (remaining_retries-- == 0)
