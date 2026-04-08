@@ -112,14 +112,13 @@ void qemu_arm64_virt_console::write_transmit_byte(char value) const
 int32_t qemu_arm64_virt_console::write_console_bytes(const char* buffer, size_t length, size_t& out_bytes_written) const
 {
   out_bytes_written = 0;
+  uint32_t remaining_retries = PL011_TRANSMIT_FIFO_WAIT_RETRY_LIMIT;
 
   while (out_bytes_written < length)
   {
-    uint32_t remaining_retries = PL011_TRANSMIT_FIFO_WAIT_RETRY_LIMIT;
-
     while (is_transmit_fifo_full())
     {
-      if (remaining_retries == 0)
+      if (remaining_retries-- == 0)
       {
         return RINGOS_STATUS_WOULD_BLOCK;
       }
