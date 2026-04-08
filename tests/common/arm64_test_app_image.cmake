@@ -137,7 +137,6 @@ function(
         "Extract a toolchain bundle that includes libc++ headers before building embedded arm64 C++ test apps.")
     endif()
 
-    # Temporary workaround for the current arm64 Windows-target LLVM frame-lowering crash.
     add_custom_command(
       OUTPUT ${ARM64_TEST_APP_IMAGE_OBJECT}
       COMMAND ${ARM64_TEST_APP_CLANGXX}
@@ -148,7 +147,6 @@ function(
               -Wextra
               -Wpedantic
               ${ARM64_TEST_APP_CXX_COMPILE_FLAGS}
-              -fomit-frame-pointer
               ${ARM64_TEST_APP_SOURCE}
               -o ${ARM64_TEST_APP_WINDOWS_EXE}
       COMMAND ${CMAKE_COMMAND} -E copy ${ARM64_TEST_APP_WINDOWS_EXE} ${ARM64_TEST_APP_IMAGE}
