@@ -27,10 +27,13 @@ typedef struct ringos_rpc_response
   uintptr_t value3;
 } ringos_rpc_response;
 
-int32_t ringos_rpc_open(const char* endpoint_name, ringos_handle* out_channel_handle);
-int32_t ringos_rpc_call(ringos_handle channel_handle, const ringos_rpc_request* request, ringos_rpc_response* response);
-int32_t ringos_rpc_wait(ringos_rpc_request* request);
-int32_t ringos_rpc_reply(const ringos_rpc_response* response);
+typedef int32_t ringos_rpc_status;
+
+ringos_rpc_status ringos_rpc_open(const char* endpoint_name, ringos_handle* out_channel_handle);
+ringos_rpc_status ringos_rpc_call(
+  ringos_handle channel_handle, const ringos_rpc_request* request, ringos_rpc_response* out_response);
+ringos_rpc_status ringos_rpc_wait(ringos_rpc_request* request);
+ringos_rpc_status ringos_rpc_reply(const ringos_rpc_response* response);
 
 #ifdef __cplusplus
 }

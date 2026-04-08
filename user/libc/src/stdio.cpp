@@ -212,11 +212,11 @@ int vprintf(const char* format, va_list arguments)
   request.operation = RINGOS_CONSOLE_OPERATION_WRITE;
   request.argument0 = reinterpret_cast<uintptr_t>(buffer);
   request.argument1 = static_cast<uintptr_t>(result);
-
   ringos_rpc_response response {};
-  const int32_t transport_status = ringos_rpc_call(channel_handle, &request, &response);
 
-  if (transport_status == RINGOS_STATUS_OK && response.status == RINGOS_STATUS_OK)
+  const ringos_rpc_status call_status = ringos_rpc_call(channel_handle, &request, &response);
+
+  if (call_status == RINGOS_STATUS_OK && response.status == RINGOS_STATUS_OK)
   {
     return result;
   }
