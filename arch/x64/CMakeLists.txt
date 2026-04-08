@@ -75,6 +75,7 @@ function(
     boot.S
     debug.cpp
     entry.cpp
+    machine.cpp
     ${driver_image_object}
     ${client_image_object}
     user_runtime.cpp

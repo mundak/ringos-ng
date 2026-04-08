@@ -1,6 +1,7 @@
 # Shared kernel code — populated in Phase 2 and later
 add_library(ringos_kernel OBJECT
   kernel.cpp
+  machine.cpp
   debug.cpp
   device_memory_object.cpp
   kernel_object.cpp

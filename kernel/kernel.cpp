@@ -3,10 +3,13 @@
 #include "arch_user_runtime.h"
 #include "boot_info.h"
 #include "debug.h"
+#include "machine.h"
 #include "panic.h"
 
 [[noreturn]] void kernel_main(const boot_info& info)
 {
+  initialize_machine(info);
+
   if (info.arch_id == ARCH_X64)
   {
     debug_log("ringos x64");

@@ -2,6 +2,7 @@
 
 #include "arch_user_runtime.h"
 #include "debug.h"
+#include "machine.h"
 #include "memory.h"
 #include "panic.h"
 #include "pe_image.h"
@@ -26,9 +27,12 @@ namespace
   constexpr size_t KERNEL_IDENTITY_SIZE = 0x2000000;
   constexpr uint32_t KERNEL_BLOCK_COUNT = static_cast<uint32_t>(KERNEL_IDENTITY_SIZE / LARGE_PAGE_SIZE);
   constexpr uintptr_t USER_REGION_VIRTUAL_ADDRESS = X64_USER_IMAGE_VIRTUAL_ADDRESS;
+  constexpr uintptr_t USER_DEVICE_MMIO_VIRTUAL_ADDRESS = 0x800000;
   constexpr uintptr_t KERNEL_IDENTITY_BASE = 0x40000000;
   constexpr size_t USER_REGION_SIZE = LARGE_PAGE_SIZE;
   constexpr uint32_t USER_BLOCK_INDEX = static_cast<uint32_t>(USER_REGION_VIRTUAL_ADDRESS / LARGE_PAGE_SIZE);
+  constexpr uint32_t USER_DEVICE_MMIO_BLOCK_INDEX
+    = static_cast<uint32_t>(USER_DEVICE_MMIO_VIRTUAL_ADDRESS / LARGE_PAGE_SIZE);
   constexpr uint32_t KERNEL_ROOT_INDEX = static_cast<uint32_t>(KERNEL_IDENTITY_BASE >> 30);
   constexpr uint64_t ARM64_INITIAL_PSTATE = 0;
   constexpr uint64_t X64_INITIAL_RFLAGS = 0x202;
@@ -53,6 +57,7 @@ namespace
   constexpr uint64_t TABLE_DESCRIPTOR = 0x3;
   constexpr uint64_t BLOCK_DESCRIPTOR = 0x1;
   constexpr uint64_t ATTRIBUTE_INDEX_NORMAL = 0ULL << 2;
+  constexpr uint64_t ATTRIBUTE_INDEX_DEVICE = 1ULL << 2;
   constexpr uint64_t ACCESS_PERMISSION_USER_RW = 1ULL << 6;
   constexpr uint64_t INNER_SHAREABLE = 3ULL << 8;
   constexpr uint64_t ACCESS_FLAG = 1ULL << 10;
@@ -70,6 +75,7 @@ namespace
   constexpr uint64_t TCR_EPD1_DISABLE = 1ULL << 23;
 
   constexpr uint64_t MAIR_ATTRIBUTE_NORMAL_WRITE_BACK = 0xFFULL;
+  constexpr uint64_t MAIR_ATTRIBUTE_DEVICE_NGNRNE = 0x00ULL << 8;
 
   struct alignas(PAGE_SIZE) translation_table
   {
@@ -184,12 +190,13 @@ namespace
     void enable_fp_simd();
     void enable_mmu();
     void initialize_process_storage(arm64_process_storage& storage);
-    void initialize_translation_tables(arm64_process_storage& storage);
+    void initialize_translation_tables(arm64_process_storage& storage, bool map_console_device_memory);
     void invalidate_tlb();
     void populate_native_bootstrap_for_process(
       arm64_process_storage& storage,
       const uint8_t* image_start,
       const uint8_t* image_end,
+      bool map_console_device_memory,
       address_space& address_space_info,
       thread_context& thread_context_info);
     void populate_x64_emulator_bootstrap(
@@ -241,7 +248,9 @@ namespace
 
   static_assert((KERNEL_IDENTITY_SIZE % LARGE_PAGE_SIZE) == 0);
   static_assert((USER_REGION_VIRTUAL_ADDRESS % LARGE_PAGE_SIZE) == 0);
+  static_assert((USER_DEVICE_MMIO_VIRTUAL_ADDRESS % LARGE_PAGE_SIZE) == 0);
   static_assert(USER_BLOCK_INDEX < 512);
+  static_assert(USER_DEVICE_MMIO_BLOCK_INDEX < 512);
   static_assert(KERNEL_ROOT_INDEX < 512);
 
   uint64_t make_table_descriptor(uintptr_t address)
@@ -298,7 +307,8 @@ namespace
     memset(&storage, 0, sizeof(storage));
   }
 
-  void arm64_initial_user_runtime_platform::initialize_translation_tables(arm64_process_storage& storage)
+  void arm64_initial_user_runtime_platform::initialize_translation_tables(
+    arm64_process_storage& storage, bool map_console_device_memory)
   {
     storage.root_table.entries[0] = make_table_descriptor(reinterpret_cast<uintptr_t>(&storage.lower_block_table));
     storage.root_table.entries[KERNEL_ROOT_INDEX]
@@ -307,6 +317,21 @@ namespace
     storage.lower_block_table.entries[USER_BLOCK_INDEX] = make_block_descriptor(
       reinterpret_cast<uintptr_t>(user_region),
       ATTRIBUTE_INDEX_NORMAL | ACCESS_PERMISSION_USER_RW | INNER_SHAREABLE | ACCESS_FLAG);
+
+    if (map_console_device_memory)
+    {
+      const machine_descriptor& machine = get_machine();
+
+      if (machine.console.device_memory_type != DEVICE_MEMORY_TYPE_MMIO || machine.console.mmio_size == 0)
+      {
+        panic("arm64 machine console MMIO mapping was not initialized");
+      }
+
+      const uintptr_t mmio_block_base = machine.console.mmio_physical_address & ~static_cast<uintptr_t>(LARGE_PAGE_SIZE - 1);
+      storage.lower_block_table.entries[USER_DEVICE_MMIO_BLOCK_INDEX] = make_block_descriptor(
+        mmio_block_base,
+        ATTRIBUTE_INDEX_DEVICE | ACCESS_PERMISSION_USER_RW | ACCESS_FLAG);
+    }
 
     for (uint32_t block_index = 0; block_index < KERNEL_BLOCK_COUNT; ++block_index)
     {
@@ -376,11 +401,12 @@ namespace
     arm64_process_storage& storage,
     const uint8_t* image_start,
     const uint8_t* image_end,
+    bool map_console_device_memory,
     address_space& address_space_info,
     thread_context& thread_context_info)
   {
     initialize_process_storage(storage);
-    initialize_translation_tables(storage);
+    initialize_translation_tables(storage, map_console_device_memory);
     uint8_t* const user_region = get_user_region(storage);
     const uintptr_t entry_point
       = initialize_arm64_pe_image(image_start, static_cast<size_t>(image_end - image_start), storage);
@@ -393,10 +419,28 @@ namespace
     address_space_info.rpc_transfer_host_address = reinterpret_cast<uintptr_t>(
       user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
     address_space_info.rpc_transfer_size = PAGE_SIZE;
-    address_space_info.device_memory_user_address = X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS;
-    address_space_info.device_memory_host_address = reinterpret_cast<uintptr_t>(
-      user_region + (X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
-    address_space_info.device_memory_size = PAGE_SIZE;
+
+    if (map_console_device_memory)
+    {
+      const machine_descriptor& machine = get_machine();
+      const uintptr_t mmio_block_base = machine.console.mmio_physical_address & ~static_cast<uintptr_t>(LARGE_PAGE_SIZE - 1);
+      const uintptr_t mmio_block_offset = machine.console.mmio_physical_address - mmio_block_base;
+
+      if (mmio_block_offset > UINTPTR_MAX - USER_DEVICE_MMIO_VIRTUAL_ADDRESS)
+      {
+        panic("arm64 console MMIO offset overflowed the user mapping window");
+      }
+
+      if (mmio_block_offset + machine.console.mmio_size > LARGE_PAGE_SIZE)
+      {
+        panic("arm64 console MMIO region crossed the user mapping block");
+      }
+
+      address_space_info.device_memory_type = DEVICE_MEMORY_TYPE_MMIO;
+      address_space_info.device_memory_user_address = USER_DEVICE_MMIO_VIRTUAL_ADDRESS + mmio_block_offset;
+      address_space_info.device_memory_host_address = 0;
+      address_space_info.device_memory_size = machine.console.mmio_size;
+    }
 
     thread_context_info.instruction_pointer = entry_point;
     thread_context_info.stack_pointer = USER_REGION_VIRTUAL_ADDRESS + USER_REGION_SIZE;
@@ -412,7 +456,7 @@ namespace
     thread_context& thread_context_info)
   {
     initialize_process_storage(storage);
-    initialize_translation_tables(storage);
+    initialize_translation_tables(storage, false);
     uint8_t* const user_region = get_user_region(storage);
     const uintptr_t entry_point
       = initialize_x64_emulator_image(image_start, static_cast<size_t>(image_end - image_start), storage);
@@ -425,6 +469,7 @@ namespace
     address_space_info.rpc_transfer_host_address = reinterpret_cast<uintptr_t>(
       user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
     address_space_info.rpc_transfer_size = PAGE_SIZE;
+    address_space_info.device_memory_type = DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER;
     address_space_info.device_memory_user_address = X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS;
     address_space_info.device_memory_host_address = reinterpret_cast<uintptr_t>(
       user_region + (X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
@@ -485,7 +530,7 @@ namespace
       | TCR_SH0_INNER_SHAREABLE | TCR_TG0_4KB | TCR_EPD1_DISABLE;
 
     write_vector_base(reinterpret_cast<uintptr_t>(arm64_exception_vectors));
-    write_mair(MAIR_ATTRIBUTE_NORMAL_WRITE_BACK);
+    write_mair(MAIR_ATTRIBUTE_NORMAL_WRITE_BACK | MAIR_ATTRIBUTE_DEVICE_NGNRNE);
     write_tcr(tcr_value);
     enable_fp_simd();
     invalidate_tlb();
@@ -559,12 +604,14 @@ namespace
         m_process_storage[0],
         _binary_ringos_console_driver_image_start,
         _binary_ringos_console_driver_image_end,
+        true,
         bootstrap.address_space[0],
         bootstrap.thread_context[0]);
       populate_native_bootstrap_for_process(
         m_process_storage[1],
         _binary_ringos_console_client_image_start,
         _binary_ringos_console_client_image_end,
+        false,
         bootstrap.address_space[1],
         bootstrap.thread_context[1]);
       return;

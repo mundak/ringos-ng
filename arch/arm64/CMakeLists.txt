@@ -60,12 +60,12 @@ if(DEFINED RINGOS_TEST_APP_CONSOLE_SERVICE_WRITE_X64_BINARY
 endif()
 
 ringos_add_embedded_arm64_test_app(
-  ringos_arm64_console_driver
+  ringos_arm64_qemu_virt_console
   elf64-littleaarch64
   aarch64
-  ARM64_CONSOLE_DRIVER_IMAGE_OBJECT
-  BINARY_STEM ringos_console_driver_arm64_pe64_image
-  SOURCE_PATH ${CMAKE_SOURCE_DIR}/drivers/arm64/console_driver.cpp)
+  ARM64_QEMU_VIRT_CONSOLE_IMAGE_OBJECT
+  BINARY_STEM ringos_qemu_arm64_virt_console_arm64_pe64_image
+  SOURCE_PATH ${CMAKE_SOURCE_DIR}/drivers/arm64/machines/qemu_arm64_virt_console.cpp)
 
 ringos_add_embedded_x64_test_app(
   ringos_arm64_x64_console_driver
@@ -137,9 +137,11 @@ function(
   driver_runtime_mode
   client_runtime_mode)
   add_executable(${target_name}
-    boot.S
+    machines/qemu_arm64_virt_boot.S
     debug.cpp
     entry.cpp
+    machine.cpp
+    machines/qemu_arm64_virt_machine.cpp
     ${driver_image_object}
     ${client_image_object}
     user_runtime.cpp
@@ -190,29 +192,29 @@ target_compile_options(ringos_x64_win32_emulation
 
 ringos_add_arm64_kernel_target(
   ringos_arm64
-  ringos_arm64_console_driver
+  ringos_arm64_qemu_virt_console
   ringos_arm64_hello_world_test_app
-  ${ARM64_CONSOLE_DRIVER_IMAGE_OBJECT}
+  ${ARM64_QEMU_VIRT_CONSOLE_IMAGE_OBJECT}
   ${ARM64_HELLO_WORLD_IMAGE_OBJECT}
-  ringos_console_driver_arm64_pe64_image
+  ringos_qemu_arm64_virt_console_arm64_pe64_image
   ringos_hello_world_arm64_pe64_image)
 
 ringos_add_arm64_kernel_target(
   ringos_arm64_hello_world_cpp
-  ringos_arm64_console_driver
+  ringos_arm64_qemu_virt_console
   ringos_arm64_hello_world_cpp_test_app
-  ${ARM64_CONSOLE_DRIVER_IMAGE_OBJECT}
+  ${ARM64_QEMU_VIRT_CONSOLE_IMAGE_OBJECT}
   ${ARM64_HELLO_WORLD_CPP_IMAGE_OBJECT}
-  ringos_console_driver_arm64_pe64_image
+  ringos_qemu_arm64_virt_console_arm64_pe64_image
   ringos_hello_world_cpp_arm64_pe64_image)
 
 ringos_add_arm64_kernel_target(
   ringos_arm64_console_service_write
-  ringos_arm64_console_driver
+  ringos_arm64_qemu_virt_console
   ringos_arm64_console_service_write_test_app
-  ${ARM64_CONSOLE_DRIVER_IMAGE_OBJECT}
+  ${ARM64_QEMU_VIRT_CONSOLE_IMAGE_OBJECT}
   ${ARM64_CONSOLE_SERVICE_WRITE_IMAGE_OBJECT}
-  ringos_console_driver_arm64_pe64_image
+  ringos_qemu_arm64_virt_console_arm64_pe64_image
   ringos_console_service_write_arm64_pe64_image)
 
 ringos_add_arm64_kernel_target(

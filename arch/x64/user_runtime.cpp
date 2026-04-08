@@ -315,6 +315,7 @@ namespace
     address_space_info.rpc_transfer_user_address = USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
     address_space_info.rpc_transfer_host_address = reinterpret_cast<uintptr_t>(&storage.user_rpc_transfer_page[0]);
     address_space_info.rpc_transfer_size = PAGE_SIZE;
+    address_space_info.device_memory_type = DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER;
     address_space_info.device_memory_user_address = USER_DEVICE_MEMORY_VIRTUAL_ADDRESS;
     address_space_info.device_memory_host_address = reinterpret_cast<uintptr_t>(&storage.user_device_memory_page[0]);
     address_space_info.device_memory_size = PAGE_SIZE;

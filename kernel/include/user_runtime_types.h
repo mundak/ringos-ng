@@ -1,5 +1,6 @@
 #pragma once
 
+#include "device_memory_type.h"
 #include "user_space.h"
 
 #include <stddef.h>
@@ -33,6 +34,7 @@ struct address_space
   uintptr_t rpc_transfer_user_address;
   uintptr_t rpc_transfer_host_address;
   size_t rpc_transfer_size;
+  device_memory_type device_memory_type;
   uintptr_t device_memory_user_address;
   uintptr_t device_memory_host_address;
   size_t device_memory_size;

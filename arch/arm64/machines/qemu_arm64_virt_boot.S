@@ -1,15 +1,19 @@
 /*
- * arm64 minimal boot entry for QEMU virt direct kernel loading.
+ * qemu-arm64-virt boot entry.
  *
  * QEMU virt loads the kernel at 0x40000000 and jumps to _start in EL1
- * with the MMU off. This code sets up a stack, clears BSS, and branches
- * to the C++ entry point.
+ * with the MMU off. It passes the device-tree blob address in x0.
+ * This machine-specific entry preserves the DTB pointer, sets up a stack,
+ * clears BSS, and branches to the shared arm64 C++ entry point.
  */
 
 .section .text._start
 .global _start
 
 _start:
+  /* Preserve the DTB address passed by QEMU virt in x0. */
+  mov  x20, x0
+
   /* Set up the stack pointer — grows downward from the top of the
    * reserved stack region defined in the linker script. */
   adrp x0, __stack_top
@@ -29,7 +33,8 @@ _start:
   b    .Lbss_loop
 
 .Lbss_done:
-  /* Branch to C++ startup code. */
+  /* Branch to shared arm64 startup code with the DTB address. */
+  mov  x0, x20
   bl   arm64_entry
 
   /* Should never return — hang if it does. */

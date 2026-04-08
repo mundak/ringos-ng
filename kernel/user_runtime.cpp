@@ -54,6 +54,11 @@ namespace
     }
   }
 
+  bool is_virtual_console_device_memory(const device_memory_object* device_object)
+  {
+    return device_object != nullptr && device_object->get_type() == DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER;
+  }
+
   bool has_console_rpc_endpoint(const process& process_context)
   {
     return process_context.get_assist_device_memory_object() == nullptr
@@ -62,7 +67,7 @@ namespace
 
   bool has_direct_console_service(const process& process_context)
   {
-    return process_context.get_assist_device_memory_object() != nullptr
+    return is_virtual_console_device_memory(process_context.get_assist_device_memory_object())
       && process_context.get_assist_channel() != nullptr;
   }
 
@@ -166,14 +171,14 @@ bool user_runtime::create_channel_pair(
 }
 
 device_memory_object* user_runtime::create_device_memory_object(
-  uintptr_t user_address, uintptr_t host_address, size_t size, handle_t* out_handle)
+  device_memory_type type, uintptr_t user_address, uintptr_t host_address, size_t size, handle_t* out_handle)
 {
   if (out_handle == nullptr)
   {
     return nullptr;
   }
 
-  device_memory_object* current_object = m_device_memory_objects.emplace(user_address, host_address, size);
+  device_memory_object* current_object = m_device_memory_objects.emplace(type, user_address, host_address, size);
 
   if (current_object == nullptr)
   {
@@ -452,7 +457,8 @@ int32_t user_runtime::write_virtual_console_bytes(
   size_t* out_bytes_written) const
 {
   if (
-    device_object.get_host_address() == 0 || (user_buffer_address == 0 && length != 0) || out_bytes_written == nullptr)
+    device_object.get_type() != DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER || device_object.get_host_address() == 0
+    || (user_buffer_address == 0 && length != 0) || out_bytes_written == nullptr)
   {
     return STATUS_INVALID_ARGUMENT;
   }
@@ -495,7 +501,9 @@ int32_t user_runtime::dispatch_direct_console_rpc(
   uintptr_t request_address,
   uintptr_t response_address)
 {
-  if (request_address == 0 || response_address == 0 || device_object.get_host_address() == 0)
+  if (
+    request_address == 0 || response_address == 0 || device_object.get_type() != DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER
+    || device_object.get_host_address() == 0)
   {
     return STATUS_INVALID_ARGUMENT;
   }
@@ -546,7 +554,7 @@ void user_runtime::flush_console_devices()
   {
     device_memory_object* current_object = m_device_memory_objects.get_by_index(index);
 
-    if (current_object == nullptr || current_object->get_host_address() == 0)
+    if (!is_virtual_console_device_memory(current_object) || current_object->get_host_address() == 0)
     {
       continue;
     }
@@ -1177,12 +1185,14 @@ user_runtime& get_kernel_user_runtime()
     processes[1]->set_assist_channel(client_channel);
 
     if (
-      bootstrap.address_space[0].device_memory_host_address == 0 || bootstrap.address_space[0].device_memory_size == 0)
+      bootstrap.address_space[0].device_memory_type == DEVICE_MEMORY_TYPE_NONE
+      || bootstrap.address_space[0].device_memory_user_address == 0 || bootstrap.address_space[0].device_memory_size == 0)
     {
       panic("missing initial device memory mapping for console driver");
     }
 
     device_memory_object* const driver_device_memory_object = runtime.create_device_memory_object(
+      bootstrap.address_space[0].device_memory_type,
       bootstrap.address_space[0].device_memory_user_address,
       bootstrap.address_space[0].device_memory_host_address,
       bootstrap.address_space[0].device_memory_size,
@@ -1198,8 +1208,8 @@ user_runtime& get_kernel_user_runtime()
   else if (bootstrap.process_count == 1)
   {
     if (
-      bootstrap.address_space[0].device_memory_host_address != 0 && bootstrap.address_space[0].device_memory_size != 0
-      && bootstrap.address_space[0].device_memory_user_address != 0)
+      bootstrap.address_space[0].device_memory_type != DEVICE_MEMORY_TYPE_NONE
+      && bootstrap.address_space[0].device_memory_size != 0 && bootstrap.address_space[0].device_memory_user_address != 0)
     {
       if (!runtime.create_channel_pair(
             &client_channel_handle, &driver_channel_handle, &client_channel, &driver_channel))
@@ -1213,6 +1223,7 @@ user_runtime& get_kernel_user_runtime()
       }
 
       device_memory_object* const console_device_memory_object = runtime.create_device_memory_object(
+        bootstrap.address_space[0].device_memory_type,
         bootstrap.address_space[0].device_memory_user_address,
         bootstrap.address_space[0].device_memory_host_address,
         bootstrap.address_space[0].device_memory_size,
