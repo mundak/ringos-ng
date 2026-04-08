@@ -152,10 +152,10 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     ringos_collect_libcxx_headers(libcxx_headers)
     ringos_collect_libcxx_overlay_headers(libcxx_overlay_headers)
 
-    set(rpc_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_rpc.c)
-    set(console_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_console.c)
-    set(debug_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_debug.c)
-    set(process_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_process.c)
+    set(rpc_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_rpc.cpp)
+    set(console_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_console.cpp)
+    set(debug_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_debug.cpp)
+    set(process_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_process.cpp)
     set(crt0_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/crt/src/crt0.c)
     set(libc_errno_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/errno.cpp)
     set(libc_puts_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/puts.cpp)
@@ -343,10 +343,12 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -fno-stack-protector
             -c ${syscall_source}
             -o ${syscall_object}
-          COMMAND ${RINGOS_SDK_CLANG}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
+            -fno-exceptions
+            -fno-rtti
             -fno-stack-protector
             -fno-builtin
             ${sdk_early_compile_flags}
@@ -356,10 +358,12 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${rpc_source}
             -o ${rpc_object}
-          COMMAND ${RINGOS_SDK_CLANG}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
+            -fno-exceptions
+            -fno-rtti
             -fno-stack-protector
             -fno-builtin
             ${sdk_early_compile_flags}
@@ -369,10 +373,12 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${console_source}
             -o ${console_object}
-          COMMAND ${RINGOS_SDK_CLANG}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
+            -fno-exceptions
+            -fno-rtti
             -fno-stack-protector
             -fno-builtin
             ${sdk_early_compile_flags}
@@ -382,10 +388,12 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${debug_source}
             -o ${debug_object}
-          COMMAND ${RINGOS_SDK_CLANG}
+          COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
             -ffreestanding
+            -fno-exceptions
+            -fno-rtti
             -fno-stack-protector
             -fno-builtin
             ${sdk_early_compile_flags}
