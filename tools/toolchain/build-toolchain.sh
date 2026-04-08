@@ -394,9 +394,11 @@ validate_packaged_toolchain()
   local -a expected_tools=(clang clang++ ld.lld lld-link llvm-ar llvm-ranlib llvm-objcopy)
   local -a expected_cmake_files=(ringos-toolchain.cmake ringos-x64-toolchain.cmake ringos-arm64-toolchain.cmake)
   local -a expected_target_triples=(x86_64-unknown-ringos-msvc aarch64-unknown-ringos-msvc)
+  local -a expected_libcxx_headers=(__config __config_site __assertion_handler cstddef cstdint type_traits)
   local tool_name=""
   local cmake_file=""
   local target_triple=""
+  local libcxx_header=""
 
   for tool_name in "${expected_tools[@]}"; do
     if [[ ! -e "${bundle_root}/bin/${tool_name}" ]]; then
@@ -413,9 +415,11 @@ validate_packaged_toolchain()
   done
 
   for target_triple in "${expected_target_triples[@]}"; do
-    if [[ ! -e "${bundle_root}/sysroots/${target_triple}/include/c++/v1/__config" ]]; then
-      echo "Packaged toolchain bundle is missing libc++ headers for ${target_triple}." >&2
-      exit 1
+    for libcxx_header in "${expected_libcxx_headers[@]}"; do
+      if [[ ! -e "${bundle_root}/sysroots/${target_triple}/include/c++/v1/${libcxx_header}" ]]; then
+        echo "Packaged toolchain bundle is missing libc++ header ${libcxx_header} for ${target_triple}." >&2
+        exit 1
+      fi
     fi
   done
 }

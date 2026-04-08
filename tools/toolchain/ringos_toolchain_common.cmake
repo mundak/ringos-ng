@@ -51,6 +51,7 @@ endfunction()
 
 function(ringos_collect_installed_toolchain_input_files target_arch out_input_files)
   ringos_collect_libcxx_headers(libcxx_headers)
+  ringos_collect_libcxx_overlay_headers(libcxx_overlay_headers)
   ringos_collect_custom_llvm_input_files(custom_llvm_input_files)
 
   set(input_files
@@ -73,8 +74,6 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${RINGOS_REPO_ROOT}/user/libc/include/stdio.h
     ${RINGOS_REPO_ROOT}/user/libc/include/stdlib.h
     ${RINGOS_REPO_ROOT}/user/libc/include/string.h
-    ${RINGOS_REPO_ROOT}/user/libcxx/__assertion_handler
-    ${RINGOS_REPO_ROOT}/user/libcxx/__config_site
     ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_rpc.c
     ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_console.c
     ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_debug.c
@@ -91,6 +90,10 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
 
   if(libcxx_headers)
     list(APPEND input_files ${libcxx_headers})
+  endif()
+
+  if(libcxx_overlay_headers)
+    list(APPEND input_files ${libcxx_overlay_headers})
   endif()
 
   if(target_arch STREQUAL "x64")

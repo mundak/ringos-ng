@@ -52,6 +52,18 @@ function(ringos_collect_libcxx_headers out_headers)
   set(${out_headers} ${libcxx_headers} PARENT_SCOPE)
 endfunction()
 
+function(ringos_collect_libcxx_overlay_headers out_headers)
+  set(libcxx_overlay_dir ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libcxx)
+
+  if(EXISTS ${libcxx_overlay_dir})
+    file(GLOB_RECURSE libcxx_overlay_headers LIST_DIRECTORIES FALSE ${libcxx_overlay_dir}/*)
+  else()
+    set(libcxx_overlay_headers)
+  endif()
+
+  set(${out_headers} ${libcxx_overlay_headers} PARENT_SCOPE)
+endfunction()
+
 function(ringos_append_sdk_link_flags target_arch out_link_flags)
   set(link_flags
     -fuse-ld=lld
@@ -130,8 +142,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/syscalls.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/types.h)
     set(libc_include_dir ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include)
-    set(libcxx_config_site ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libcxx/__config_site)
-    set(libcxx_assertion_handler ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libcxx/__assertion_handler)
+    set(libcxx_overlay_dir ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libcxx)
     set(libc_headers
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include/errno.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include/stdio.h
@@ -139,6 +150,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/include/string.h)
     ringos_get_libcxx_include_dir(libcxx_include_dir)
     ringos_collect_libcxx_headers(libcxx_headers)
+    ringos_collect_libcxx_overlay_headers(libcxx_overlay_headers)
 
     set(rpc_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_rpc.c)
     set(console_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_console.c)
@@ -198,14 +210,21 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(target_triple_file_source ${generated_root}/target-triple.txt)
     set(runtime_manifest_source ${generated_root}/runtime-manifest.txt)
 
-    if(libcxx_headers)
+    if(libcxx_headers OR libcxx_overlay_headers)
       set(libcxx_copy_commands
         COMMAND ${CMAKE_COMMAND} -E make_directory ${include_dir}/c++
         COMMAND ${CMAKE_COMMAND} -E remove_directory ${cxx_include_dir}
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${libcxx_include_dir} ${cxx_include_dir}
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${libcxx_config_site} ${cxx_include_dir}/__config_site)
-      list(APPEND libcxx_copy_commands
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${libcxx_assertion_handler} ${cxx_include_dir}/__assertion_handler)
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${cxx_include_dir})
+
+      if(libcxx_headers)
+        list(APPEND libcxx_copy_commands
+          COMMAND ${CMAKE_COMMAND} -E copy_directory ${libcxx_include_dir} ${cxx_include_dir})
+      endif()
+
+      if(libcxx_overlay_headers)
+        list(APPEND libcxx_copy_commands
+          COMMAND ${CMAKE_COMMAND} -E copy_directory ${libcxx_overlay_dir} ${cxx_include_dir})
+      endif()
     else()
       set(libcxx_copy_commands)
     endif()
@@ -252,7 +271,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       "libc=lib/ringos_c.lib\n"
       "compiler_rt=lib/clang_rt.builtins.lib\n")
 
-    if(libcxx_headers)
+    if(libcxx_headers OR libcxx_overlay_headers)
       string(APPEND runtime_manifest_contents "libcxx_headers=include/c++/v1\n")
     endif()
 
@@ -512,8 +531,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${sdk_headers}
         ${libc_headers}
         ${libcxx_headers}
-        ${libcxx_config_site}
-        ${libcxx_assertion_handler}
+        ${libcxx_overlay_headers}
         ${syscall_source}
         ${rpc_source}
         ${console_source}
