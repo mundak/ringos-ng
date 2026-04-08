@@ -420,7 +420,7 @@ validate_packaged_toolchain()
         echo "Packaged toolchain bundle is missing libc++ header ${libcxx_header} for ${target_triple}." >&2
         exit 1
       fi
-    fi
+    done
   done
 }
 
