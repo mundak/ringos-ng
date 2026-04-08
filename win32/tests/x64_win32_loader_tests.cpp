@@ -182,12 +182,12 @@ namespace
   {
     if (std::strcmp(import_name, "OutputDebugStringA") == 0)
     {
-      return static_cast<uint32_t>(STAGE1_SYSCALL_DEBUG_LOG);
+      return static_cast<uint32_t>(SYSCALL_DEBUG_LOG);
     }
 
     if (std::strcmp(import_name, "ExitProcess") == 0)
     {
-      return static_cast<uint32_t>(STAGE1_SYSCALL_THREAD_EXIT);
+      return static_cast<uint32_t>(SYSCALL_THREAD_EXIT);
     }
 
     return 0;

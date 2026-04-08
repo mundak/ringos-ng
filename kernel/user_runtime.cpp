@@ -750,7 +750,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   switch (syscall_context.syscall_number)
   {
-  case STAGE1_SYSCALL_DEBUG_LOG:
+  case SYSCALL_DEBUG_LOG:
   {
     if (syscall_context.argument0 == 0)
     {
@@ -771,7 +771,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_OK;
   }
 
-  case STAGE1_SYSCALL_THREAD_EXIT:
+  case SYSCALL_THREAD_EXIT:
   {
     active_thread->set_state(USER_THREAD_STATE_EXITED);
     active_thread->set_exit_status(syscall_context.argument0);
@@ -779,7 +779,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_OK;
   }
 
-  case STAGE1_SYSCALL_RPC_CALL:
+  case SYSCALL_RPC_CALL:
   {
     if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0 || syscall_context.argument2 == 0)
     {
@@ -823,7 +823,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       static_cast<uintptr_t>(syscall_context.argument2));
   }
 
-  case STAGE1_SYSCALL_RPC_WAIT:
+  case SYSCALL_RPC_WAIT:
   {
     if (syscall_context.argument0 == 0)
     {
@@ -849,7 +849,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_OK;
   }
 
-  case STAGE1_SYSCALL_RPC_REPLY:
+  case SYSCALL_RPC_REPLY:
   {
     if (syscall_context.argument0 == 0)
     {
@@ -905,7 +905,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_OK;
   }
 
-  case STAGE1_SYSCALL_DEVICE_MEMORY_MAP:
+  case SYSCALL_DEVICE_MEMORY_MAP:
   {
     if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0)
     {
@@ -932,7 +932,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return write_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument1), &size, sizeof(size));
   }
 
-  case STAGE1_SYSCALL_RPC_OPEN:
+  case SYSCALL_RPC_OPEN:
   {
     if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0)
     {
@@ -971,7 +971,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       *owner_process, static_cast<uintptr_t>(syscall_context.argument1), &channel_handle, sizeof(channel_handle));
   }
 
-  case STAGE1_SYSCALL_CONSOLE_QUERY:
+  case SYSCALL_CONSOLE_QUERY:
   {
     if (syscall_context.argument2 == 0)
     {
@@ -1020,7 +1020,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return device_capacity < available_device_count ? STATUS_BUFFER_TOO_SMALL : STATUS_OK;
   }
 
-  case STAGE2_SYSCALL_WINDOWS_GET_STD_HANDLE:
+  case SYSCALL_WINDOWS_GET_STD_HANDLE:
   {
     const int32_t standard_handle = static_cast<int32_t>(syscall_context.argument0);
 
@@ -1042,7 +1042,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return -1;
   }
 
-  case STAGE2_SYSCALL_WINDOWS_WRITE_FILE:
+  case SYSCALL_WINDOWS_WRITE_FILE:
   {
     if (!is_windows_console_handle(syscall_context.argument0) || syscall_context.argument1 == 0)
     {
@@ -1085,7 +1085,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return 1;
   }
 
-  case STAGE2_SYSCALL_WINDOWS_EXIT_PROCESS:
+  case SYSCALL_WINDOWS_EXIT_PROCESS:
   {
     active_thread->set_state(USER_THREAD_STATE_EXITED);
     active_thread->set_exit_status(syscall_context.argument0);

@@ -17,3 +17,4 @@ struct x64_win32_dll_export
 };
 
 const x64_win32_dll_export* get_x64_win32_dll_exports(size_t* out_count);
+
