@@ -1,6 +1,6 @@
 find_program(RINGOS_HOST_CXX NAMES clang++ g++ c++ REQUIRED)
 
-include(${CMAKE_SOURCE_DIR}/tools/toolchain/x64_test_app_image.cmake)
+include(${CMAKE_SOURCE_DIR}/tests/common/x64_test_app_image.cmake)
 
 ringos_add_embedded_x64_test_app(
   ringos_x64_win32_import_test_app

@@ -6,8 +6,8 @@
 namespace
 {
   constexpr x64_win32_dll_export X64_WIN32_DLL_EXPORTS[] {
-    { "kernel32", "OutputDebugStringA", STAGE1_SYSCALL_DEBUG_LOG },
-    { "kernel32", "ExitProcess", STAGE1_SYSCALL_THREAD_EXIT },
+    { "kernel32", "OutputDebugStringA", SYSCALL_DEBUG_LOG },
+    { "kernel32", "ExitProcess", SYSCALL_THREAD_EXIT },
   };
 }
 

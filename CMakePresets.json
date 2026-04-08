@@ -1,0 +1,221 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 27,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "x64-debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/x64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/kernel/toolchains/x64.cmake",
+        "RINGOS_ENABLE_TESTING": "ON",
+        "RINGOS_TARGET_ARCH": "x64"
+      }
+    },
+    {
+      "name": "arm64-debug",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/arm64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/kernel/toolchains/arm64.cmake",
+        "RINGOS_ENABLE_TESTING": "ON",
+        "RINGOS_TARGET_ARCH": "arm64"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "build-x64-debug",
+      "configurePreset": "x64-debug",
+      "targets": [
+        "ringos_kernel",
+        "ringos_x64_emulator",
+        "ringos_x64_win32_emulation",
+        "ringos_x64_emulator_unit_tests",
+        "ringos_x64_win32_loader_unit_tests"
+      ]
+    },
+    {
+      "name": "build-arm64-debug",
+      "configurePreset": "arm64-debug",
+      "targets": [
+        "ringos_kernel",
+        "ringos_x64_emulator",
+        "ringos_x64_win32_emulation"
+      ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "x64_emulator_unit",
+      "configurePreset": "x64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^x64_emulator_unit$"
+        }
+      }
+    },
+    {
+      "name": "x64_win32_loader_unit",
+      "configurePreset": "x64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^x64_win32_loader_unit$"
+        }
+      }
+    },
+    {
+      "name": "sample_hello_world_x64_native",
+      "configurePreset": "x64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_x64_native$"
+        }
+      }
+    },
+    {
+      "name": "sample_hello_world_cpp_x64_native",
+      "configurePreset": "x64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_cpp_x64_native$"
+        }
+      }
+    },
+    {
+      "name": "sample_console_service_write_x64_native",
+      "configurePreset": "x64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_console_service_write_x64_native$"
+        }
+      }
+    },
+    {
+      "name": "sample_hello_world_arm64_native",
+      "configurePreset": "arm64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_arm64_native$"
+        }
+      }
+    },
+    {
+      "name": "sample_hello_world_cpp_arm64_native",
+      "configurePreset": "arm64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_cpp_arm64_native$"
+        }
+      }
+    },
+    {
+      "name": "sample_console_service_write_arm64_native",
+      "configurePreset": "arm64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_console_service_write_arm64_native$"
+        }
+      }
+    },
+    {
+      "name": "sample_hello_world_arm64_x64_emulator",
+      "configurePreset": "arm64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_arm64_x64_emulator$"
+        }
+      }
+    },
+    {
+      "name": "sample_hello_world_cpp_arm64_x64_emulator",
+      "configurePreset": "arm64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_hello_world_cpp_arm64_x64_emulator$"
+        }
+      }
+    },
+    {
+      "name": "sample_console_service_write_arm64_x64_emulator",
+      "configurePreset": "arm64-debug",
+      "execution": {
+        "stopOnFailure": true
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "filter": {
+        "include": {
+          "name": "^sample_console_service_write_arm64_x64_emulator$"
+        }
+      }
+    }
+  ]
+}

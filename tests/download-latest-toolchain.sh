@@ -236,6 +236,8 @@ install_archive()
   local extract_root="${work_root}/extract"
   local extracted_bundle="${extract_root}/ringos-toolchain"
 
+  archive_path="$(cd "$(dirname "${archive_path}")" && pwd)/$(basename "${archive_path}")"
+
   rm -rf "${extract_root}"
   mkdir -p "${extract_root}"
   (
