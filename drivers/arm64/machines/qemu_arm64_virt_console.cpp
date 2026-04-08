@@ -124,7 +124,6 @@ int32_t qemu_arm64_virt_console::write_console_bytes(const char* buffer, size_t 
       }
 
       yield_processor();
-      --remaining_retries;
     }
 
     write_transmit_byte(buffer[out_bytes_written]);
