@@ -109,16 +109,15 @@ int32_t qemu_arm64_virt_console::write_console_bytes(const char* buffer, size_t 
 
   while (out_bytes_written < length)
   {
-    if (is_transmit_fifo_full())
+    while (is_transmit_fifo_full())
     {
-      break;
     }
 
     write_transmit_byte(buffer[out_bytes_written]);
     ++out_bytes_written;
   }
 
-  return out_bytes_written == length ? RINGOS_STATUS_OK : RINGOS_STATUS_WOULD_BLOCK;
+  return RINGOS_STATUS_OK;
 }
 
 int32_t main()
