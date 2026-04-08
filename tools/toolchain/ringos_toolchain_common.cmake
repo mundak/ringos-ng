@@ -74,10 +74,10 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${RINGOS_REPO_ROOT}/user/libc/include/stdio.h
     ${RINGOS_REPO_ROOT}/user/libc/include/stdlib.h
     ${RINGOS_REPO_ROOT}/user/libc/include/string.h
-    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_rpc.c
-    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_console.c
-    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_debug.c
-    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_process.c
+    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_rpc.cpp
+    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_console.cpp
+    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_debug.cpp
+    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_process.cpp
     ${RINGOS_REPO_ROOT}/user/crt/src/crt0.c
     ${RINGOS_REPO_ROOT}/user/libc/src/errno.cpp
     ${RINGOS_REPO_ROOT}/user/libc/src/puts.cpp

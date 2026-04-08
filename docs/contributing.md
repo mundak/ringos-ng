@@ -6,7 +6,9 @@
   `std::format`, `constexpr`, etc.) where they improve clarity.
 * Freestanding user-space runtime, libc, and sample app sources under `user/`
   may use ANSI C when the goal is to validate the C ABI or the staged C
-  library surface.
+  library surface. The SDK implementation under `user/sdk/src/` may also be
+  written in freestanding C++ as long as the installed public headers keep the
+  exported ABI C-compatible.
 * Compile with `-Wall -Wextra -Wpedantic` (GCC/Clang) or `/W4` (MSVC).
   **Zero warnings policy.**
 
@@ -77,8 +79,9 @@ if (condition)
 
 * **All function definitions** must live in `.cpp` files. Headers contain only
   declarations.
-  Freestanding ANSI C sources under `user/` are the exception: keep their
-  definitions in `.c` files so the staged C runtime and sample apps stay pure C.
+  Freestanding ANSI C sources under `user/` are the exception when the staged C
+  runtime or pure-C sample surface is the goal. SDK implementation sources may
+  still use `.cpp` while exporting a C ABI from the installed headers.
 * Return type stays on the same line as the function name.
 
 ```cpp
@@ -266,12 +269,17 @@ const std::string& name = get_name();
 
 ```cpp
 // Good — anonymous namespace
-namespace {
-  void helper() { }
+namespace
+{
+  void helper()
+  {
+  }
 }
 
 // Bad — static free function
-static void helper() { }
+static void helper()
+{
+}
 ```
 
 ---
@@ -308,11 +316,10 @@ Use `#pragma once` (supported by all target compilers).
   applications or single classes in namespaces unnecessarily.
 
 ```cpp
-namespace math {
-
+namespace math
+{
   float lerp(float a, float b, float t);
   float clamp(float value, float min, float max);
-
 }
 ```
 
@@ -326,12 +333,11 @@ namespace math {
 
 Order:
 
-1. Corresponding header (for `.cpp` files).
-2. Project headers (alphabetical).
-3. Third-party headers (`imgui.h`, `GLFW/glfw3.h`, etc.).
-4. Standard library headers.
+1. Corresponding header (for `.cpp` files), when present.
+2. Remaining headers in formatter order.
 
-Separate each group with a blank line.
+Keep the blank lines that `clang-format` preserves between regrouped include
+blocks. Do not hand-adjust include spacing away from the formatter output.
 
 ---
 
