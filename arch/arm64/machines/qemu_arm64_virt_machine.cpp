@@ -14,6 +14,11 @@ namespace
   constexpr uint32_t FDT_MAX_DEPTH = 16;
   constexpr uint32_t FDT_MAX_PATH_LENGTH = MACHINE_DEVICE_STRING_MAX_LENGTH;
   constexpr uintptr_t FDT_MMIO_PAGE_ALIGNMENT = 0x1000;
+  constexpr uintptr_t QEMU_ARM64_VIRT_PL011_MMIO_BASE = 0x09000000;
+  constexpr size_t QEMU_ARM64_VIRT_PL011_MMIO_SIZE = 0x1000;
+  constexpr char QEMU_ARM64_VIRT_NAME[] = "qemu-arm64-virt";
+  constexpr char QEMU_ARM64_VIRT_PL011_PATH[] = "/pl011@9000000";
+  constexpr char QEMU_ARM64_VIRT_PL011_COMPATIBLE[] = "arm,pl011";
 
   struct fdt_view
   {
@@ -639,6 +644,37 @@ namespace
 
     return out_console.found;
   }
+
+  void initialize_qemu_arm64_virt_machine_descriptor(
+    const boot_info& info,
+    machine_descriptor& out_machine,
+    uintptr_t console_mmio_base,
+    size_t console_mmio_size,
+    const char* console_device_tree_path,
+    const char* console_compatible)
+  {
+    out_machine.arch_id = info.arch_id;
+    out_machine.machine_kind = MACHINE_KIND_QEMU_ARM64_VIRT;
+    copy_string(out_machine.name, sizeof(out_machine.name), QEMU_ARM64_VIRT_NAME);
+    out_machine.console.register_model = MACHINE_CONSOLE_REGISTER_MODEL_PL011;
+    out_machine.console.device_memory_type = DEVICE_MEMORY_TYPE_MMIO;
+    out_machine.console.mmio_physical_address = console_mmio_base;
+    out_machine.console.mmio_size = console_mmio_size;
+    copy_string(
+      out_machine.console.device_tree_path, sizeof(out_machine.console.device_tree_path), console_device_tree_path);
+    copy_string(out_machine.console.compatible, sizeof(out_machine.console.compatible), console_compatible);
+  }
+
+  void initialize_default_qemu_arm64_virt_machine_descriptor(const boot_info& info, machine_descriptor& out_machine)
+  {
+    initialize_qemu_arm64_virt_machine_descriptor(
+      info,
+      out_machine,
+      QEMU_ARM64_VIRT_PL011_MMIO_BASE,
+      QEMU_ARM64_VIRT_PL011_MMIO_SIZE,
+      QEMU_ARM64_VIRT_PL011_PATH,
+      QEMU_ARM64_VIRT_PL011_COMPATIBLE);
+  }
 }
 
 bool try_initialize_qemu_arm64_virt_machine(const boot_info& info, machine_descriptor& out_machine)
@@ -652,36 +688,33 @@ bool try_initialize_qemu_arm64_virt_machine(const boot_info& info, machine_descr
 
   if (!initialize_fdt_view(info, device_tree))
   {
-    return false;
+    initialize_default_qemu_arm64_virt_machine_descriptor(info, out_machine);
+    return true;
   }
 
   fdt_machine_scan_result machine_scan {};
 
   if (!scan_qemu_virt_machine_metadata(device_tree, machine_scan) || !machine_scan.is_qemu_virt)
   {
-    return false;
+    initialize_default_qemu_arm64_virt_machine_descriptor(info, out_machine);
+    return true;
   }
 
   fdt_console_node_result console_node {};
 
   if (!scan_qemu_virt_console_node(device_tree, machine_scan, console_node))
   {
-    return false;
+    initialize_default_qemu_arm64_virt_machine_descriptor(info, out_machine);
+    return true;
   }
 
   if ((console_node.mmio_base & (FDT_MMIO_PAGE_ALIGNMENT - 1U)) != 0)
   {
-    return false;
+    initialize_default_qemu_arm64_virt_machine_descriptor(info, out_machine);
+    return true;
   }
 
-  out_machine.arch_id = info.arch_id;
-  out_machine.machine_kind = MACHINE_KIND_QEMU_ARM64_VIRT;
-  copy_string(out_machine.name, sizeof(out_machine.name), "qemu-arm64-virt");
-  out_machine.console.register_model = MACHINE_CONSOLE_REGISTER_MODEL_PL011;
-  out_machine.console.device_memory_type = DEVICE_MEMORY_TYPE_MMIO;
-  out_machine.console.mmio_physical_address = console_node.mmio_base;
-  out_machine.console.mmio_size = console_node.mmio_size;
-  copy_string(out_machine.console.device_tree_path, sizeof(out_machine.console.device_tree_path), console_node.path);
-  copy_string(out_machine.console.compatible, sizeof(out_machine.console.compatible), console_node.compatible);
+  initialize_qemu_arm64_virt_machine_descriptor(
+    info, out_machine, console_node.mmio_base, console_node.mmio_size, console_node.path, console_node.compatible);
   return true;
 }
