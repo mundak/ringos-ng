@@ -10,6 +10,12 @@ namespace
   constexpr uintptr_t PL011_FLAG_REGISTER_OFFSET = 0x018;
   constexpr uintptr_t PL011_MINIMUM_REGISTER_WINDOW_SIZE = PL011_FLAG_REGISTER_OFFSET + sizeof(uint32_t);
   constexpr uint32_t PL011_FLAG_TRANSMIT_FIFO_FULL = 1U << 5;
+  constexpr uint32_t PL011_TRANSMIT_FIFO_WAIT_RETRY_LIMIT = 1U << 20;
+
+  void yield_processor()
+  {
+    asm volatile("yield" : : : "memory");
+  }
 }
 
 qemu_arm64_virt_console::qemu_arm64_virt_console()
@@ -109,15 +115,24 @@ int32_t qemu_arm64_virt_console::write_console_bytes(const char* buffer, size_t 
 
   while (out_bytes_written < length)
   {
+    uint32_t remaining_retries = PL011_TRANSMIT_FIFO_WAIT_RETRY_LIMIT;
+
     while (is_transmit_fifo_full())
     {
+      if (remaining_retries == 0)
+      {
+        return RINGOS_STATUS_WOULD_BLOCK;
+      }
+
+      yield_processor();
+      --remaining_retries;
     }
 
     write_transmit_byte(buffer[out_bytes_written]);
     ++out_bytes_written;
   }
 
-  return RINGOS_STATUS_OK;
+  return out_bytes_written == length ? RINGOS_STATUS_OK : RINGOS_STATUS_WOULD_BLOCK;
 }
 
 int32_t main()
