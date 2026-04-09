@@ -70,6 +70,59 @@ responsibilities include:
 
 The kernel should not become a Windows NT compatibility implementation.
 
+### Device And Driver Model
+
+Device drivers should be modeled as machine-specific integrations rather than as
+fully generic cross-machine components.
+
+Some generic drivers may appear later, but the working assumption should be that
+each driver is responsible for one concrete real device on one concrete machine
+target, for example `qemu_arm64_virt_uart`.
+
+Known device types should eventually be described by headers under
+`kernel/include/devices/`.
+
+Each such header should define the canonical contract for one device type,
+including:
+
+- its unique device type identifier
+- the RPC calls exposed by drivers of that type
+- the argument structures required by those RPC calls
+- which calls are mandatory versus optional
+
+These headers should be the shared ABI contract used by the kernel, the driver,
+and user-space clients.
+
+After successful device discovery and after the kernel loads the corresponding
+driver, that driver should register itself in a global device registry or
+device-manager style table.
+
+That registration should include at least:
+
+- the device type
+- a unique device instance string
+- the kernel-visible RPC endpoint or equivalent connection target for that
+   device
+
+The kernel should then expose a generic query syscall that allows user space
+to:
+
+- enumerate devices by device type
+- identify a specific device instance by its unique string
+- open RPC communication with the selected device driver
+
+The expected user-space flow should be:
+
+1. query for devices of the required type
+2. choose the desired device instance by unique string
+3. open an RPC connection to that driver through the kernel
+4. invoke the operations defined by the corresponding device-type header under
+    `kernel/include/devices/`
+
+This keeps discovery and connection generic at the kernel boundary while
+leaving device-specific behavior in explicit RPC contracts owned by each device
+type.
+
 ### Execution Layer
 
 The execution layer is responsible for running guest machine code.
