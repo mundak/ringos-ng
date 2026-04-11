@@ -88,6 +88,7 @@ function(
     machine.cpp
     machines/qemu_arm64_virt_machine.cpp
     ${client_image_object}
+    arm64_initial_user_runtime_platform.cpp
     user_runtime.cpp
     user_runtime.S
   )

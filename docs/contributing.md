@@ -24,7 +24,8 @@ After every source file modification (`.cpp`, `.h`, `.inl`):
    proceeding.
 2. Run `tools/clang-format.exe -i <file>` on Windows, or `clang-format -i
   <file>` when the formatter is already on your `PATH`, on the entire modified
-  file so it conforms to the project's `.clang-format` configuration.
+  file so it conforms to the project's `.clang-format` configuration. Only run
+  clang-format on C or C++ files, like .h, .hxx, .hh, .c, .cc, .cxx, .cpp, .inl.
 
 If the formatter output conflicts with any written formatting guidance in this
 repository, follow `.clang-format`. Never hand-adjust formatting away from the
