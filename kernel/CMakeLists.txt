@@ -9,7 +9,8 @@ add_library(ringos_kernel OBJECT
   thread.cpp
   channel.cpp
   shared_memory_object.cpp
-  memory.cpp
+  klibc/memory.cpp
+  klibc/string.cpp
   panic.cpp
   user_runtime.cpp
 )

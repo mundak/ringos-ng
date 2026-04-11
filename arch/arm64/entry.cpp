@@ -1,6 +1,6 @@
 #include "boot_info.h"
 #include "kernel.h"
-#include "memory.h"
+#include "klibc/memory.h"
 
 namespace
 {

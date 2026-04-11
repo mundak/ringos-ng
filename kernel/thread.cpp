@@ -1,6 +1,6 @@
 #include "thread.h"
 
-#include "memory.h"
+#include "klibc/memory.h"
 #include "process.h"
 
 thread::thread(

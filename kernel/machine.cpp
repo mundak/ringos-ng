@@ -1,7 +1,7 @@
 #include "machine.h"
 
 #include "arch_machine.h"
-#include "memory.h"
+#include "klibc/memory.h"
 #include "panic.h"
 
 namespace

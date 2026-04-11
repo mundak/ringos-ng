@@ -2,7 +2,7 @@
 
 #include "arch_user_runtime.h"
 #include "debug.h"
-#include "memory.h"
+#include "klibc/memory.h"
 #include "panic.h"
 #include "x64_pe64_image.h"
 #include "x64_windows_compat.h"

@@ -1,26 +1,10 @@
 #include "qemu_arm64_virt_machine.h"
 
+#include "klibc/string.h"
+
 namespace
 {
   constexpr char QEMU_ARM64_VIRT_NAME[] = "qemu-arm64-virt";
-
-  void copy_string(char* destination, size_t capacity, const char* source)
-  {
-    if (destination == nullptr || capacity == 0)
-    {
-      return;
-    }
-
-    size_t index = 0;
-
-    while (source != nullptr && source[index] != '\0' && index + 1 < capacity)
-    {
-      destination[index] = source[index];
-      ++index;
-    }
-
-    destination[index] = '\0';
-  }
 
   void initialize_qemu_arm64_virt_machine_descriptor(const boot_info& info, machine_descriptor& out_machine)
   {

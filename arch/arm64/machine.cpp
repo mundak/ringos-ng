@@ -1,6 +1,6 @@
 #include "arch_machine.h"
+#include "klibc/memory.h"
 #include "machines/qemu_arm64_virt_machine.h"
-#include "memory.h"
 
 bool arch_initialize_machine(const boot_info& info, machine_descriptor& out_machine)
 {

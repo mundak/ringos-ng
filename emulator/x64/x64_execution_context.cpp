@@ -1,6 +1,6 @@
 #include "x64_execution_context.h"
 
-#include "memory.h"
+#include "klibc/memory.h"
 
 namespace
 {

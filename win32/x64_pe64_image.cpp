@@ -1,6 +1,6 @@
 #include "x64_pe64_image.h"
 
-#include "memory.h"
+#include "klibc/memory.h"
 #include "pe_image.h"
 #include "x64_win32_emulation.h"
 

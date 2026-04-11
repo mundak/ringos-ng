@@ -1,6 +1,6 @@
 #include "pe_image.h"
 
-#include "memory.h"
+#include "klibc/memory.h"
 
 namespace
 {

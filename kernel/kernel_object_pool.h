@@ -1,7 +1,7 @@
 #pragma once
 
 #include "handle.h"
-#include "memory.h"
+#include "klibc/memory.h"
 
 #include <stdint.h>
 

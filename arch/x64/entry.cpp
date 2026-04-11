@@ -1,6 +1,6 @@
 #include "boot_info.h"
 #include "kernel.h"
-#include "memory.h"
+#include "klibc/memory.h"
 
 extern "C" [[noreturn]] void x64_entry()
 {
