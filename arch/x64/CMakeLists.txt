@@ -48,6 +48,7 @@ function(
     entry.cpp
     machine.cpp
     ${client_image_object}
+    x64_initial_user_runtime_platform.cpp
     user_runtime.cpp
     user_runtime.S
   )
