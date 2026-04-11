@@ -11,10 +11,8 @@ extern "C" [[noreturn]] void x64_enter_user_thread(
   uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t flags);
 extern "C" void x64_syscall_entry();
 extern "C" [[noreturn]] void x64_user_thread_exit();
-extern "C" const uint8_t _binary_ringos_console_driver_image_start[];
-extern "C" const uint8_t _binary_ringos_console_driver_image_end[];
-extern "C" const uint8_t _binary_ringos_console_client_image_start[];
-extern "C" const uint8_t _binary_ringos_console_client_image_end[];
+extern "C" const uint8_t _binary_ringos_test_app_image_start[];
+extern "C" const uint8_t _binary_ringos_test_app_image_end[];
 
 namespace
 {
@@ -25,7 +23,6 @@ namespace
   constexpr size_t USER_IMAGE_PAGE_COUNT = X64_USER_IMAGE_PAGE_COUNT;
   constexpr uintptr_t USER_STACK_VIRTUAL_ADDRESS = X64_USER_STACK_VIRTUAL_ADDRESS;
   constexpr uintptr_t USER_RPC_TRANSFER_VIRTUAL_ADDRESS = X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
-  constexpr uintptr_t USER_DEVICE_MEMORY_VIRTUAL_ADDRESS = X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS;
   constexpr size_t USER_REGION_SIZE = X64_USER_REGION_SIZE;
   constexpr size_t WINDOWS_X64_STACK_HOME_SPACE_SIZE = 32;
 
@@ -74,7 +71,6 @@ namespace
     alignas(PAGE_SIZE) uint8_t user_image_pages[USER_IMAGE_PAGE_COUNT][PAGE_SIZE];
     alignas(PAGE_SIZE) uint8_t user_stack_page[PAGE_SIZE];
     alignas(PAGE_SIZE) uint8_t user_rpc_transfer_page[PAGE_SIZE];
-    alignas(PAGE_SIZE) uint8_t user_device_memory_page[PAGE_SIZE];
   };
 
   struct x64_syscall_frame
@@ -248,8 +244,6 @@ namespace
       reinterpret_cast<uintptr_t>(storage.user_stack_page), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
     storage.user_page_table.entries[USER_IMAGE_PAGE_COUNT + 1] = make_table_entry(
       reinterpret_cast<uintptr_t>(storage.user_rpc_transfer_page), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-    storage.user_page_table.entries[USER_IMAGE_PAGE_COUNT + 2] = make_table_entry(
-      reinterpret_cast<uintptr_t>(storage.user_device_memory_page), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
   }
 
   uintptr_t x64_initial_user_runtime_platform::initialize_user_image(
@@ -315,10 +309,6 @@ namespace
     address_space_info.rpc_transfer_user_address = USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
     address_space_info.rpc_transfer_host_address = reinterpret_cast<uintptr_t>(&storage.user_rpc_transfer_page[0]);
     address_space_info.rpc_transfer_size = PAGE_SIZE;
-    address_space_info.device_memory_type = DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER;
-    address_space_info.device_memory_user_address = USER_DEVICE_MEMORY_VIRTUAL_ADDRESS;
-    address_space_info.device_memory_host_address = reinterpret_cast<uintptr_t>(&storage.user_device_memory_page[0]);
-    address_space_info.device_memory_size = PAGE_SIZE;
 
     thread_context_info.instruction_pointer = entry_point;
     thread_context_info.stack_pointer
@@ -330,20 +320,14 @@ namespace
   void x64_initial_user_runtime_platform::initialize(initial_user_runtime_bootstrap& bootstrap)
   {
     memset(&bootstrap, 0, sizeof(bootstrap));
-    bootstrap.process_count = 2;
+    bootstrap.process_count = 1;
     bootstrap.initial_process_index = 0;
     populate_bootstrap_for_process(
       m_process_storage[0],
-      _binary_ringos_console_driver_image_start,
-      _binary_ringos_console_driver_image_end,
+      _binary_ringos_test_app_image_start,
+      _binary_ringos_test_app_image_end,
       bootstrap.address_space[0],
       bootstrap.thread_context[0]);
-    populate_bootstrap_for_process(
-      m_process_storage[1],
-      _binary_ringos_console_client_image_start,
-      _binary_ringos_console_client_image_end,
-      bootstrap.address_space[1],
-      bootstrap.thread_context[1]);
   }
 
   void x64_initial_user_runtime_platform::prepare_thread_launch(

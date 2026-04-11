@@ -56,21 +56,9 @@ private:
     const ringos_rpc_request& source_request,
     const process& target_process,
     ringos_rpc_request* out_target_request);
-  int32_t dispatch_direct_console_rpc(
-    const process& owner_process,
-    device_memory_object& device_object,
-    uintptr_t request_address,
-    uintptr_t response_address);
-  void flush_console_devices();
   thread* find_next_ready_thread(thread* after_thread);
   bool schedule_next_ready_thread();
   int32_t copy_user_bytes(const process& owner_process, uintptr_t user_address, void* buffer, size_t buffer_size) const;
-  int32_t write_virtual_console_bytes(
-    const process& owner_process,
-    uintptr_t user_buffer_address,
-    size_t length,
-    device_memory_object& device_object,
-    size_t* out_bytes_written) const;
   int32_t write_user_bytes(
     const process& owner_process, uintptr_t user_address, const void* buffer, size_t buffer_size) const;
   void grant_process_access(kernel_object& object);
@@ -82,8 +70,6 @@ private:
   kernel_object_pool<channel, USER_RUNTIME_MAX_CHANNELS> m_channels;
   kernel_object_pool<device_memory_object, USER_RUNTIME_MAX_DEVICE_MEMORY_OBJECTS> m_device_memory_objects;
   kernel_object_pool<shared_memory_object, USER_RUNTIME_MAX_SHARED_MEMORY_OBJECTS> m_shared_memory_objects;
-  char m_console_line_buffer[128] {};
-  size_t m_console_line_length = 0;
   thread* m_current_thread;
   handle_t m_next_handle_value = 1;
 };

@@ -6,7 +6,6 @@
 #include "panic.h"
 #include "x64_windows_compat.h"
 
-#include <ringos/console.h>
 #include <ringos/rpc.h>
 
 namespace
@@ -14,17 +13,7 @@ namespace
   constexpr uint64_t WINDOWS_HANDLE_STDIN = 1;
   constexpr uint64_t WINDOWS_HANDLE_STDOUT = 2;
   constexpr uint64_t WINDOWS_HANDLE_STDERR = 3;
-  constexpr size_t RPC_ENDPOINT_NAME_BUFFER_SIZE = RINGOS_RPC_ENDPOINT_NAME_MAX_LENGTH + 1;
   constexpr size_t WINDOWS_LOG_BUFFER_SIZE = 96;
-  constexpr uint32_t VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY = 256;
-  constexpr char CONSOLE_RPC_ENDPOINT_NAME[] = "console.default";
-
-  struct virtual_console_device_memory_layout
-  {
-    volatile uint32_t tx_head;
-    volatile uint32_t tx_tail;
-    volatile char tx_buffer[VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY];
-  };
 
   user_runtime g_user_runtime {};
 
@@ -32,61 +21,15 @@ namespace
   {
     return handle_value == WINDOWS_HANDLE_STDOUT || handle_value == WINDOWS_HANDLE_STDERR;
   }
-
-  bool strings_equal(const char* first, const char* second)
-  {
-    if (first == nullptr || second == nullptr)
-    {
-      return false;
-    }
-
-    for (size_t index = 0;; ++index)
-    {
-      if (first[index] != second[index])
-      {
-        return false;
-      }
-
-      if (first[index] == '\0')
-      {
-        return true;
-      }
-    }
-  }
-
-  bool is_virtual_console_device_memory(const device_memory_object* device_object)
-  {
-    return device_object != nullptr && device_object->get_type() == DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER;
-  }
-
-  bool has_console_rpc_endpoint(const process& process_context)
-  {
-    return process_context.get_assist_device_memory_object() == nullptr
-      && process_context.get_assist_channel() != nullptr && process_context.get_assist_channel()->get_peer() != nullptr;
-  }
-
-  bool has_direct_console_service(const process& process_context)
-  {
-    return is_virtual_console_device_memory(process_context.get_assist_device_memory_object())
-      && process_context.get_assist_channel() != nullptr;
-  }
-
-  bool has_console_service(const process& process_context)
-  {
-    return has_console_rpc_endpoint(process_context) || has_direct_console_service(process_context);
-  }
 }
 
 void user_runtime::reset()
 {
   m_current_thread = nullptr;
-  m_console_line_length = 0;
-  memset(m_console_line_buffer, 0, sizeof(m_console_line_buffer));
   __atomic_store_n(&m_next_handle_value, static_cast<handle_t>(1), __ATOMIC_RELAXED);
   m_processes.reset(m_next_handle_value);
   m_threads.reset(m_next_handle_value);
   m_channels.reset(m_next_handle_value);
-  m_device_memory_objects.reset(m_next_handle_value);
   m_shared_memory_objects.reset(m_next_handle_value);
 }
 
@@ -170,26 +113,6 @@ bool user_runtime::create_channel_pair(
   return true;
 }
 
-device_memory_object* user_runtime::create_device_memory_object(
-  device_memory_type type, uintptr_t user_address, uintptr_t host_address, size_t size, handle_t* out_handle)
-{
-  if (out_handle == nullptr)
-  {
-    return nullptr;
-  }
-
-  device_memory_object* current_object = m_device_memory_objects.emplace(type, user_address, host_address, size);
-
-  if (current_object == nullptr)
-  {
-    return nullptr;
-  }
-
-  grant_process_access(*current_object);
-  *out_handle = current_object->get_handle();
-  return current_object;
-}
-
 shared_memory_object* user_runtime::create_shared_memory_object(
   uintptr_t user_address, size_t size, handle_t* out_handle)
 {
@@ -225,11 +148,6 @@ channel* user_runtime::find_channel_by_handle(handle_t handle_value)
   return m_channels.find_by_handle(handle_value);
 }
 
-device_memory_object* user_runtime::find_device_memory_object_by_handle(handle_t handle_value)
-{
-  return m_device_memory_objects.find_by_handle(handle_value);
-}
-
 shared_memory_object* user_runtime::find_shared_memory_object_by_handle(handle_t handle_value)
 {
   return m_shared_memory_objects.find_by_handle(handle_value);
@@ -256,13 +174,6 @@ kernel_object* user_runtime::find_object_by_handle(handle_t handle_value)
   if (channel_object != nullptr)
   {
     return channel_object;
-  }
-
-  device_memory_object* device_object = find_device_memory_object_by_handle(handle_value);
-
-  if (device_object != nullptr)
-  {
-    return device_object;
   }
 
   return find_shared_memory_object_by_handle(handle_value);
@@ -449,154 +360,6 @@ bool user_runtime::copy_rpc_transfer_payload(
   return true;
 }
 
-int32_t user_runtime::write_virtual_console_bytes(
-  const process& owner_process,
-  uintptr_t user_buffer_address,
-  size_t length,
-  device_memory_object& device_object,
-  size_t* out_bytes_written) const
-{
-  if (
-    device_object.get_type() != DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER || device_object.get_host_address() == 0
-    || (user_buffer_address == 0 && length != 0) || out_bytes_written == nullptr)
-  {
-    return STATUS_INVALID_ARGUMENT;
-  }
-
-  virtual_console_device_memory_layout* const layout
-    = reinterpret_cast<virtual_console_device_memory_layout*>(device_object.get_host_address());
-  size_t bytes_written = 0;
-
-  while (bytes_written < length)
-  {
-    char current_byte = 0;
-    const int32_t copy_status = copy_user_bytes(owner_process, user_buffer_address + bytes_written, &current_byte, 1);
-
-    if (copy_status != STATUS_OK)
-    {
-      return copy_status;
-    }
-
-    const uint32_t head = layout->tx_head % VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY;
-    const uint32_t tail = layout->tx_tail % VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY;
-    const uint32_t next_head = (head + 1U) % VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY;
-
-    if (next_head == tail)
-    {
-      break;
-    }
-
-    layout->tx_buffer[head] = current_byte;
-    layout->tx_head = next_head;
-    ++bytes_written;
-  }
-
-  *out_bytes_written = bytes_written;
-  return bytes_written == length ? STATUS_OK : STATUS_WOULD_BLOCK;
-}
-
-int32_t user_runtime::dispatch_direct_console_rpc(
-  const process& owner_process,
-  device_memory_object& device_object,
-  uintptr_t request_address,
-  uintptr_t response_address)
-{
-  if (
-    request_address == 0 || response_address == 0 || device_object.get_type() != DEVICE_MEMORY_TYPE_VIRTUAL_CONSOLE_BUFFER
-    || device_object.get_host_address() == 0)
-  {
-    return STATUS_INVALID_ARGUMENT;
-  }
-
-  ringos_rpc_request request {};
-  const int32_t request_status = copy_user_bytes(owner_process, request_address, &request, sizeof(request));
-
-  if (request_status != STATUS_OK)
-  {
-    return request_status;
-  }
-
-  ringos_rpc_response response {};
-  response.status = STATUS_NOT_SUPPORTED;
-
-  switch (request.operation)
-  {
-  case RINGOS_CONSOLE_OPERATION_GET_INFO:
-    response.status = STATUS_OK;
-    response.value0 = RINGOS_CONSOLE_PROTOCOL_VERSION_CURRENT;
-    response.value1 = RINGOS_CONSOLE_KIND_VIRTUAL;
-    response.value2 = RINGOS_CONSOLE_CAPABILITY_WRITE;
-    break;
-
-  case RINGOS_CONSOLE_OPERATION_WRITE:
-  {
-    size_t bytes_written = 0;
-    response.status = write_virtual_console_bytes(
-      owner_process,
-      static_cast<uintptr_t>(request.argument0),
-      static_cast<size_t>(request.argument1),
-      device_object,
-      &bytes_written);
-    response.value0 = static_cast<uintptr_t>(bytes_written);
-    break;
-  }
-
-  default:
-    break;
-  }
-
-  return write_user_bytes(owner_process, response_address, &response, sizeof(response));
-}
-
-void user_runtime::flush_console_devices()
-{
-  for (uint32_t index = 0; index < USER_RUNTIME_MAX_DEVICE_MEMORY_OBJECTS; ++index)
-  {
-    device_memory_object* current_object = m_device_memory_objects.get_by_index(index);
-
-    if (!is_virtual_console_device_memory(current_object) || current_object->get_host_address() == 0)
-    {
-      continue;
-    }
-
-    virtual_console_device_memory_layout* const layout
-      = reinterpret_cast<virtual_console_device_memory_layout*>(current_object->get_host_address());
-    uint32_t head = layout->tx_head % VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY;
-    uint32_t tail = layout->tx_tail % VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY;
-
-    while (tail != head)
-    {
-      const char current_byte = layout->tx_buffer[tail];
-      tail = (tail + 1) % VIRTUAL_CONSOLE_DEVICE_TX_CAPACITY;
-
-      if (current_byte == '\r')
-      {
-        continue;
-      }
-
-      if (current_byte == '\n')
-      {
-        m_console_line_buffer[m_console_line_length] = '\0';
-        debug_log(m_console_line_buffer);
-        m_console_line_length = 0;
-        continue;
-      }
-
-      if (m_console_line_length + 1 >= sizeof(m_console_line_buffer))
-      {
-        m_console_line_buffer[m_console_line_length] = '\0';
-        debug_log(m_console_line_buffer);
-        m_console_line_length = 0;
-      }
-
-      m_console_line_buffer[m_console_line_length] = current_byte;
-      ++m_console_line_length;
-    }
-
-    layout->tx_tail = tail;
-  }
-}
-
 thread* user_runtime::get_current_thread()
 {
   return m_current_thread;
@@ -686,8 +449,6 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
   {
     return STATUS_BAD_STATE;
   }
-
-  flush_console_devices();
 
   const auto dispatch_rpc_call = [&](channel* channel_object, uintptr_t request_address, uintptr_t response_address)
   {
@@ -809,22 +570,6 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       return STATUS_WRONG_TYPE;
     }
 
-    if (channel_object == owner_process->get_assist_channel() && has_direct_console_service(*owner_process))
-    {
-      device_memory_object* const device_object = owner_process->get_assist_device_memory_object();
-
-      if (device_object == nullptr)
-      {
-        return STATUS_BAD_STATE;
-      }
-
-      return this->dispatch_direct_console_rpc(
-        *owner_process,
-        *device_object,
-        static_cast<uintptr_t>(syscall_context.argument1),
-        static_cast<uintptr_t>(syscall_context.argument2));
-    }
-
     return dispatch_rpc_call(
       channel_object,
       static_cast<uintptr_t>(syscall_context.argument1),
@@ -838,23 +583,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       return STATUS_INVALID_ARGUMENT;
     }
 
-    channel* channel_object = owner_process->get_assist_channel();
-
-    if (channel_object == nullptr)
-    {
-      return STATUS_NOT_FOUND;
-    }
-
-    if (channel_object->m_peer == nullptr)
-    {
-      return STATUS_PEER_CLOSED;
-    }
-
-    channel_object->m_waiting_thread = active_thread;
-    channel_object->m_wait_request_address = static_cast<uintptr_t>(syscall_context.argument0);
-    active_thread->set_state(USER_THREAD_STATE_BLOCKED);
-    schedule_next_ready_thread();
-    return STATUS_OK;
+    return STATUS_NOT_FOUND;
   }
 
   case SYSCALL_RPC_REPLY:
@@ -864,53 +593,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       return STATUS_INVALID_ARGUMENT;
     }
 
-    channel* channel_object = owner_process->get_assist_channel();
-
-    if (channel_object == nullptr)
-    {
-      return STATUS_NOT_FOUND;
-    }
-
-    if (channel_object->m_pending_client_thread == nullptr || channel_object->m_pending_client_response_address == 0)
-    {
-      return STATUS_BAD_STATE;
-    }
-
-    ringos_rpc_response response {};
-    const int32_t response_status
-      = copy_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument0), &response, sizeof(response));
-
-    if (response_status != STATUS_OK)
-    {
-      return response_status;
-    }
-
-    process* const client_process = channel_object->m_pending_client_thread->get_process_context();
-
-    if (client_process == nullptr)
-    {
-      return STATUS_BAD_STATE;
-    }
-
-    const int32_t write_status = write_user_bytes(
-      *client_process, channel_object->m_pending_client_response_address, &response, sizeof(response));
-
-    if (write_status != STATUS_OK)
-    {
-      return write_status;
-    }
-
-    channel_object->m_pending_client_thread->set_pending_syscall_status(STATUS_OK);
-
-    if (channel_object->m_pending_client_thread->get_state() == USER_THREAD_STATE_BLOCKED)
-    {
-      channel_object->m_pending_client_thread->set_state(USER_THREAD_STATE_READY);
-    }
-
-    channel_object->m_pending_client_thread = nullptr;
-    channel_object->m_pending_client_response_address = 0;
-    memset(&channel_object->m_pending_request, 0, sizeof(channel_object->m_pending_request));
-    return STATUS_OK;
+    return STATUS_NOT_FOUND;
   }
 
   case SYSCALL_DEVICE_MEMORY_MAP:
@@ -920,24 +603,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       return STATUS_INVALID_ARGUMENT;
     }
 
-    device_memory_object* device_object = owner_process->get_assist_device_memory_object();
-
-    if (device_object == nullptr)
-    {
-      return STATUS_NOT_FOUND;
-    }
-
-    const uintptr_t base_address = device_object->get_user_address();
-    const size_t size = device_object->get_size();
-    const int32_t base_status = write_user_bytes(
-      *owner_process, static_cast<uintptr_t>(syscall_context.argument0), &base_address, sizeof(base_address));
-
-    if (base_status != STATUS_OK)
-    {
-      return base_status;
-    }
-
-    return write_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument1), &size, sizeof(size));
+    return STATUS_NOT_FOUND;
   }
 
   case SYSCALL_RPC_OPEN:
@@ -947,36 +613,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       return STATUS_INVALID_ARGUMENT;
     }
 
-    char endpoint_name[RPC_ENDPOINT_NAME_BUFFER_SIZE];
-    memset(endpoint_name, 0, sizeof(endpoint_name));
-    const int32_t name_status = copy_user_string(
-      *active_thread, static_cast<uintptr_t>(syscall_context.argument0), endpoint_name, sizeof(endpoint_name));
-
-    if (name_status != STATUS_OK)
-    {
-      return name_status;
-    }
-
-    if (!strings_equal(endpoint_name, CONSOLE_RPC_ENDPOINT_NAME) || !has_console_service(*owner_process))
-    {
-      return STATUS_NOT_FOUND;
-    }
-
-    channel* const channel_object = owner_process->get_assist_channel();
-
-    if (channel_object == nullptr)
-    {
-      return STATUS_NOT_FOUND;
-    }
-
-    if (channel_object->get_peer() == nullptr)
-    {
-      return STATUS_PEER_CLOSED;
-    }
-
-    const handle_t channel_handle = channel_object->get_handle();
-    return write_user_bytes(
-      *owner_process, static_cast<uintptr_t>(syscall_context.argument1), &channel_handle, sizeof(channel_handle));
+    return STATUS_NOT_FOUND;
   }
 
   case SYSCALL_CONSOLE_QUERY:
@@ -993,7 +630,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
       return STATUS_INVALID_ARGUMENT;
     }
 
-    const size_t available_device_count = has_console_service(*owner_process) ? 1 : 0;
+    const size_t available_device_count = 0;
     const int32_t count_status = write_user_bytes(
       *owner_process,
       static_cast<uintptr_t>(syscall_context.argument2),
@@ -1008,21 +645,6 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     if (available_device_count == 0)
     {
       return STATUS_OK;
-    }
-
-    if (device_capacity == 0)
-    {
-      return STATUS_BUFFER_TOO_SMALL;
-    }
-
-    ringos_console_device device {};
-    memcpy(device.endpoint_name, CONSOLE_RPC_ENDPOINT_NAME, sizeof(CONSOLE_RPC_ENDPOINT_NAME));
-    const int32_t device_status
-      = write_user_bytes(*owner_process, static_cast<uintptr_t>(syscall_context.argument0), &device, sizeof(device));
-
-    if (device_status != STATUS_OK)
-    {
-      return device_status;
     }
 
     return device_capacity < available_device_count ? STATUS_BUFFER_TOO_SMALL : STATUS_OK;
@@ -1160,82 +782,6 @@ user_runtime& get_kernel_user_runtime()
     if (threads[index] == nullptr || thread_handle == 0)
     {
       panic("failed to create initial thread");
-    }
-  }
-
-  handle_t client_channel_handle = 0;
-  handle_t driver_channel_handle = 0;
-  handle_t driver_device_memory_handle = 0;
-  channel* client_channel = nullptr;
-  channel* driver_channel = nullptr;
-
-  if (bootstrap.process_count >= 2)
-  {
-    if (!runtime.create_channel_pair(&client_channel_handle, &driver_channel_handle, &client_channel, &driver_channel))
-    {
-      panic("failed to create initial channel pair");
-    }
-
-    if (client_channel == nullptr || driver_channel == nullptr)
-    {
-      panic("failed to initialize implicit assist channels");
-    }
-
-    processes[0]->set_assist_channel(driver_channel);
-    processes[1]->set_assist_channel(client_channel);
-
-    if (
-      bootstrap.address_space[0].device_memory_type == DEVICE_MEMORY_TYPE_NONE
-      || bootstrap.address_space[0].device_memory_user_address == 0 || bootstrap.address_space[0].device_memory_size == 0)
-    {
-      panic("missing initial device memory mapping for console driver");
-    }
-
-    device_memory_object* const driver_device_memory_object = runtime.create_device_memory_object(
-      bootstrap.address_space[0].device_memory_type,
-      bootstrap.address_space[0].device_memory_user_address,
-      bootstrap.address_space[0].device_memory_host_address,
-      bootstrap.address_space[0].device_memory_size,
-      &driver_device_memory_handle);
-
-    if (driver_device_memory_object == nullptr || driver_device_memory_handle == 0)
-    {
-      panic("failed to create initial device memory object");
-    }
-
-    processes[0]->set_assist_device_memory_object(driver_device_memory_object);
-  }
-  else if (bootstrap.process_count == 1)
-  {
-    if (
-      bootstrap.address_space[0].device_memory_type != DEVICE_MEMORY_TYPE_NONE
-      && bootstrap.address_space[0].device_memory_size != 0 && bootstrap.address_space[0].device_memory_user_address != 0)
-    {
-      if (!runtime.create_channel_pair(
-            &client_channel_handle, &driver_channel_handle, &client_channel, &driver_channel))
-      {
-        panic("failed to create single-process console channel pair");
-      }
-
-      if (client_channel == nullptr)
-      {
-        panic("failed to initialize single-process console client channel");
-      }
-
-      device_memory_object* const console_device_memory_object = runtime.create_device_memory_object(
-        bootstrap.address_space[0].device_memory_type,
-        bootstrap.address_space[0].device_memory_user_address,
-        bootstrap.address_space[0].device_memory_host_address,
-        bootstrap.address_space[0].device_memory_size,
-        &driver_device_memory_handle);
-
-      if (console_device_memory_object == nullptr || driver_device_memory_handle == 0)
-      {
-        panic("failed to create single-process console device memory object");
-      }
-
-      processes[0]->set_assist_channel(client_channel);
-      processes[0]->set_assist_device_memory_object(console_device_memory_object);
     }
   }
 
