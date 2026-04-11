@@ -30,14 +30,14 @@ add_custom_command(
           -Wpedantic
           -I ${CMAKE_SOURCE_DIR}/win32/include
           -I ${CMAKE_SOURCE_DIR}/win32/generated
-          -I ${CMAKE_SOURCE_DIR}/kernel/include
+          -I ${CMAKE_SOURCE_DIR}/kernel
           ${RINGOS_X64_WIN32_TEST_SOURCES}
           ${RINGOS_X64_WIN32_IMPORT_TEST_APP_IMAGE_OBJECT}
           -o ${RINGOS_X64_WIN32_TEST_BINARY}
   DEPENDS
     ${CMAKE_CURRENT_SOURCE_DIR}/test_app_pe64.S
     ${CMAKE_CURRENT_SOURCE_DIR}/x64_win32_loader_tests.cpp
-    ${CMAKE_SOURCE_DIR}/kernel/include/user_space.h
+    ${CMAKE_SOURCE_DIR}/kernel/user_space.h
     ${CMAKE_SOURCE_DIR}/win32/definitions/kernel32.yaml
     ${CMAKE_SOURCE_DIR}/win32/generate_win32_emulation.py
     ${CMAKE_SOURCE_DIR}/win32/generated/x64_win32_dll_exports.h

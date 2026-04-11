@@ -31,11 +31,7 @@ public:
   bool create_channel_pair(
     handle_t* out_first_handle, handle_t* out_second_handle, channel** out_first_channel, channel** out_second_channel);
   device_memory_object* create_device_memory_object(
-    device_memory_type type,
-    uintptr_t user_address,
-    uintptr_t host_address,
-    size_t size,
-    handle_t* out_handle);
+    device_memory_type type, uintptr_t user_address, uintptr_t host_address, size_t size, handle_t* out_handle);
   shared_memory_object* create_shared_memory_object(uintptr_t user_address, size_t size, handle_t* out_handle);
   bool validate_user_range(const process& owner_process, uintptr_t user_address, size_t length) const;
   int32_t copy_user_string(const thread& owner_thread, uintptr_t user_address, char* buffer, size_t buffer_size) const;

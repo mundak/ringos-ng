@@ -15,8 +15,8 @@ add_library(ringos_kernel OBJECT
 )
 
 target_include_directories(ringos_kernel
-  PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+  PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/user/sdk/include
   PRIVATE
     ${CMAKE_SOURCE_DIR}/win32/include

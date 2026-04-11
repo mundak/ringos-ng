@@ -30,13 +30,13 @@ add_custom_command(
           -Wextra
           -Wpedantic
           -I ${CMAKE_SOURCE_DIR}/emulator/include
-          -I ${CMAKE_SOURCE_DIR}/kernel/include
+          -I ${CMAKE_SOURCE_DIR}/kernel
           ${RINGOS_X64_EMULATOR_UNIT_TEST_SOURCES}
           -o ${RINGOS_X64_EMULATOR_UNIT_TEST_BINARY}
   DEPENDS
     ${CMAKE_SOURCE_DIR}/emulator/include/x64_emulator.h
     ${CMAKE_SOURCE_DIR}/emulator/tests/x64_emulator_test_harness.h
-    ${CMAKE_SOURCE_DIR}/kernel/include/user_space.h
+    ${CMAKE_SOURCE_DIR}/kernel/user_space.h
     ${RINGOS_X64_EMULATOR_UNIT_TEST_SOURCES}
   COMMENT "Building x64 emulator unit tests"
   VERBATIM

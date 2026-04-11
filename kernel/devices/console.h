@@ -15,7 +15,8 @@ enum ringos_console_protocol_version
 
 // Driver interface:
 // ringos_rpc_status ringos_rpc_call(handle, RINGOS_DEVICE_CONSOLE_OPERATION_GET_INFO, ringos_console_info* out)
-// ringos_rpc_status ringos_rpc_call(handle, RINGOS_DEVICE_CONSOLE_OPERATION_WRITE, const char* buffer, size_t buffer_size, size_t* bytes_written)
+// ringos_rpc_status ringos_rpc_call(handle, RINGOS_DEVICE_CONSOLE_OPERATION_WRITE, const char* buffer, size_t
+// buffer_size, size_t* bytes_written)
 
 enum ringos_console_required_rpcs
 {
@@ -41,4 +42,3 @@ typedef struct ringos_console_info
   uint32_t console_kind;
   uint32_t capability_flags;
 } ringos_console_info;
-
