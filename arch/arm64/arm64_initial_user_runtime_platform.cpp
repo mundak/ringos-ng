@@ -340,10 +340,6 @@ void arm64_initial_user_runtime_platform::populate_native_bootstrap_for_process(
   address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
   address_space_info.user_size = USER_REGION_SIZE;
   address_space_info.user_host_base = reinterpret_cast<uintptr_t>(user_region);
-  address_space_info.rpc_transfer_user_address = X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
-  address_space_info.rpc_transfer_host_address
-    = reinterpret_cast<uintptr_t>(user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
-  address_space_info.rpc_transfer_size = PAGE_SIZE;
 
   thread_context_info.instruction_pointer = entry_point;
   thread_context_info.stack_pointer = USER_REGION_VIRTUAL_ADDRESS + USER_REGION_SIZE;
@@ -368,10 +364,6 @@ void arm64_initial_user_runtime_platform::populate_x64_emulator_bootstrap(
   address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
   address_space_info.user_size = X64_USER_REGION_SIZE;
   address_space_info.user_host_base = reinterpret_cast<uintptr_t>(user_region);
-  address_space_info.rpc_transfer_user_address = X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
-  address_space_info.rpc_transfer_host_address
-    = reinterpret_cast<uintptr_t>(user_region + (X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS - USER_REGION_VIRTUAL_ADDRESS));
-  address_space_info.rpc_transfer_size = PAGE_SIZE;
 
   thread_context_info.instruction_pointer = entry_point;
   thread_context_info.stack_pointer

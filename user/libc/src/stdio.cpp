@@ -1,11 +1,10 @@
+#include <stdio.h>
+
 #include <errno.h>
-#include <ringos/console.h>
-#include <ringos/debug.h>
-#include <ringos/rpc.h>
-#include <ringos/status.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
+
+#include <ringos/debug.h>
 
 #define RINGOS_STDIO_LOG_BUFFER_CAPACITY ((size_t) 512)
 
@@ -47,7 +46,12 @@ namespace
   }
 
   void append_unsigned_value(
-    char** cursor, size_t* remaining, int* total_written, uint64_t value, uint32_t base, bool uppercase)
+    char** cursor,
+    size_t* remaining,
+    int* total_written,
+    uint64_t value,
+    uint32_t base,
+    bool uppercase)
   {
     char digits[32];
     size_t digit_count = 0;
@@ -141,32 +145,6 @@ namespace
       return va_arg(arguments, int);
     }
   }
-
-  ringos_handle get_default_console_channel()
-  {
-    static ringos_handle channel_handle = RINGOS_HANDLE_INVALID;
-
-    if (channel_handle != RINGOS_HANDLE_INVALID)
-    {
-      return channel_handle;
-    }
-
-    ringos_console_device devices[1] {};
-    size_t device_count = 0;
-    const int32_t query_status = ringos_console_query_devices(devices, 1, &device_count);
-
-    if ((query_status != RINGOS_STATUS_OK && query_status != RINGOS_STATUS_BUFFER_TOO_SMALL) || device_count == 0)
-    {
-      return RINGOS_HANDLE_INVALID;
-    }
-
-    if (ringos_rpc_open(devices[0].endpoint_name, &channel_handle) != RINGOS_STATUS_OK)
-    {
-      channel_handle = RINGOS_HANDLE_INVALID;
-    }
-
-    return channel_handle;
-  }
 }
 
 int printf(const char* format, ...)
@@ -196,27 +174,6 @@ int vprintf(const char* format, va_list arguments)
   va_end(argument_copy);
 
   if (result < 0)
-  {
-    return result;
-  }
-
-  const ringos_handle channel_handle = get_default_console_channel();
-
-  if (channel_handle == RINGOS_HANDLE_INVALID)
-  {
-    (void) ringos_debug_log(buffer);
-    return result;
-  }
-
-  ringos_rpc_request request {};
-  request.operation = RINGOS_CONSOLE_OPERATION_WRITE;
-  request.argument0 = reinterpret_cast<uintptr_t>(buffer);
-  request.argument1 = static_cast<uintptr_t>(result);
-  ringos_rpc_response response {};
-
-  const ringos_rpc_status call_status = ringos_rpc_call(channel_handle, &request, &response);
-
-  if (call_status == RINGOS_STATUS_OK && response.status == RINGOS_STATUS_OK)
   {
     return result;
   }

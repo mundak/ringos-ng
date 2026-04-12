@@ -6,8 +6,6 @@
 #include "panic.h"
 #include "x64_windows_compat.h"
 
-#include <ringos/rpc.h>
-
 namespace
 {
   constexpr uint64_t WINDOWS_HANDLE_STDIN = 1;
@@ -29,7 +27,6 @@ void user_runtime::reset()
   __atomic_store_n(&m_next_handle_value, static_cast<handle_t>(1), __ATOMIC_RELAXED);
   m_processes.reset(m_next_handle_value);
   m_threads.reset(m_next_handle_value);
-  m_channels.reset(m_next_handle_value);
   m_shared_memory_objects.reset(m_next_handle_value);
 }
 
@@ -66,53 +63,6 @@ thread* user_runtime::create_thread(
   return current_thread;
 }
 
-bool user_runtime::create_channel_pair(
-  handle_t* out_first_handle, handle_t* out_second_handle, channel** out_first_channel, channel** out_second_channel)
-{
-  if (out_first_handle == nullptr || out_second_handle == nullptr)
-  {
-    return false;
-  }
-
-  if (!m_channels.has_free_items(2))
-  {
-    return false;
-  }
-
-  channel* first_channel = m_channels.emplace(static_cast<channel*>(nullptr));
-
-  if (first_channel == nullptr)
-  {
-    return false;
-  }
-
-  channel* second_channel = m_channels.emplace(first_channel);
-
-  if (second_channel == nullptr)
-  {
-    return false;
-  }
-
-  first_channel->set_peer(second_channel);
-
-  grant_process_access(*first_channel);
-  grant_process_access(*second_channel);
-  *out_first_handle = first_channel->get_handle();
-  *out_second_handle = second_channel->get_handle();
-
-  if (out_first_channel != nullptr)
-  {
-    *out_first_channel = first_channel;
-  }
-
-  if (out_second_channel != nullptr)
-  {
-    *out_second_channel = second_channel;
-  }
-
-  return true;
-}
-
 shared_memory_object* user_runtime::create_shared_memory_object(
   uintptr_t user_address, size_t size, handle_t* out_handle)
 {
@@ -143,11 +93,6 @@ thread* user_runtime::find_thread_by_handle(handle_t handle_value)
   return m_threads.find_by_handle(handle_value);
 }
 
-channel* user_runtime::find_channel_by_handle(handle_t handle_value)
-{
-  return m_channels.find_by_handle(handle_value);
-}
-
 shared_memory_object* user_runtime::find_shared_memory_object_by_handle(handle_t handle_value)
 {
   return m_shared_memory_objects.find_by_handle(handle_value);
@@ -167,13 +112,6 @@ kernel_object* user_runtime::find_object_by_handle(handle_t handle_value)
   if (thread_object != nullptr)
   {
     return thread_object;
-  }
-
-  channel* channel_object = find_channel_by_handle(handle_value);
-
-  if (channel_object != nullptr)
-  {
-    return channel_object;
   }
 
   return find_shared_memory_object_by_handle(handle_value);
@@ -319,47 +257,6 @@ int32_t user_runtime::copy_user_string(
   return STATUS_BUFFER_TOO_SMALL;
 }
 
-bool user_runtime::copy_rpc_transfer_payload(
-  const process& source_process,
-  const ringos_rpc_request& source_request,
-  const process& target_process,
-  ringos_rpc_request* out_target_request)
-{
-  if (out_target_request == nullptr)
-  {
-    return false;
-  }
-
-  *out_target_request = source_request;
-
-  if (source_request.argument0 == 0 || source_request.argument1 == 0)
-  {
-    return true;
-  }
-
-  const address_space& target_address_space = target_process.get_address_space_info();
-  const size_t payload_size = static_cast<size_t>(source_request.argument1);
-
-  if (target_address_space.rpc_transfer_host_address == 0 || payload_size > target_address_space.rpc_transfer_size)
-  {
-    return false;
-  }
-
-  const int32_t copy_status = copy_user_bytes(
-    source_process,
-    static_cast<uintptr_t>(source_request.argument0),
-    reinterpret_cast<void*>(target_address_space.rpc_transfer_host_address),
-    payload_size);
-
-  if (copy_status != STATUS_OK)
-  {
-    return false;
-  }
-
-  out_target_request->argument0 = target_address_space.rpc_transfer_user_address;
-  return true;
-}
-
 thread* user_runtime::get_current_thread()
 {
   return m_current_thread;
@@ -450,73 +347,6 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_BAD_STATE;
   }
 
-  const auto dispatch_rpc_call = [&](channel* channel_object, uintptr_t request_address, uintptr_t response_address)
-  {
-    if (channel_object == nullptr)
-    {
-      return STATUS_NOT_FOUND;
-    }
-
-    channel* const server_channel = channel_object->get_peer();
-
-    if (server_channel == nullptr)
-    {
-      return STATUS_PEER_CLOSED;
-    }
-
-    if (server_channel->m_waiting_thread == nullptr || server_channel->m_wait_request_address == 0)
-    {
-      return STATUS_WOULD_BLOCK;
-    }
-
-    process* const server_process = server_channel->m_waiting_thread->get_process_context();
-
-    if (server_process == nullptr)
-    {
-      return STATUS_BAD_STATE;
-    }
-
-    ringos_rpc_request request {};
-    const int32_t request_status = copy_user_bytes(*owner_process, request_address, &request, sizeof(request));
-
-    if (request_status != STATUS_OK)
-    {
-      return request_status;
-    }
-
-    if (request.operation == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    ringos_rpc_request server_request {};
-
-    if (!copy_rpc_transfer_payload(*owner_process, request, *server_process, &server_request))
-    {
-      return STATUS_BUFFER_TOO_SMALL;
-    }
-
-    const int32_t write_status = write_user_bytes(
-      *server_process, server_channel->m_wait_request_address, &server_request, sizeof(server_request));
-
-    if (write_status != STATUS_OK)
-    {
-      return write_status;
-    }
-
-    active_thread->set_state(USER_THREAD_STATE_BLOCKED);
-    server_channel->m_pending_client_thread = active_thread;
-    server_channel->m_pending_client_response_address = response_address;
-    server_channel->m_pending_request = server_request;
-    thread* server_thread = server_channel->m_waiting_thread;
-    server_thread->set_pending_syscall_status(STATUS_OK);
-    server_thread->set_state(USER_THREAD_STATE_READY);
-    server_channel->m_waiting_thread = nullptr;
-    server_channel->m_wait_request_address = 0;
-    set_current_thread(server_thread);
-    return STATUS_OK;
-  };
-
   switch (syscall_context.syscall_number)
   {
   case SYSCALL_DEBUG_LOG:
@@ -548,54 +378,6 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_OK;
   }
 
-  case SYSCALL_RPC_CALL:
-  {
-    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0 || syscall_context.argument2 == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    const handle_t channel_handle = static_cast<handle_t>(syscall_context.argument0);
-    kernel_object* const object = find_object_by_handle(channel_handle);
-
-    if (object == nullptr)
-    {
-      return STATUS_BAD_HANDLE;
-    }
-
-    channel* const channel_object = find_channel_by_handle(channel_handle);
-
-    if (channel_object == nullptr)
-    {
-      return STATUS_WRONG_TYPE;
-    }
-
-    return dispatch_rpc_call(
-      channel_object,
-      static_cast<uintptr_t>(syscall_context.argument1),
-      static_cast<uintptr_t>(syscall_context.argument2));
-  }
-
-  case SYSCALL_RPC_WAIT:
-  {
-    if (syscall_context.argument0 == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    return STATUS_NOT_FOUND;
-  }
-
-  case SYSCALL_RPC_REPLY:
-  {
-    if (syscall_context.argument0 == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    return STATUS_NOT_FOUND;
-  }
-
   case SYSCALL_DEVICE_MEMORY_MAP:
   {
     if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0)
@@ -604,50 +386,6 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     }
 
     return STATUS_NOT_FOUND;
-  }
-
-  case SYSCALL_RPC_OPEN:
-  {
-    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    return STATUS_NOT_FOUND;
-  }
-
-  case SYSCALL_CONSOLE_QUERY:
-  {
-    if (syscall_context.argument2 == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    const size_t device_capacity = static_cast<size_t>(syscall_context.argument1);
-
-    if (device_capacity != 0 && syscall_context.argument0 == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    const size_t available_device_count = 0;
-    const int32_t count_status = write_user_bytes(
-      *owner_process,
-      static_cast<uintptr_t>(syscall_context.argument2),
-      &available_device_count,
-      sizeof(available_device_count));
-
-    if (count_status != STATUS_OK)
-    {
-      return count_status;
-    }
-
-    if (available_device_count == 0)
-    {
-      return STATUS_OK;
-    }
-
-    return device_capacity < available_device_count ? STATUS_BUFFER_TOO_SMALL : STATUS_OK;
   }
 
   case SYSCALL_WINDOWS_GET_STD_HANDLE:

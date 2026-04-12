@@ -132,11 +132,9 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
 
     set(sdk_include_dir ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include)
     set(sdk_headers
-      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/console.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/debug.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/handle.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/process.h
-      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/rpc.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/sdk.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/status.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/syscalls.h
@@ -152,8 +150,6 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     ringos_collect_libcxx_headers(libcxx_headers)
     ringos_collect_libcxx_overlay_headers(libcxx_overlay_headers)
 
-    set(rpc_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_rpc.cpp)
-    set(console_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_console.cpp)
     set(debug_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_debug.cpp)
     set(process_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_process.cpp)
     set(crt0_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/crt/src/crt0.c)
@@ -178,8 +174,6 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(sdk_early_compile_flags -mgeneral-regs-only)
 
     set(syscall_object ${staging_root}/ringos_syscall.obj)
-    set(rpc_object ${staging_root}/ringos_rpc.obj)
-    set(console_object ${staging_root}/ringos_console.obj)
     set(debug_object ${staging_root}/ringos_debug.obj)
     set(process_object ${staging_root}/ringos_process.obj)
     set(crt0_object ${staging_root}/crt0.obj)
@@ -285,8 +279,6 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       set(sdk_archive_command
         COMMAND ${RINGOS_LLVM_LIB}
                 /out:${staging_library}
-                ${rpc_object}
-                ${console_object}
                 ${syscall_object}
                 ${debug_object}
                 ${process_object})
@@ -308,8 +300,6 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         COMMAND ${RINGOS_LLVM_AR}
                 rcs
                 ${staging_library}
-                ${rpc_object}
-                ${console_object}
                 ${syscall_object}
                 ${debug_object}
                 ${process_object})
@@ -343,36 +333,6 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -fno-stack-protector
             -c ${syscall_source}
             -o ${syscall_object}
-          COMMAND ${RINGOS_SDK_CLANGXX}
-            --target=${target_triple}
-            -O2
-            -ffreestanding
-            -fno-exceptions
-            -fno-rtti
-            -fno-stack-protector
-            -fno-builtin
-            ${sdk_early_compile_flags}
-            -Wall
-            -Wextra
-            -Wpedantic
-            -I ${sdk_include_dir}
-            -c ${rpc_source}
-            -o ${rpc_object}
-          COMMAND ${RINGOS_SDK_CLANGXX}
-            --target=${target_triple}
-            -O2
-            -ffreestanding
-            -fno-exceptions
-            -fno-rtti
-            -fno-stack-protector
-            -fno-builtin
-            ${sdk_early_compile_flags}
-            -Wall
-            -Wextra
-            -Wpedantic
-            -I ${sdk_include_dir}
-            -c ${console_source}
-            -o ${console_object}
           COMMAND ${RINGOS_SDK_CLANGXX}
             --target=${target_triple}
             -O2
@@ -541,8 +501,6 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
         ${libcxx_headers}
         ${libcxx_overlay_headers}
         ${syscall_source}
-        ${rpc_source}
-        ${console_source}
         ${debug_source}
         ${process_source}
         ${crt0_source}
