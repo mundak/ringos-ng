@@ -38,7 +38,6 @@ struct x64_process_storage
   x64_page_table user_page_table;
   alignas(X64_USER_IMAGE_PAGE_SIZE) uint8_t user_image_pages[X64_USER_IMAGE_PAGE_COUNT][X64_USER_IMAGE_PAGE_SIZE];
   alignas(X64_USER_IMAGE_PAGE_SIZE) uint8_t user_stack_page[X64_USER_IMAGE_PAGE_SIZE];
-  alignas(X64_USER_IMAGE_PAGE_SIZE) uint8_t user_rpc_transfer_page[X64_USER_IMAGE_PAGE_SIZE];
 };
 
 class x64_initial_user_runtime_platform final

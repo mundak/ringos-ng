@@ -17,7 +17,6 @@ namespace
   constexpr size_t PAGE_SIZE = X64_USER_IMAGE_PAGE_SIZE;
   constexpr uintptr_t USER_IMAGE_VIRTUAL_ADDRESS = X64_USER_IMAGE_VIRTUAL_ADDRESS;
   constexpr uintptr_t USER_STACK_VIRTUAL_ADDRESS = X64_USER_STACK_VIRTUAL_ADDRESS;
-  constexpr uintptr_t USER_RPC_TRANSFER_VIRTUAL_ADDRESS = X64_USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
   constexpr size_t USER_REGION_SIZE = X64_USER_REGION_SIZE;
   constexpr size_t WINDOWS_X64_STACK_HOME_SPACE_SIZE = 32;
 
@@ -128,8 +127,6 @@ void x64_initial_user_runtime_platform::initialize_user_region(x64_process_stora
 
   storage.user_page_table.entries[X64_USER_IMAGE_PAGE_COUNT]
     = make_table_entry(reinterpret_cast<uintptr_t>(storage.user_stack_page), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
-  storage.user_page_table.entries[X64_USER_IMAGE_PAGE_COUNT + 1] = make_table_entry(
-    reinterpret_cast<uintptr_t>(storage.user_rpc_transfer_page), PAGE_PRESENT | PAGE_WRITABLE | PAGE_USER);
 }
 
 uintptr_t x64_initial_user_runtime_platform::initialize_user_image(
@@ -192,9 +189,6 @@ void x64_initial_user_runtime_platform::populate_bootstrap_for_process(
   address_space_info.user_base = USER_IMAGE_VIRTUAL_ADDRESS;
   address_space_info.user_size = USER_REGION_SIZE;
   address_space_info.user_host_base = reinterpret_cast<uintptr_t>(&storage.user_image_pages[0][0]);
-  address_space_info.rpc_transfer_user_address = USER_RPC_TRANSFER_VIRTUAL_ADDRESS;
-  address_space_info.rpc_transfer_host_address = reinterpret_cast<uintptr_t>(&storage.user_rpc_transfer_page[0]);
-  address_space_info.rpc_transfer_size = PAGE_SIZE;
 
   thread_context_info.instruction_pointer = entry_point;
   thread_context_info.stack_pointer

@@ -1,6 +1,5 @@
 #pragma once
 
-#include "channel.h"
 #include "device_memory_object.h"
 #include "handle.h"
 #include "kernel_object.h"
@@ -10,7 +9,6 @@
 #include "thread.h"
 #include "user_runtime_types.h"
 
-#include <ringos/rpc.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -28,8 +26,6 @@ public:
   void reset();
   process* create_process(const address_space& address_space_info);
   thread* create_thread(process& process_context, const thread_context& initial_context, handle_t* out_thread_handle);
-  bool create_channel_pair(
-    handle_t* out_first_handle, handle_t* out_second_handle, channel** out_first_channel, channel** out_second_channel);
   device_memory_object* create_device_memory_object(
     device_memory_type type, uintptr_t user_address, uintptr_t host_address, size_t size, handle_t* out_handle);
   shared_memory_object* create_shared_memory_object(uintptr_t user_address, size_t size, handle_t* out_handle);
@@ -43,15 +39,9 @@ public:
 private:
   process* find_process_by_handle(handle_t handle_value);
   thread* find_thread_by_handle(handle_t handle_value);
-  channel* find_channel_by_handle(handle_t handle_value);
   device_memory_object* find_device_memory_object_by_handle(handle_t handle_value);
   shared_memory_object* find_shared_memory_object_by_handle(handle_t handle_value);
   kernel_object* find_object_by_handle(handle_t handle_value);
-  bool copy_rpc_transfer_payload(
-    const process& source_process,
-    const ringos_rpc_request& source_request,
-    const process& target_process,
-    ringos_rpc_request* out_target_request);
   thread* find_next_ready_thread(thread* after_thread);
   bool schedule_next_ready_thread();
   int32_t copy_user_bytes(const process& owner_process, uintptr_t user_address, void* buffer, size_t buffer_size) const;
@@ -63,7 +53,6 @@ private:
 
   kernel_object_pool<process, USER_RUNTIME_MAX_PROCESSES> m_processes;
   kernel_object_pool<thread, USER_RUNTIME_MAX_THREADS> m_threads;
-  kernel_object_pool<channel, USER_RUNTIME_MAX_CHANNELS> m_channels;
   kernel_object_pool<device_memory_object, USER_RUNTIME_MAX_DEVICE_MEMORY_OBJECTS> m_device_memory_objects;
   kernel_object_pool<shared_memory_object, USER_RUNTIME_MAX_SHARED_MEMORY_OBJECTS> m_shared_memory_objects;
   thread* m_current_thread;

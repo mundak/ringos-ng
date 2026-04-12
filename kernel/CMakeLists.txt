@@ -7,7 +7,6 @@ add_library(ringos_kernel OBJECT
   kernel_object.cpp
   process.cpp
   thread.cpp
-  channel.cpp
   shared_memory_object.cpp
   klibc/memory.cpp
   klibc/string.cpp

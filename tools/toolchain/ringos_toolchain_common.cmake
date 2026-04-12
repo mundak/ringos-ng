@@ -61,11 +61,9 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_sdk_sysroot.cmake
     ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_installed_toolchain.cmake
     ${RINGOS_REPO_ROOT}/tools/toolchain/ringos_toolchain_common.cmake
-    ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/console.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/debug.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/handle.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/process.h
-    ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/rpc.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/sdk.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/status.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/syscalls.h
@@ -74,8 +72,6 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${RINGOS_REPO_ROOT}/user/libc/include/stdio.h
     ${RINGOS_REPO_ROOT}/user/libc/include/stdlib.h
     ${RINGOS_REPO_ROOT}/user/libc/include/string.h
-    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_rpc.cpp
-    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_console.cpp
     ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_debug.cpp
     ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_process.cpp
     ${RINGOS_REPO_ROOT}/user/crt/src/crt0.c

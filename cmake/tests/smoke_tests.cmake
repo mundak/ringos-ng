@@ -31,12 +31,6 @@ ringos_add_sample_smoke_test(
   ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp/test-hello-world-cpp-x64.sh
 )
 
-#ringos_add_sample_smoke_test(
-#  sample_console_service_write_x64_native
-#  ${CMAKE_SOURCE_DIR}/user/samples/console_service_write/test-console-service-write.sh
-#  x64
-#)
-
 ringos_add_sample_smoke_test(
   sample_hello_world_arm64_native
   ${CMAKE_SOURCE_DIR}/user/samples/hello_world/test-hello-world-arm64.sh
@@ -46,12 +40,6 @@ ringos_add_sample_smoke_test(
   sample_hello_world_cpp_arm64_native
   ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp/test-hello-world-cpp-arm64.sh
 )
-
-#ringos_add_sample_smoke_test(
-#  sample_console_service_write_arm64_native
-#  ${CMAKE_SOURCE_DIR}/user/samples/console_service_write/test-console-service-write.sh
-#  arm64
-#)
 
 ringos_add_sample_smoke_test(
   sample_hello_world_arm64_x64_emulator
@@ -63,8 +51,3 @@ ringos_add_sample_smoke_test(
   ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp/test-hello-world-cpp-x64-on-arm64.sh
 )
 
-#ringos_add_sample_smoke_test(
-#  sample_console_service_write_arm64_x64_emulator
-#  ${CMAKE_SOURCE_DIR}/user/samples/console_service_write/test-console-service-write.sh
-#  x64-on-arm64
-#)

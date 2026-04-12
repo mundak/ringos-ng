@@ -8,7 +8,6 @@
 
 static constexpr uint32_t USER_RUNTIME_MAX_PROCESSES = 4;
 static constexpr uint32_t USER_RUNTIME_MAX_THREADS = 4;
-static constexpr uint32_t USER_RUNTIME_MAX_CHANNELS = 8;
 static constexpr uint32_t USER_RUNTIME_MAX_DEVICE_MEMORY_OBJECTS = 4;
 static constexpr uint32_t USER_RUNTIME_MAX_SHARED_MEMORY_OBJECTS = 4;
 static constexpr uint32_t USER_RUNTIME_MAX_INITIAL_PROCESSES = 2;
@@ -31,9 +30,6 @@ struct address_space
   uintptr_t user_base;
   size_t user_size;
   uintptr_t user_host_base;
-  uintptr_t rpc_transfer_user_address;
-  uintptr_t rpc_transfer_host_address;
-  size_t rpc_transfer_size;
   device_memory_type device_memory_type;
   uintptr_t device_memory_user_address;
   uintptr_t device_memory_host_address;
