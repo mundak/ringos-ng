@@ -35,7 +35,7 @@ namespace
     asm volatile("mov %0, %%cr3" : : "r"(value) : "memory");
   }
 
-  void load_user_thread_frame(x64_syscall_frame* frame, const thread& current_thread)
+  void load_user_thread_frame(x64_syscall_frame* frame, thread& current_thread)
   {
     if (frame == nullptr)
     {
@@ -43,13 +43,14 @@ namespace
     }
 
     memset(frame, 0, sizeof(*frame));
-    frame->rax = static_cast<uint64_t>(static_cast<int64_t>(current_thread.get_pending_syscall_status()));
-    frame->rcx = current_thread.get_user_context().instruction_pointer;
-    frame->r11 = current_thread.get_user_context().flags;
-    frame->user_rsp = current_thread.get_user_context().stack_pointer;
+    const user_thread_resume& resume_state = current_thread.get_resume_state();
+    frame->rax = static_cast<uint64_t>(static_cast<int64_t>(resume_state.status_code));
+    frame->rcx = resume_state.instruction_pointer;
+    frame->r11 = resume_state.flags;
+    frame->user_rsp = resume_state.stack_pointer;
     const uintptr_t* const preserved_registers = current_thread.get_arch_preserved_registers();
     frame->rsi = preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX];
-    frame->rdi = preserved_registers[X64_PRESERVED_REGISTER_RDI_INDEX];
+    frame->rdi = resume_state.argument0;
     frame->rbx = preserved_registers[X64_PRESERVED_REGISTER_RBX_INDEX];
     frame->rbp = preserved_registers[X64_PRESERVED_REGISTER_RBP_INDEX];
     frame->r12 = preserved_registers[X64_PRESERVED_REGISTER_R12_INDEX];
@@ -61,7 +62,6 @@ namespace
       current_thread.get_arch_preserved_simd_qwords(),
       sizeof(frame->preserved_xmm_qwords));
   }
-
 }
 
 void arch_activate_process_address_space(const process* process_context)
@@ -105,7 +105,7 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
     static_cast<uintptr_t>(frame->rcx),
     static_cast<uintptr_t>(frame->user_rsp),
     static_cast<uintptr_t>(frame->r11),
-    0,
+    static_cast<uintptr_t>(frame->rdi),
   };
   current_thread->set_user_context(user_context);
   uintptr_t* const preserved_registers = current_thread->get_arch_preserved_registers();
@@ -139,7 +139,7 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
 
   if (resume_thread == current_thread)
   {
-    resume_thread->set_pending_syscall_status(syscall_status);
+    resume_thread->prepare_syscall_resume(syscall_status);
   }
 
   load_user_thread_frame(frame, *resume_thread);

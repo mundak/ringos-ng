@@ -27,6 +27,8 @@ void user_runtime::reset()
   __atomic_store_n(&m_next_handle_value, static_cast<handle_t>(1), __ATOMIC_RELAXED);
   m_processes.reset(m_next_handle_value);
   m_threads.reset(m_next_handle_value);
+  m_device_memory_objects.reset(m_next_handle_value);
+  m_rpc_runtime.reset(m_next_handle_value);
   m_shared_memory_objects.reset(m_next_handle_value);
 }
 
@@ -63,6 +65,26 @@ thread* user_runtime::create_thread(
   return current_thread;
 }
 
+device_memory_object* user_runtime::create_device_memory_object(
+  device_memory_type type, uintptr_t user_address, uintptr_t host_address, size_t size, handle_t* out_handle)
+{
+  if (out_handle == nullptr)
+  {
+    return nullptr;
+  }
+
+  device_memory_object* current_object = m_device_memory_objects.emplace(type, user_address, host_address, size);
+
+  if (current_object == nullptr)
+  {
+    return nullptr;
+  }
+
+  grant_process_access(*current_object);
+  *out_handle = current_object->get_handle();
+  return current_object;
+}
+
 shared_memory_object* user_runtime::create_shared_memory_object(
   uintptr_t user_address, size_t size, handle_t* out_handle)
 {
@@ -93,6 +115,11 @@ thread* user_runtime::find_thread_by_handle(handle_t handle_value)
   return m_threads.find_by_handle(handle_value);
 }
 
+device_memory_object* user_runtime::find_device_memory_object_by_handle(handle_t handle_value)
+{
+  return m_device_memory_objects.find_by_handle(handle_value);
+}
+
 shared_memory_object* user_runtime::find_shared_memory_object_by_handle(handle_t handle_value)
 {
   return m_shared_memory_objects.find_by_handle(handle_value);
@@ -112,6 +139,13 @@ kernel_object* user_runtime::find_object_by_handle(handle_t handle_value)
   if (thread_object != nullptr)
   {
     return thread_object;
+  }
+
+  device_memory_object* device_memory = find_device_memory_object_by_handle(handle_value);
+
+  if (device_memory != nullptr)
+  {
+    return device_memory;
   }
 
   return find_shared_memory_object_by_handle(handle_value);
@@ -372,10 +406,20 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case SYSCALL_THREAD_EXIT:
   {
+    m_rpc_runtime.handle_thread_exit(*active_thread, STATUS_PEER_CLOSED);
     active_thread->set_state(USER_THREAD_STATE_EXITED);
     active_thread->set_exit_status(syscall_context.argument0);
     schedule_next_ready_thread();
     return STATUS_OK;
+  }
+
+  case SYSCALL_RPC_REGISTER:
+  case SYSCALL_RPC_OPEN:
+  case SYSCALL_RPC_CALL:
+  case SYSCALL_RPC_CLOSE:
+  case SYSCALL_RPC_COMPLETE:
+  {
+    return m_rpc_runtime.dispatch_syscall(*this, *active_thread, syscall_context);
   }
 
   case SYSCALL_DEVICE_MEMORY_MAP:
@@ -455,6 +499,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case SYSCALL_WINDOWS_EXIT_PROCESS:
   {
+    m_rpc_runtime.handle_thread_exit(*active_thread, STATUS_PEER_CLOSED);
     active_thread->set_state(USER_THREAD_STATE_EXITED);
     active_thread->set_exit_status(syscall_context.argument0);
     schedule_next_ready_thread();

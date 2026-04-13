@@ -8,6 +8,7 @@
 .global ringos_syscall4
 .global ringos_syscall5
 .global ringos_syscall6
+.global ringos_rpc_complete_trampoline
 
 ringos_syscall0:
   movq %rdi, %rax
@@ -86,4 +87,12 @@ ringos_syscall6:
   popq %rsi
   popq %rdi
   ret
+
+ringos_rpc_complete_trampoline:
+  movslq %eax, %rdi
+  movq $8, %rax
+  syscall
+
+.Lringos_rpc_complete_trampoline_hang:
+  jmp .Lringos_rpc_complete_trampoline_hang
 

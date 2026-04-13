@@ -64,6 +64,7 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/debug.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/handle.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/process.h
+    ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/rpc.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/sdk.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/status.h
     ${RINGOS_REPO_ROOT}/user/sdk/include/ringos/syscalls.h
@@ -74,6 +75,7 @@ function(ringos_collect_installed_toolchain_input_files target_arch out_input_fi
     ${RINGOS_REPO_ROOT}/user/libc/include/string.h
     ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_debug.cpp
     ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_process.cpp
+    ${RINGOS_REPO_ROOT}/user/sdk/src/ringos_rpc.cpp
     ${RINGOS_REPO_ROOT}/user/crt/src/crt0.c
     ${RINGOS_REPO_ROOT}/user/libc/src/errno.cpp
     ${RINGOS_REPO_ROOT}/user/libc/src/puts.cpp

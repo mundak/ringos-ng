@@ -5,6 +5,7 @@
 #include "kernel_object.h"
 #include "kernel_object_pool.h"
 #include "process.h"
+#include "rpc.h"
 #include "shared_memory_object.h"
 #include "thread.h"
 #include "user_runtime_types.h"
@@ -37,6 +38,8 @@ public:
   bool has_runnable_thread() const;
 
 private:
+  friend class rpc_runtime;
+
   process* find_process_by_handle(handle_t handle_value);
   thread* find_thread_by_handle(handle_t handle_value);
   device_memory_object* find_device_memory_object_by_handle(handle_t handle_value);
@@ -54,6 +57,7 @@ private:
   kernel_object_pool<process, USER_RUNTIME_MAX_PROCESSES> m_processes;
   kernel_object_pool<thread, USER_RUNTIME_MAX_THREADS> m_threads;
   kernel_object_pool<device_memory_object, USER_RUNTIME_MAX_DEVICE_MEMORY_OBJECTS> m_device_memory_objects;
+  rpc_runtime m_rpc_runtime;
   kernel_object_pool<shared_memory_object, USER_RUNTIME_MAX_SHARED_MEMORY_OBJECTS> m_shared_memory_objects;
   thread* m_current_thread;
   handle_t m_next_handle_value = 1;

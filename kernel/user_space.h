@@ -25,7 +25,12 @@ static constexpr int32_t STATUS_NOT_FOUND = -12;
 // Core syscall numbers shared by the kernel, SDK, and user programs.
 static constexpr uint64_t SYSCALL_DEBUG_LOG = 1;
 static constexpr uint64_t SYSCALL_THREAD_EXIT = 2;
+static constexpr uint64_t SYSCALL_RPC_REGISTER = 3;
+static constexpr uint64_t SYSCALL_RPC_OPEN = 4;
+static constexpr uint64_t SYSCALL_RPC_CALL = 5;
 static constexpr uint64_t SYSCALL_DEVICE_MEMORY_MAP = 6;
+static constexpr uint64_t SYSCALL_RPC_CLOSE = 7;
+static constexpr uint64_t SYSCALL_RPC_COMPLETE = 8;
 
 // Windows compatibility syscalls live in a separate range for imported x64 PE
 // entry points.

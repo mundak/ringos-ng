@@ -169,7 +169,7 @@ namespace
       align_up(reinterpret_cast<uintptr_t>(storage.user_region_storage), LARGE_PAGE_SIZE));
   }
 
-  void load_arm64_syscall_frame(arm64_syscall_frame* frame, const thread& current_thread)
+  void load_arm64_syscall_frame(arm64_syscall_frame* frame, thread& current_thread)
   {
     if (frame == nullptr)
     {
@@ -177,10 +177,11 @@ namespace
     }
 
     memset(frame, 0, sizeof(*frame));
-    frame->x0 = static_cast<uint64_t>(static_cast<int64_t>(current_thread.get_pending_syscall_status()));
-    frame->elr = current_thread.get_user_context().instruction_pointer;
-    frame->spsr = current_thread.get_user_context().flags;
-    frame->sp_el0 = current_thread.get_user_context().stack_pointer;
+    const user_thread_resume& resume_state = current_thread.get_resume_state();
+    frame->x0 = static_cast<uint64_t>(resume_state.argument0);
+    frame->elr = resume_state.instruction_pointer;
+    frame->spsr = resume_state.flags;
+    frame->sp_el0 = resume_state.stack_pointer;
     const uintptr_t* const preserved_registers = current_thread.get_arch_preserved_registers();
     frame->x19 = preserved_registers[ARM64_PRESERVED_REGISTER_X19_INDEX];
     frame->x20 = preserved_registers[ARM64_PRESERVED_REGISTER_X20_INDEX];
@@ -193,7 +194,9 @@ namespace
     frame->x27 = preserved_registers[ARM64_PRESERVED_REGISTER_X27_INDEX];
     frame->x28 = preserved_registers[ARM64_PRESERVED_REGISTER_X28_INDEX];
     frame->x29 = preserved_registers[ARM64_PRESERVED_REGISTER_X29_INDEX];
-    frame->x30 = preserved_registers[ARM64_PRESERVED_REGISTER_X30_INDEX];
+    frame->x30 = resume_state.kind == USER_THREAD_RESUME_KIND_RPC
+      ? resume_state.rpc_completion_address
+      : preserved_registers[ARM64_PRESERVED_REGISTER_X30_INDEX];
   }
 
   bool resolve_initial_windows_import(
@@ -451,7 +454,7 @@ int32_t arm64_initial_user_runtime_platform::dispatch_x64_syscall(
     state.instruction_pointer,
     static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSP)]),
     static_cast<uintptr_t>(state.flags),
-    0,
+    static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDI)]),
   };
   current_thread->set_user_context(user_context);
 
@@ -468,7 +471,7 @@ int32_t arm64_initial_user_runtime_platform::dispatch_x64_syscall(
 
   if (runtime.get_current_thread() == current_thread)
   {
-    current_thread->set_pending_syscall_status(syscall_status);
+    current_thread->prepare_syscall_resume(syscall_status);
   }
 
   *out_should_continue = runtime.has_runnable_thread();
@@ -647,7 +650,7 @@ extern "C" bool arm64_handle_syscall(void* frame)
     static_cast<uintptr_t>(syscall_frame->elr),
     static_cast<uintptr_t>(syscall_frame->sp_el0),
     static_cast<uintptr_t>(syscall_frame->spsr),
-    0,
+    static_cast<uintptr_t>(syscall_frame->x0),
   };
   current_thread->set_user_context(user_context);
   uintptr_t* const preserved_registers = current_thread->get_arch_preserved_registers();
@@ -684,7 +687,7 @@ extern "C" bool arm64_handle_syscall(void* frame)
 
   if (resume_thread == current_thread)
   {
-    resume_thread->set_pending_syscall_status(syscall_status);
+    resume_thread->prepare_syscall_resume(syscall_status);
   }
 
   load_arm64_syscall_frame(syscall_frame, *resume_thread);

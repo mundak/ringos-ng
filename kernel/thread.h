@@ -12,6 +12,7 @@ public:
   process* get_process_context() const;
   user_thread_state get_state() const;
   const thread_context& get_user_context() const;
+  const user_thread_resume& get_resume_state() const;
   uint64_t get_exit_status() const;
   uintptr_t get_kernel_stack_top() const;
   uintptr_t get_initial_argument0() const;
@@ -27,11 +28,17 @@ public:
   void set_exit_status(uint64_t exit_status);
   void clear_initial_argument();
   void set_pending_syscall_status(int32_t status);
+  void prepare_syscall_resume(int32_t status);
+  void prepare_rpc_resume(
+    uintptr_t callback_address, uintptr_t completion_address, uintptr_t argument0, uintptr_t stack_pointer);
 
 private:
+  void sync_resume_to_user_context();
+
   process* m_process;
   user_thread_state m_state;
   thread_context m_user_context;
+  user_thread_resume m_resume_state;
   uint64_t m_exit_status;
   uintptr_t m_initial_argument0;
   bool m_should_deliver_initial_argument;

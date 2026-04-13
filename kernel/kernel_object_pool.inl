@@ -60,6 +60,31 @@ bool kernel_object_pool<object_t, capacity>::has_free_items(uint32_t required_co
 }
 
 template<typename object_t, uint32_t capacity>
+bool kernel_object_pool<object_t, capacity>::erase_by_handle(handle_t handle_value)
+{
+  for (uint32_t index = 0; index < capacity; ++index)
+  {
+    if (!m_items[index].is_occupied)
+    {
+      continue;
+    }
+
+    object_t* current_item = get_item_at(index);
+
+    if (current_item->get_handle() != handle_value)
+    {
+      continue;
+    }
+
+    current_item->~object_t();
+    m_items[index].is_occupied = false;
+    return true;
+  }
+
+  return false;
+}
+
+template<typename object_t, uint32_t capacity>
 object_t* kernel_object_pool<object_t, capacity>::find_by_handle(handle_t handle_value)
 {
   for (uint32_t index = 0; index < capacity; ++index)

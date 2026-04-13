@@ -9,6 +9,15 @@ thread::thread(
   , m_process(&process_context)
   , m_state(USER_THREAD_STATE_READY)
   , m_user_context(initial_context)
+  , m_resume_state {
+    USER_THREAD_RESUME_KIND_SYSCALL,
+    initial_context.instruction_pointer,
+    initial_context.stack_pointer,
+    initial_context.flags,
+    initial_context.argument0,
+    STATUS_OK,
+    0,
+  }
   , m_exit_status(0)
   , m_initial_argument0(initial_context.argument0)
   , m_should_deliver_initial_argument(true)
@@ -32,6 +41,11 @@ user_thread_state thread::get_state() const
 const thread_context& thread::get_user_context() const
 {
   return m_user_context;
+}
+
+const user_thread_resume& thread::get_resume_state() const
+{
+  return m_resume_state;
 }
 
 uint64_t thread::get_exit_status() const
@@ -82,6 +96,7 @@ uint64_t* thread::get_arch_preserved_simd_qwords()
 void thread::set_user_context(const thread_context& user_context)
 {
   m_user_context = user_context;
+  sync_resume_to_user_context();
 }
 
 void thread::set_state(user_thread_state state)
@@ -102,4 +117,39 @@ void thread::clear_initial_argument()
 void thread::set_pending_syscall_status(int32_t status)
 {
   m_pending_syscall_status = status;
+  m_resume_state.status_code = status;
+}
+
+void thread::prepare_syscall_resume(int32_t status)
+{
+  m_pending_syscall_status = status;
+  sync_resume_to_user_context();
+  m_resume_state.status_code = status;
+
+#if defined(__aarch64__)
+  m_resume_state.argument0 = static_cast<uintptr_t>(static_cast<int64_t>(status));
+#endif
+}
+
+void thread::prepare_rpc_resume(
+  uintptr_t callback_address, uintptr_t completion_address, uintptr_t argument0, uintptr_t stack_pointer)
+{
+  m_resume_state.kind = USER_THREAD_RESUME_KIND_RPC;
+  m_resume_state.instruction_pointer = callback_address;
+  m_resume_state.stack_pointer = stack_pointer;
+  m_resume_state.flags = m_user_context.flags;
+  m_resume_state.argument0 = argument0;
+  m_resume_state.status_code = 0;
+  m_resume_state.rpc_completion_address = completion_address;
+}
+
+void thread::sync_resume_to_user_context()
+{
+  m_resume_state.kind = USER_THREAD_RESUME_KIND_SYSCALL;
+  m_resume_state.instruction_pointer = m_user_context.instruction_pointer;
+  m_resume_state.stack_pointer = m_user_context.stack_pointer;
+  m_resume_state.flags = m_user_context.flags;
+  m_resume_state.argument0 = m_user_context.argument0;
+  m_resume_state.status_code = m_pending_syscall_status;
+  m_resume_state.rpc_completion_address = 0;
 }

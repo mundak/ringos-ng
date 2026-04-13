@@ -135,6 +135,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/debug.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/handle.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/process.h
+      ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/rpc.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/sdk.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/status.h
       ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/include/ringos/syscalls.h
@@ -152,6 +153,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
 
     set(debug_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_debug.cpp)
     set(process_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_process.cpp)
+    set(rpc_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/sdk/src/ringos_rpc.cpp)
     set(crt0_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/crt/src/crt0.c)
     set(libc_errno_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/errno.cpp)
     set(libc_puts_source ${RINGOS_SDK_SYSROOT_REPO_ROOT}/user/libc/src/puts.cpp)
@@ -176,6 +178,7 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
     set(syscall_object ${staging_root}/ringos_syscall.obj)
     set(debug_object ${staging_root}/ringos_debug.obj)
     set(process_object ${staging_root}/ringos_process.obj)
+    set(rpc_object ${staging_root}/ringos_rpc.obj)
     set(crt0_object ${staging_root}/crt0.obj)
     set(libc_errno_object ${staging_root}/libc_errno.obj)
     set(libc_puts_object ${staging_root}/libc_puts.obj)
@@ -281,7 +284,8 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
                 /out:${staging_library}
                 ${syscall_object}
                 ${debug_object}
-                ${process_object})
+                ${process_object}
+                ${rpc_object})
       set(libc_archive_command
         COMMAND ${RINGOS_LLVM_LIB}
                 /out:${staging_libc}
@@ -302,7 +306,8 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
                 ${staging_library}
                 ${syscall_object}
                 ${debug_object}
-                ${process_object})
+                ${process_object}
+                ${rpc_object})
       set(libc_archive_command
         COMMAND ${RINGOS_LLVM_AR}
                 rcs
@@ -363,6 +368,21 @@ function(ringos_add_sdk_sysroot target_arch out_target out_target_triple out_sys
             -I ${sdk_include_dir}
             -c ${process_source}
             -o ${process_object}
+          COMMAND ${RINGOS_SDK_CLANGXX}
+            --target=${target_triple}
+            -O2
+            -ffreestanding
+            -fno-exceptions
+            -fno-rtti
+            -fno-stack-protector
+            -fno-builtin
+            ${sdk_early_compile_flags}
+            -Wall
+            -Wextra
+            -Wpedantic
+            -I ${sdk_include_dir}
+            -c ${rpc_source}
+            -o ${rpc_object}
           COMMAND ${RINGOS_SDK_CLANG}
             --target=${target_triple}
             -O2

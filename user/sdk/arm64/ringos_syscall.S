@@ -8,6 +8,7 @@
 .global ringos_syscall4
 .global ringos_syscall5
 .global ringos_syscall6
+.global ringos_rpc_complete_trampoline
 
 ringos_syscall0:
   mov x8, x0
@@ -64,3 +65,11 @@ ringos_syscall6:
   mov x5, x6
   svc #0
   ret
+
+ringos_rpc_complete_trampoline:
+  sxtw x0, w0
+  mov x8, #8
+  svc #0
+
+1:
+  b 1b

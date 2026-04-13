@@ -9,6 +9,8 @@
 static constexpr uint32_t USER_RUNTIME_MAX_PROCESSES = 4;
 static constexpr uint32_t USER_RUNTIME_MAX_THREADS = 4;
 static constexpr uint32_t USER_RUNTIME_MAX_DEVICE_MEMORY_OBJECTS = 4;
+static constexpr uint32_t USER_RUNTIME_MAX_RPC_ENDPOINTS = 8;
+static constexpr uint32_t USER_RUNTIME_MAX_RPC_CHANNELS = 8;
 static constexpr uint32_t USER_RUNTIME_MAX_SHARED_MEMORY_OBJECTS = 4;
 static constexpr uint32_t USER_RUNTIME_MAX_INITIAL_PROCESSES = 2;
 static constexpr size_t USER_RUNTIME_KERNEL_STACK_SIZE = 4096;
@@ -22,6 +24,12 @@ enum user_thread_state : uint32_t
   USER_THREAD_STATE_RUNNING = 2,
   USER_THREAD_STATE_BLOCKED = 3,
   USER_THREAD_STATE_EXITED = 4,
+};
+
+enum user_thread_resume_kind : uint32_t
+{
+  USER_THREAD_RESUME_KIND_SYSCALL = 0,
+  USER_THREAD_RESUME_KIND_RPC = 1,
 };
 
 struct address_space
@@ -42,6 +50,17 @@ struct thread_context
   uintptr_t stack_pointer;
   uintptr_t flags;
   uintptr_t argument0;
+};
+
+struct user_thread_resume
+{
+  user_thread_resume_kind kind;
+  uintptr_t instruction_pointer;
+  uintptr_t stack_pointer;
+  uintptr_t flags;
+  uintptr_t argument0;
+  int32_t status_code;
+  uintptr_t rpc_completion_address;
 };
 
 struct user_syscall_context

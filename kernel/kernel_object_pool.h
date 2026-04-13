@@ -18,6 +18,7 @@ public:
 
   bool has_free_items(uint32_t required_count) const;
 
+  bool erase_by_handle(handle_t handle_value);
   object_t* find_by_handle(handle_t handle_value);
   const object_t* find_by_handle(handle_t handle_value) const;
   object_t* get_by_index(uint32_t index);
