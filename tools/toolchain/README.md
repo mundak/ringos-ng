@@ -13,8 +13,7 @@ tools\toolchain\docker-build-toolchain.bat
 
 That wrapper builds the shared toolchain image, mounts the persistent Docker
 volume `ringos-toolchain-build` at `/workspace/build`, reuses the cached LLVM
-source, build, and install trees across runs, and configures the dedicated
-toolchain-only CMake project under `tools/toolchain/` rather than the repo root.
+source, build, and install trees across runs.
 
 ## Iterating on Cached LLVM Sources
 
@@ -108,12 +107,13 @@ The x64 native RingOS clang SEH assertion in
 workflow, and the local `tools\toolchain\docker-build-toolchain.bat` flow now
 completes end to end again.
 
-The packaging path is now isolated from the main repo build graph: it configures
-`tools/toolchain/CMakeLists.txt` directly, so it no longer pulls in
-`arch/*`, `kernel/`, `win32/tests/`, or the embedded `*_test_app_image.cmake`
-helpers just to package the toolchain.
+The packaging path is now isolated from the main repo build graph: the release
+scripts assemble the published bundle layout directly, and the SDK runtime is
+built through the standalone `user/sdk/CMakeLists.txt` project instead of the
+repo root. That keeps `arch/*`, `kernel/`, `win32/tests/`, and the embedded
+`*_test_app_image.cmake` helpers out of the release packaging path.
 
-One practical cache note remains: if you change fundamental payload configure
-inputs during manual iteration, delete `build/toolchain-build/x64` and
-`build/toolchain-build/arm64` before re-running the configure step. The
-standard wrapper now does this automatically.
+One practical cache note remains: if you change fundamental SDK payload
+configure inputs during manual iteration, delete `build/sdk-build/x64` and
+`build/sdk-build/arm64` before re-running the configure step. The standard SDK
+wrapper now does this automatically.

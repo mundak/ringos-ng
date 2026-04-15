@@ -1,15 +1,15 @@
 @echo off
-REM Build the shared ringos toolchain package for all targets as a distributable tar.xz archive on Windows.
-REM Usage: tools\toolchain\docker-build-toolchain.bat [output-archive]
+REM Build the shared ringos SDK package for all targets as a distributable tar.xz archive on Windows.
+REM Usage: tools\toolchain\docker-build-sdk.bat [output-archive]
 
 setlocal EnableExtensions EnableDelayedExpansion
 
-set IMAGE_NAME=ringos-ci-toolchain-release
+set IMAGE_NAME=ringos-ci-sdk-release
 set CONTEXT_DIR=%~dp0..\..
-set BUILD_VOLUME_NAME=%RINGOS_TOOLCHAIN_BUILD_VOLUME%
+set BUILD_VOLUME_NAME=%RINGOS_SDK_BUILD_VOLUME%
 
 if not defined BUILD_VOLUME_NAME (
-    set BUILD_VOLUME_NAME=ringos-toolchain-build
+    set BUILD_VOLUME_NAME=ringos-sdk-build
 )
 
 set RELEASE_REPO=
@@ -73,11 +73,11 @@ if %errorlevel% neq 0 (
 
 echo.
 if "%~1"=="" (
-    echo === Building shared toolchain archive under %OUTPUT_DIR% ===
-    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/toolchain-output" %IMAGE_NAME% bash -lc "tools/toolchain/build-toolchain.sh !RELEASE_ARGS! --output-dir /toolchain-output"
+    echo === Building shared SDK archive under %OUTPUT_DIR% ===
+    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/sdk-output" %IMAGE_NAME% bash -lc "tools/toolchain/build-sdk.sh !RELEASE_ARGS! --output-dir /sdk-output"
 ) else (
-    echo === Building shared toolchain archive at %OUTPUT_ARCHIVE% ===
-    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/toolchain-output" %IMAGE_NAME% bash -lc "tools/toolchain/build-toolchain.sh !RELEASE_ARGS! --output-archive /toolchain-output/%OUTPUT_NAME%"
+    echo === Building shared SDK archive at %OUTPUT_ARCHIVE% ===
+    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/sdk-output" %IMAGE_NAME% bash -lc "tools/toolchain/build-sdk.sh !RELEASE_ARGS! --output-archive /sdk-output/%OUTPUT_NAME%"
 )
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
@@ -85,7 +85,7 @@ if %errorlevel% neq 0 (
 )
 
 if "%~1"=="" (
-    for /f "delims=" %%I in ('dir /b /a-d /o-d "%OUTPUT_DIR%\ringos-toolchain-*.tar.xz"') do (
+    for /f "delims=" %%I in ('dir /b /a-d /o-d "%OUTPUT_DIR%\ringos-sdk-*.tar.xz"') do (
         if not defined OUTPUT_ARCHIVE (
             set OUTPUT_ARCHIVE=%OUTPUT_DIR%\%%I
         )
@@ -93,11 +93,11 @@ if "%~1"=="" (
 )
 
 if not defined OUTPUT_ARCHIVE (
-    echo ERROR: Unable to locate the generated versioned toolchain archive under %OUTPUT_DIR%.
+    echo ERROR: Unable to locate the generated versioned SDK archive under %OUTPUT_DIR%.
     exit /b 1
 )
 
 echo.
-echo Shared toolchain archive: %OUTPUT_ARCHIVE%
+echo Shared SDK archive: %OUTPUT_ARCHIVE%
 echo Persistent Docker build volume: %BUILD_VOLUME_NAME%
 echo === Done ===

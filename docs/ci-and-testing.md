@@ -108,7 +108,7 @@ The tmpfs size defaults to `4g`. Override it with
 Outputs under `/workspace/build` are ephemeral in this mode. Use a manual Docker
 command when you need to inspect the in-container build tree after the test run.
 
-The toolchain release path uses the same `tools/toolchain/run-toolchain-release.sh`
+The toolchain release path uses the same `tools/toolchain/build-toolchain.sh`
 entry point that powers the manual `toolchain_release` GitHub Actions job. The
 Windows wrapper mounts the repo-local `build` directory so iterative LLVM patch
 work can reuse the clone, build directory, and bootstrap install root locally.
@@ -126,7 +126,7 @@ tools\toolchain\docker-build-toolchain.bat
 
 That wrapper builds the same Docker image used by the `toolchain_release`
 workflow, mounts a persistent Docker named volume into `/workspace/build`, and
-then runs `tools/toolchain/run-toolchain-release.sh`. That layout keeps the
+then runs `tools/toolchain/build-toolchain.sh`. That layout keeps the
 installed toolchain bundle under `build/toolchain`, the LLVM clone, the Ninja
 build tree, and the bootstrap compiler install under `build/toolchain-build`
 on Linux-native Docker storage, so repeated runs can reuse the cached bootstrap
