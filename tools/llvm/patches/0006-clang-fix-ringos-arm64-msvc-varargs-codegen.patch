@@ -1,40 +1,28 @@
 diff --git a/clang/lib/CodeGen/CodeGenModule.cpp b/clang/lib/CodeGen/CodeGenModule.cpp
 --- a/clang/lib/CodeGen/CodeGenModule.cpp
 +++ b/clang/lib/CodeGen/CodeGenModule.cpp
-@@ -143,7 +143,9 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
+@@ -142,7 +142,8 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
      AArch64ABIKind Kind = AArch64ABIKind::AAPCS;
      if (Target.getABI() == "darwinpcs")
        Kind = AArch64ABIKind::DarwinPCS;
 -    else if (Triple.isOSWindows())
 +    else if (Triple.isOSWindows() ||
-+             (Triple.isOSRingos() &&
-+              Triple.isKnownWindowsMSVCEnvironment()))
++             (Triple.isOSRingos() && Triple.getEnvironment() == llvm::Triple::MSVC))
        return createWindowsAArch64TargetCodeGenInfo(CGM, AArch64ABIKind::Win64);
-     else if (Target.getABI() == "aapcs-soft")
-       Kind = AArch64ABIKind::AAPCSSoft;
-
-diff --git a/clang/test/CodeGen/AArch64/varargs-ringos-msvc.c b/clang/test/CodeGen/AArch64/varargs-ringos-msvc.c
+ 
+     return createAArch64TargetCodeGenInfo(CGM, Kind);
+diff --git a/clang/test/CodeGen/aarch64-varargs-ringos-msvc.c b/clang/test/CodeGen/aarch64-varargs-ringos-msvc.c
 new file mode 100644
 --- /dev/null
-+++ b/clang/test/CodeGen/AArch64/varargs-ringos-msvc.c
-@@ -0,0 +1,16 @@
++++ b/clang/test/CodeGen/aarch64-varargs-ringos-msvc.c
+@@ -0,0 +1,10 @@
 +// RUN: %clang_cc1 -triple aarch64-unknown-ringos-msvc -emit-llvm -o - %s | FileCheck %s
 +
-+int read_first_int(const char *format, ...)
-+{
-+  __builtin_va_list arguments;
-+  __builtin_va_start(arguments, format);
-+  int value = __builtin_va_arg(arguments, int);
-+  __builtin_va_end(arguments);
-+  return value;
-+}
++#include <stdarg.h>
 +
-+// CHECK-LABEL: define{{.*}} i32 @read_first_int
-+// CHECK: [[ARGUMENTS:%.*]] = alloca ptr, align 8
-+// CHECK: call void @llvm.va_start(ptr [[ARGUMENTS]])
-+// CHECK: [[ARGP_CUR:%.*]] = load ptr, ptr [[ARGUMENTS]], align 8
-+// CHECK: [[ARGP_NEXT:%.*]] = getelementptr inbounds i8, ptr [[ARGP_CUR]], i64 8
-+// CHECK: store ptr [[ARGP_NEXT]], ptr [[ARGUMENTS]], align 8
-+// CHECK: [[VALUE:%.*]] = load i32, ptr [[ARGP_CUR]], align 8
-+// CHECK: call void @llvm.va_end(ptr [[ARGUMENTS]])
-+// CHECK: ret i32 [[VALUE]]
++int simple_int(va_list ap) {
++// CHECK-LABEL: define dso_local i32 @simple_int
++  return va_arg(ap, int);
++// CHECK: [[RESULT:%[a-z_0-9]+]] = load i32, ptr %argp.cur
++// CHECK: ret i32 [[RESULT]]
++}
