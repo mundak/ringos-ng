@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Extract a local shared toolchain archive from build/, or download the latest release there first.
+# Resolve the latest published toolchain version, prefer the newest same-or-newer local archive in build/, or download it there first.
 
 set -euo pipefail
 
@@ -84,16 +84,49 @@ select_local_archive()
 
   python3 - "${search_root}" <<'PY'
 import pathlib
+import re
 import sys
 
 archive_root = pathlib.Path(sys.argv[1])
-archives = sorted(
-    archive_root.glob("ringos-toolchain-*.tar.xz"),
-    key=lambda entry: (entry.stat().st_mtime_ns, entry.name),
-)
+pattern = re.compile(r"^ringos-toolchain-(.+)\.tar\.xz$")
+selected_archive = None
+selected_version_key = None
 
-if archives:
-    print(archives[-1])
+for archive in archive_root.glob("ringos-toolchain-*.tar.xz"):
+  match = pattern.match(archive.name)
+  if match is None:
+    continue
+
+  try:
+    version_key = tuple(int(part) for part in match.group(1).split("."))
+  except ValueError:
+    continue
+
+  if selected_archive is None or version_key > selected_version_key or (
+    version_key == selected_version_key and archive.name > selected_archive.name
+  ):
+    selected_archive = archive
+    selected_version_key = version_key
+
+if selected_archive is not None:
+  print(selected_archive)
+PY
+}
+
+version_is_same_or_newer()
+{
+  local candidate_version="$1"
+  local baseline_version="$2"
+
+  python3 - "${candidate_version}" "${baseline_version}" <<'PY'
+import sys
+
+def parse_version(value: str) -> tuple[int, ...]:
+  return tuple(int(part) for part in value.split("."))
+
+candidate = parse_version(sys.argv[1])
+baseline = parse_version(sys.argv[2])
+sys.exit(0 if candidate >= baseline else 1)
 PY
 }
 
@@ -179,7 +212,7 @@ load_latest_release_metadata()
 
   mapfile -t release_metadata < <(python3 - "${release_info_file}" <<'PY'
 import json
-  import re
+import re
 import sys
 
 release_path = sys.argv[1]
@@ -187,38 +220,38 @@ release_path = sys.argv[1]
 with open(release_path, "r", encoding="utf-8") as handle:
     releases = json.load(handle)
 
-  pattern = re.compile(r"^ringos-toolchain-(.+)$")
-  selected_release = None
-  selected_version_key = None
+pattern = re.compile(r"^ringos-toolchain-(.+)$")
+selected_release = None
+selected_version_key = None
 
-  for release in releases:
+for release in releases:
     tag_name = release.get("tag_name", "")
     match = pattern.match(tag_name)
     if match is None:
-      continue
+        continue
 
     version = match.group(1)
     try:
-      version_key = tuple(int(part) for part in version.split("."))
+        version_key = tuple(int(part) for part in version.split("."))
     except ValueError:
-      continue
+        continue
 
     asset_name = f"{tag_name}.tar.xz"
     asset = next((entry for entry in release.get("assets", []) if entry.get("name") == asset_name), None)
     if asset is None:
-      continue
+        continue
 
     if selected_release is None or version_key > selected_version_key:
-      selected_release = release
-      selected_version_key = version_key
+        selected_release = release
+        selected_version_key = version_key
 
-  if selected_release is None:
+if selected_release is None:
     sys.exit("Unable to locate a published ringos-toolchain release asset")
 
-  tag_name = selected_release.get("tag_name", "")
-  toolchain_version = tag_name.removeprefix("ringos-toolchain-")
-  asset_name = f"{tag_name}.tar.xz"
-  asset = next((entry for entry in selected_release.get("assets", []) if entry.get("name") == asset_name), None)
+tag_name = selected_release.get("tag_name", "")
+toolchain_version = tag_name.removeprefix("ringos-toolchain-")
+asset_name = f"{tag_name}.tar.xz"
+asset = next((entry for entry in selected_release.get("assets", []) if entry.get("name") == asset_name), None)
 
 print(f"release_tag={tag_name}")
 print(f"release_version={toolchain_version}")
@@ -306,30 +339,34 @@ download_release_archive()
 
 mkdir -p "${archive_dir}"
 
+load_latest_release_metadata
+
 local_archive="$(select_local_archive "${archive_dir}")"
+local_archive_version=""
 
 if [[ -n "${local_archive}" ]]; then
-  archive_version="$(read_archive_version "${local_archive}")" || archive_version=""
+  local_archive_version="$(read_archive_version "${local_archive}")" || local_archive_version=""
 
-  if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
-    echo "Using extracted shared toolchain bundle at ${install_root}"
-    echo "Toolchain archive: ${local_archive}"
-    echo "Toolchain version: ${archive_version}"
-    exit 0
+  if [[ -n "${local_archive_version}" ]] && version_is_same_or_newer "${local_archive_version}" "${release_version}"; then
+    if cached_bundle_matches_release "${install_root}" "${local_archive_version}"; then
+      echo "Using extracted shared toolchain bundle at ${install_root}"
+      echo "Toolchain archive: ${local_archive}"
+      echo "Toolchain version: ${local_archive_version}"
+      exit 0
+    fi
+
+    install_archive "${local_archive}"
+
+    if cached_bundle_matches_release "${install_root}" "${local_archive_version}"; then
+      echo "Extracted shared toolchain archive ${local_archive} into ${install_root}"
+      echo "Toolchain version: ${local_archive_version}"
+      exit 0
+    fi
+
+    echo "Extracted archive ${local_archive}, but the extracted bundle version does not match ${local_archive_version}." >&2
+    exit 1
   fi
-
-  install_archive "${local_archive}"
-
-  if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
-    echo "Extracted shared toolchain archive ${local_archive} into ${install_root}"
-    exit 0
-  fi
-
-  echo "Extracted archive ${local_archive}, but the extracted bundle version does not match ${archive_version}." >&2
-  exit 1
 fi
-
-load_latest_release_metadata
 
 downloaded_archive="${archive_dir}/${asset_name}"
 download_release_archive "${downloaded_archive}"

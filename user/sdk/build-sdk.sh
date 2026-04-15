@@ -15,7 +15,7 @@ need_tool()
 
 log_step()
 {
-  printf '[sdk][%s] %s\n' "$(date -u +%H:%M:%S)" "$*"
+  printf '[sdk][%s] %s\n' "$(date -u +%H:%M:%S)" "$*" >&2
 }
 
 resolve_job_count()
@@ -88,7 +88,7 @@ run_with_heartbeat()
 usage()
 {
   cat <<EOF
-Usage: tools/toolchain/build-sdk.sh [options] [output-archive]
+Usage: user/sdk/build-sdk.sh [options] [output-archive]
 
 Options:
   --repo <owner/name>        GitHub repository that owns the toolchain release history.

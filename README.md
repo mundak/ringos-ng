@@ -138,6 +138,15 @@ written to local disk instead of publishing.
 For direct shell invocation without the Windows wrapper, run
 `tools/toolchain/build-toolchain.sh`.
 
+Build the shared SDK package tar.xz archive from Windows:
+
+```bat
+user\sdk\docker-build-sdk.bat
+```
+
+For direct shell invocation without the Windows wrapper, run
+`user/sdk/build-sdk.sh`.
+
 If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell

@@ -31,4 +31,4 @@ jobs:
             -e GITHUB_REPOSITORY \
             -v "${RUNNER_TEMP}:/sdk-output" \
             ringos-ci-sdk-release \
-            bash -lc "tools/toolchain/build-sdk.sh --repo \"$GITHUB_REPOSITORY\" --output-dir /sdk-output --publish"
+            bash -lc "user/sdk/build-sdk.sh --repo \"$GITHUB_REPOSITORY\" --output-dir /sdk-output --publish"

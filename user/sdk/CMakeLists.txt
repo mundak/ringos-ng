@@ -69,7 +69,7 @@ if(RINGOS_TARGET_ARCH STREQUAL "x64")
   set(runtime_extra_flags)
 elseif(RINGOS_TARGET_ARCH STREQUAL "arm64")
   set(syscall_source "${CMAKE_CURRENT_LIST_DIR}/arm64/ringos_syscall.S")
-  set(runtime_extra_flags -mgeneral-regs-only)
+  set(runtime_extra_flags)
 else()
   message(FATAL_ERROR "Unsupported RINGOS_TARGET_ARCH: ${RINGOS_TARGET_ARCH}")
 endif()
@@ -95,8 +95,7 @@ target_compile_options(ringos_sdk
     "$<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>"
     "$<$<COMPILE_LANGUAGE:CXX>:-Wall>"
     "$<$<COMPILE_LANGUAGE:CXX>:-Wextra>"
-    "$<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>"
-    "$<$<AND:$<COMPILE_LANGUAGE:CXX>,$<STREQUAL:${RINGOS_TARGET_ARCH},arm64>>:-mgeneral-regs-only>")
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>")
 
 set_target_properties(ringos_sdk PROPERTIES
   OUTPUT_NAME "ringos_sdk"
@@ -120,8 +119,23 @@ target_include_directories(ringos_c
 
 target_compile_options(ringos_c
   PRIVATE
-    ${common_cxx_flags}
-    ${runtime_extra_flags})
+    "$<$<COMPILE_LANGUAGE:C>:-O2>"
+    "$<$<COMPILE_LANGUAGE:C>:-ffreestanding>"
+    "$<$<COMPILE_LANGUAGE:C>:-fno-stack-protector>"
+    "$<$<COMPILE_LANGUAGE:C>:-fno-builtin>"
+    "$<$<COMPILE_LANGUAGE:C>:-Wall>"
+    "$<$<COMPILE_LANGUAGE:C>:-Wextra>"
+    "$<$<COMPILE_LANGUAGE:C>:-Wpedantic>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-O2>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-ffreestanding>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-fno-exceptions>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-fno-rtti>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-fno-stack-protector>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-fno-builtin>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-nostdinc++>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wall>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wextra>"
+    "$<$<COMPILE_LANGUAGE:CXX>:-Wpedantic>")
 
 set_target_properties(ringos_c PROPERTIES
   OUTPUT_NAME "ringos_c"

@@ -1,12 +1,14 @@
 @echo off
 REM Build the shared ringos SDK package for all targets as a distributable tar.xz archive on Windows.
-REM Usage: tools\toolchain\docker-build-sdk.bat [output-archive]
+REM Usage: user\sdk\docker-build-sdk.bat
 
 setlocal EnableExtensions EnableDelayedExpansion
 
 set IMAGE_NAME=ringos-ci-sdk-release
 set CONTEXT_DIR=%~dp0..\..
 set BUILD_VOLUME_NAME=%RINGOS_SDK_BUILD_VOLUME%
+set OUTPUT_DIR=%CONTEXT_DIR%\build
+set OUTPUT_ARCHIVE=
 
 if not defined BUILD_VOLUME_NAME (
     set BUILD_VOLUME_NAME=ringos-sdk-build
@@ -20,17 +22,6 @@ if defined GITHUB_REPOSITORY (
         if not defined RELEASE_REPO (
             set RELEASE_REPO=%%I
         )
-    )
-)
-
-if "%~1"=="" (
-    set OUTPUT_DIR=%CONTEXT_DIR%\build
-    set OUTPUT_ARCHIVE=
-) else (
-    set OUTPUT_ARCHIVE=%~1
-    for %%I in ("%OUTPUT_ARCHIVE%") do (
-        set OUTPUT_DIR=%%~dpI
-        set OUTPUT_NAME=%%~nxI
     )
 )
 
@@ -72,23 +63,16 @@ if %errorlevel% neq 0 (
 )
 
 echo.
-if "%~1"=="" (
-    echo === Building shared SDK archive under %OUTPUT_DIR% ===
-    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/sdk-output" %IMAGE_NAME% bash -lc "tools/toolchain/build-sdk.sh !RELEASE_ARGS! --output-dir /sdk-output"
-) else (
-    echo === Building shared SDK archive at %OUTPUT_ARCHIVE% ===
-    docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/sdk-output" %IMAGE_NAME% bash -lc "tools/toolchain/build-sdk.sh !RELEASE_ARGS! --output-archive /sdk-output/%OUTPUT_NAME%"
-)
+echo === Building shared SDK archive under %OUTPUT_DIR% ===
+docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/sdk-output" -v "%OUTPUT_DIR%:/host-build" %IMAGE_NAME% bash -lc "set -euo pipefail; if ls /host-build/ringos-toolchain-*.tar.xz ^>/dev/null 2^>^&1; then cp /host-build/ringos-toolchain-*.tar.xz /workspace/build/; fi; status=0; user/sdk/build-sdk.sh !RELEASE_ARGS! --output-dir /sdk-output || status=$?; if ls /workspace/build/ringos-toolchain-*.tar.xz ^>/dev/null 2^>^&1; then cp /workspace/build/ringos-toolchain-*.tar.xz /host-build/; fi; exit $status"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%
 )
 
-if "%~1"=="" (
-    for /f "delims=" %%I in ('dir /b /a-d /o-d "%OUTPUT_DIR%\ringos-sdk-*.tar.xz"') do (
-        if not defined OUTPUT_ARCHIVE (
-            set OUTPUT_ARCHIVE=%OUTPUT_DIR%\%%I
-        )
+for /f "delims=" %%I in ('dir /b /a-d /o-d "%OUTPUT_DIR%\ringos-sdk-*.tar.xz"') do (
+    if not defined OUTPUT_ARCHIVE (
+        set OUTPUT_ARCHIVE=%OUTPUT_DIR%\%%I
     )
 )
 
