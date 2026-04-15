@@ -46,7 +46,7 @@ if errorlevel 1 (
 )
 
 echo === Running %TEST_SCRIPT% ===
-docker run --rm !DOCKER_ENV_ARGS! --tmpfs "/workspace/build:exec,size=%BUILD_TMPFS_SIZE%" -v "%BUILD_DIR%:/host-build:ro" %IMAGE_NAME% bash -lc "set -euo pipefail; if ls /host-build/ringos-toolchain-*.tar.xz ^>/dev/null 2^>^&1; then cp /host-build/ringos-toolchain-*.tar.xz /workspace/build/; fi; %TEST_SCRIPT%"
+docker run --rm !DOCKER_ENV_ARGS! --tmpfs "/workspace/build:exec,size=%BUILD_TMPFS_SIZE%" -v "%BUILD_DIR%:/host-build:ro" %IMAGE_NAME% bash -lc "set -euo pipefail; if ls /host-build/ringos-toolchain-*.tar.xz ^>/dev/null 2^>^&1; then cp /host-build/ringos-toolchain-*.tar.xz /workspace/build/; fi; if ls /host-build/ringos-sdk-*.tar.xz ^>/dev/null 2^>^&1; then cp /host-build/ringos-sdk-*.tar.xz /workspace/build/; fi; %TEST_SCRIPT%"
 if errorlevel 1 (
     echo ERROR: Docker test failed.
     exit /b %errorlevel%

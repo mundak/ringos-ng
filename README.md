@@ -129,14 +129,14 @@ tools\toolchain\docker-build-toolchain.bat
 ```
 
 That wrapper now builds the same Docker image and runs the same
-`tools/toolchain/run-toolchain-release.sh` entry point as the manual
+`tools/toolchain/build-toolchain.sh` entry point as the manual
 `toolchain_release` GitHub Actions job. The local distinction is that it mounts
 the repo-local `build` directory into `/workspace/build` so the bootstrap LLVM
 state persists under `build/toolchain-build` and the resulting archive is
 written to local disk instead of publishing.
 
 For direct shell invocation without the Windows wrapper, run
-`tools/toolchain/run-toolchain-release.sh`.
+`tools/toolchain/build-toolchain.sh`.
 
 If you want to invoke the container manually instead of using the wrappers:
 

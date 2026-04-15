@@ -10,8 +10,21 @@ function(ringos_get_bundled_toolchain_root out_root)
   set(${out_root} "${toolchain_root}" PARENT_SCOPE)
 endfunction()
 
+function(ringos_get_bundled_sdk_root out_root)
+  if(DEFINED RINGOS_SDK_ROOT AND NOT RINGOS_SDK_ROOT STREQUAL "")
+    set(sdk_root "${RINGOS_SDK_ROOT}")
+  elseif(DEFINED ENV{RINGOS_SDK_ROOT} AND NOT "$ENV{RINGOS_SDK_ROOT}" STREQUAL "")
+    file(TO_CMAKE_PATH "$ENV{RINGOS_SDK_ROOT}" sdk_root)
+  else()
+    set(sdk_root "${CMAKE_SOURCE_DIR}/build/sdk")
+  endif()
+
+  set(${out_root} "${sdk_root}" PARENT_SCOPE)
+endfunction()
+
 function(ringos_resolve_bundled_test_app_tools target_arch prefix)
   ringos_get_bundled_toolchain_root(toolchain_root)
+  ringos_get_bundled_sdk_root(sdk_root)
 
   if(target_arch STREQUAL "x64")
     set(target_triple x86_64-unknown-ringos-msvc)
@@ -22,9 +35,9 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
   endif()
 
   set(toolchain_file "${toolchain_root}/cmake/ringos-toolchain.cmake")
-  set(compile_config "${toolchain_root}/share/ringos/compile-${target_arch}.cfg")
-  set(link_config "${toolchain_root}/share/ringos/link-${target_arch}.cfg")
-  set(cxx_include_dir "${toolchain_root}/sysroots/${target_triple}/include/c++/v1")
+  set(compile_config "${sdk_root}/share/ringos/compile-${target_arch}.cfg")
+  set(link_config "${sdk_root}/share/ringos/link-${target_arch}.cfg")
+  set(cxx_include_dir "${sdk_root}/sysroots/${target_triple}/include/c++/v1")
   set(cxx_compile_flags
     -std=c++20
     -fno-ms-compatibility
@@ -42,7 +55,7 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
     if(NOT EXISTS "${required_path}")
       message(FATAL_ERROR
         "Bundled toolchain input is missing: ${required_path}. "
-        "Extract build/toolchain before building embedded test app images.")
+        "Extract build/toolchain and build/sdk before building embedded test app images.")
     endif()
   endforeach()
 
@@ -68,6 +81,7 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
     REQUIRED)
 
   set(${prefix}_TOOLCHAIN_ROOT "${toolchain_root}" PARENT_SCOPE)
+  set(${prefix}_SDK_ROOT "${sdk_root}" PARENT_SCOPE)
   set(${prefix}_TOOLCHAIN_FILE "${toolchain_file}" PARENT_SCOPE)
   set(${prefix}_COMPILE_CONFIG "${compile_config}" PARENT_SCOPE)
   set(${prefix}_LINK_CONFIG "${link_config}" PARENT_SCOPE)

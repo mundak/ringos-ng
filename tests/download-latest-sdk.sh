@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Extract a local shared toolchain archive from build/, or download the latest release there first.
 
 set -euo pipefail
 
@@ -9,17 +8,17 @@ repo_root="$(cd "${script_dir}/.." && pwd)"
 release_repo="${GITHUB_REPOSITORY:-}"
 github_token="${GH_TOKEN:-${GITHUB_TOKEN:-}}"
 archive_dir="${repo_root}/build"
-install_root="${archive_dir}/toolchain"
+install_root="${archive_dir}/sdk"
 install_root_explicit=0
 
 usage()
 {
   cat <<EOF
-Usage: tests/download-latest-toolchain.sh [options]
+Usage: tests/download-latest-sdk.sh [options]
 
 Options:
-  --archive-dir <path>      Read or download toolchain archives here first.
-  --install-root <path>     Extract the shared toolchain bundle here.
+  --archive-dir <path>      Read or download SDK archives here first.
+  --install-root <path>     Extract the shared SDK bundle here.
   --repo <owner/name>       GitHub repository that owns the release assets.
   --help                    Show this help text.
 EOF
@@ -31,7 +30,7 @@ while [[ $# -gt 0 ]]; do
       archive_dir="$2"
 
       if [[ "${install_root_explicit}" != "1" ]]; then
-        install_root="${archive_dir}/toolchain"
+        install_root="${archive_dir}/sdk"
       fi
 
       shift 2
@@ -88,7 +87,7 @@ import sys
 
 archive_root = pathlib.Path(sys.argv[1])
 archives = sorted(
-    archive_root.glob("ringos-toolchain-*.tar.xz"),
+    archive_root.glob("ringos-sdk-*.tar.xz"),
     key=lambda entry: (entry.stat().st_mtime_ns, entry.name),
 )
 
@@ -104,7 +103,7 @@ read_archive_version()
 
   archive_name="$(basename "${archive_path}")"
 
-  if [[ "${archive_name}" =~ ^ringos-toolchain-(.+)\.tar\.xz$ ]]; then
+  if [[ "${archive_name}" =~ ^ringos-sdk-(.+)\.tar\.xz$ ]]; then
     printf '%s\n' "${BASH_REMATCH[1]}"
     return 0
   fi
@@ -115,7 +114,7 @@ read_archive_version()
 read_bundle_version()
 {
   local bundle_root="$1"
-  local version_file="${bundle_root}/share/ringos/toolchain-version.txt"
+  local version_file="${bundle_root}/share/ringos/sdk-version.txt"
 
   if [[ ! -f "${version_file}" ]]; then
     return 1
@@ -137,17 +136,19 @@ cached_bundle_matches_release()
   local required_path=""
 
   for required_path in \
-    cmake/ringos-toolchain.cmake \
-    cmake/ringos-x64-toolchain.cmake \
-    cmake/ringos-arm64-toolchain.cmake \
-    cmake/modules/Platform/RingOS.cmake \
-    bin/clang \
-    bin/clang++ \
-    bin/ld.lld \
-    bin/lld-link \
-    bin/llvm-ar \
-    bin/llvm-ranlib \
-    bin/llvm-objcopy; do
+    share/cmake/ringos_sdk/ringos_sdk-config.cmake \
+    share/ringos/compile-x64.cfg \
+    share/ringos/link-x64.cfg \
+    share/ringos/compile-arm64.cfg \
+    share/ringos/link-arm64.cfg \
+    sysroots/x86_64-unknown-ringos-msvc/lib/crt0.obj \
+    sysroots/x86_64-unknown-ringos-msvc/lib/ringos_sdk.lib \
+    sysroots/x86_64-unknown-ringos-msvc/lib/ringos_c.lib \
+    sysroots/x86_64-unknown-ringos-msvc/lib/clang_rt.builtins.lib \
+    sysroots/aarch64-unknown-ringos-msvc/lib/crt0.obj \
+    sysroots/aarch64-unknown-ringos-msvc/lib/ringos_sdk.lib \
+    sysroots/aarch64-unknown-ringos-msvc/lib/ringos_c.lib \
+    sysroots/aarch64-unknown-ringos-msvc/lib/clang_rt.builtins.lib; do
     if [[ ! -e "${bundle_root}/${required_path}" ]]; then
       return 1
     fi
@@ -160,13 +161,13 @@ cached_bundle_matches_release()
 load_latest_release_metadata()
 {
   if [[ -z "${release_repo}" ]]; then
-    echo "Set --repo or GITHUB_REPOSITORY before downloading toolchain releases." >&2
+    echo "Set --repo or GITHUB_REPOSITORY before downloading SDK releases." >&2
     exit 1
   fi
 
   need_tool curl
 
-  local release_info_file="${work_root}/toolchain-releases.json"
+  local release_info_file="${work_root}/sdk-releases.json"
   local -a curl_args=(--fail --location --retry 3 --silent --show-error -H "Accept: application/vnd.github+json")
 
   if [[ -n "${github_token}" ]]; then
@@ -179,7 +180,7 @@ load_latest_release_metadata()
 
   mapfile -t release_metadata < <(python3 - "${release_info_file}" <<'PY'
 import json
-  import re
+import re
 import sys
 
 release_path = sys.argv[1]
@@ -187,41 +188,41 @@ release_path = sys.argv[1]
 with open(release_path, "r", encoding="utf-8") as handle:
     releases = json.load(handle)
 
-  pattern = re.compile(r"^ringos-toolchain-(.+)$")
-  selected_release = None
-  selected_version_key = None
+pattern = re.compile(r"^ringos-sdk-(.+)$")
+selected_release = None
+selected_version_key = None
 
-  for release in releases:
+for release in releases:
     tag_name = release.get("tag_name", "")
     match = pattern.match(tag_name)
     if match is None:
-      continue
+        continue
 
     version = match.group(1)
     try:
-      version_key = tuple(int(part) for part in version.split("."))
+        version_key = tuple(int(part) for part in version.split("."))
     except ValueError:
-      continue
+        continue
 
     asset_name = f"{tag_name}.tar.xz"
     asset = next((entry for entry in release.get("assets", []) if entry.get("name") == asset_name), None)
     if asset is None:
-      continue
+        continue
 
     if selected_release is None or version_key > selected_version_key:
-      selected_release = release
-      selected_version_key = version_key
+        selected_release = release
+        selected_version_key = version_key
 
-  if selected_release is None:
-    sys.exit("Unable to locate a published ringos-toolchain release asset")
+if selected_release is None:
+    sys.exit("Unable to locate a published ringos-sdk release asset")
 
-  tag_name = selected_release.get("tag_name", "")
-  toolchain_version = tag_name.removeprefix("ringos-toolchain-")
-  asset_name = f"{tag_name}.tar.xz"
-  asset = next((entry for entry in selected_release.get("assets", []) if entry.get("name") == asset_name), None)
+tag_name = selected_release.get("tag_name", "")
+sdk_version = tag_name.removeprefix("ringos-sdk-")
+asset_name = f"{tag_name}.tar.xz"
+asset = next((entry for entry in selected_release.get("assets", []) if entry.get("name") == asset_name), None)
 
 print(f"release_tag={tag_name}")
-print(f"release_version={toolchain_version}")
+print(f"release_version={sdk_version}")
 print(f"asset_name={asset_name}")
 print(f"asset_api_url={asset.get('url', '')}")
 print(f"asset_download_url={asset.get('browser_download_url', '')}")
@@ -249,7 +250,7 @@ PY
   done
 
   if [[ -z "${release_tag}" || -z "${release_version}" || -z "${asset_name}" ]]; then
-    echo "Unable to resolve the latest installed toolchain release metadata." >&2
+    echo "Unable to resolve the latest installed SDK release metadata." >&2
     exit 1
   fi
 }
@@ -258,7 +259,7 @@ install_archive()
 {
   local archive_path="$1"
   local extract_root="${work_root}/extract"
-  local extracted_bundle="${extract_root}/ringos-toolchain"
+  local extracted_bundle="${extract_root}/ringos-sdk"
 
   archive_path="$(cd "$(dirname "${archive_path}")" && pwd)/$(basename "${archive_path}")"
 
@@ -270,7 +271,7 @@ install_archive()
   )
 
   if [[ ! -d "${extracted_bundle}" ]]; then
-    echo "Downloaded toolchain archive did not contain ringos-toolchain/." >&2
+    echo "Downloaded SDK archive did not contain ringos-sdk/." >&2
     exit 1
   fi
 
@@ -312,20 +313,20 @@ if [[ -n "${local_archive}" ]]; then
   archive_version="$(read_archive_version "${local_archive}")" || archive_version=""
 
   if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
-    echo "Using extracted shared toolchain bundle at ${install_root}"
-    echo "Toolchain archive: ${local_archive}"
-    echo "Toolchain version: ${archive_version}"
+    echo "Using extracted shared SDK bundle at ${install_root}"
+    echo "SDK archive: ${local_archive}"
+    echo "SDK version: ${archive_version}"
     exit 0
   fi
 
   install_archive "${local_archive}"
 
   if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
-    echo "Extracted shared toolchain archive ${local_archive} into ${install_root}"
+    echo "Extracted shared SDK archive ${local_archive} into ${install_root}"
     exit 0
   fi
 
-  echo "Extracted archive ${local_archive}, but the extracted bundle version does not match ${archive_version}." >&2
+  echo "Extracted archive ${local_archive}, but the extracted SDK bundle version does not match ${archive_version}." >&2
   exit 1
 fi
 
@@ -336,10 +337,10 @@ download_release_archive "${downloaded_archive}"
 install_archive "${downloaded_archive}"
 
 if cached_bundle_matches_release "${install_root}" "${release_version}"; then
-  echo "Downloaded shared toolchain release ${release_tag} into ${downloaded_archive}"
-  echo "Extracted shared toolchain bundle into ${install_root}"
+  echo "Downloaded shared SDK release ${release_tag} into ${downloaded_archive}"
+  echo "Extracted shared SDK bundle into ${install_root}"
   exit 0
 fi
 
-echo "Downloaded release ${release_tag}, but the extracted bundle version does not match ${release_version}." >&2
+echo "Downloaded release ${release_tag}, but the extracted SDK bundle version does not match ${release_version}." >&2
 exit 1

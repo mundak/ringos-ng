@@ -31,4 +31,4 @@ jobs:
             -e GITHUB_REPOSITORY \
             -v "${RUNNER_TEMP}:/toolchain-output" \
             ringos-ci-toolchain-release \
-            bash -lc "tools/toolchain/run-toolchain-release.sh --repo \"$GITHUB_REPOSITORY\" --output-dir /toolchain-output --publish"
+            bash -lc "tools/toolchain/build-toolchain.sh --repo \"$GITHUB_REPOSITORY\" --output-dir /toolchain-output --publish"

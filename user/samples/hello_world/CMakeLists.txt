@@ -4,11 +4,13 @@ project(ringos_hello_world LANGUAGES C)
 
 if(NOT DEFINED RINGOS_TARGET_TRIPLE)
   message(FATAL_ERROR
-    "Configure this sample with the published ringos installed-toolchain bundle. "
-    "Pass -DCMAKE_TOOLCHAIN_FILE=<bundle>/cmake/ringos-toolchain.cmake "
+    "Configure this sample with the published ringos toolchain bundle. "
+    "Pass -DCMAKE_TOOLCHAIN_FILE=<toolchain>/cmake/ringos-toolchain.cmake "
     "and -DRINGOS_TARGET_ARCH=<x64|arm64>."
   )
 endif()
+
+find_package(ringos_sdk CONFIG REQUIRED)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -24,4 +26,9 @@ target_compile_options(hello_world
     -Wall
     -Wextra
     -Wpedantic
+)
+
+target_link_libraries(hello_world
+  PRIVATE
+    ringos-sdk
 )
