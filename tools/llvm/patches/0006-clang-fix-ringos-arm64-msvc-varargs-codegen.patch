@@ -1,12 +1,13 @@
 diff --git a/clang/lib/CodeGen/CodeGenModule.cpp b/clang/lib/CodeGen/CodeGenModule.cpp
 --- a/clang/lib/CodeGen/CodeGenModule.cpp
 +++ b/clang/lib/CodeGen/CodeGenModule.cpp
-@@ -142,7 +142,7 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
+@@ -142,7 +142,8 @@ createTargetCodeGenInfo(CodeGenModule &CGM) {
      AArch64ABIKind Kind = AArch64ABIKind::AAPCS;
      if (Target.getABI() == "darwinpcs")
        Kind = AArch64ABIKind::DarwinPCS;
 -    else if (Triple.isOSWindows())
-+    else if (Triple.isKnownWindowsMSVCEnvironment())
++    else if (Triple.isOSWindows() ||
++             (Triple.isOSRingos() && Triple.getEnvironment() == llvm::Triple::MSVC))
        return createWindowsAArch64TargetCodeGenInfo(CGM, AArch64ABIKind::Win64);
  
      return createAArch64TargetCodeGenInfo(CGM, Kind);
