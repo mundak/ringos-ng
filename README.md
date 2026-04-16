@@ -184,9 +184,7 @@ The installed-toolchain flow publishes manual GitHub releases tagged as
 `ringos-toolchain-YYYY.MM.DD.N`, where `N` increments when multiple toolchain
 releases are created on the same UTC day. Each release carries a download
 asset named after that tag, such as `ringos-toolchain-2026.05.05.01.tar.xz`,
-and the extracted archive records
-that published version in `share/ringos/toolchain-version.txt` plus the
-per-target toolchain manifests. The dedicated `toolchain_release` workflow is
+plus the per-target toolchain manifests. The dedicated `toolchain_release` workflow is
 manual-only: it computes the next date-based version, builds the shared x64 and
 arm64 bundle, and publishes that bundle to GitHub Releases. Test and Docker
 wrapper flows only download or verify the latest published bundle; they do not

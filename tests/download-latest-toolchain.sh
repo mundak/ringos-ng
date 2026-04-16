@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-# Resolve the latest published toolchain version, prefer the newest same-or-newer local archive in build/, or download it there first.
 
 set -euo pipefail
 
@@ -113,6 +112,21 @@ if selected_archive is not None:
 PY
 }
 
+read_archive_version()
+{
+  local archive_path="$1"
+  local archive_name=""
+
+  archive_name="$(basename "${archive_path}")"
+
+  if [[ "${archive_name}" =~ ^ringos-toolchain-(.+)\.tar\.xz$ ]]; then
+    printf '%s\n' "${BASH_REMATCH[1]}"
+    return 0
+  fi
+
+  return 1
+}
+
 version_is_same_or_newer()
 {
   local candidate_version="$1"
@@ -128,21 +142,6 @@ candidate = parse_version(sys.argv[1])
 baseline = parse_version(sys.argv[2])
 sys.exit(0 if candidate >= baseline else 1)
 PY
-}
-
-read_archive_version()
-{
-  local archive_path="$1"
-  local archive_name=""
-
-  archive_name="$(basename "${archive_path}")"
-
-  if [[ "${archive_name}" =~ ^ringos-toolchain-(.+)\.tar\.xz$ ]]; then
-    printf '%s\n' "${BASH_REMATCH[1]}"
-    return 0
-  fi
-
-  return 1
 }
 
 load_latest_release_metadata()
@@ -297,16 +296,15 @@ mkdir -p "${archive_dir}"
 load_latest_release_metadata
 
 local_archive="$(select_local_archive "${archive_dir}")"
-local_archive_version=""
 
 if [[ -n "${local_archive}" ]]; then
-  local_archive_version="$(read_archive_version "${local_archive}")" || local_archive_version=""
+  archive_version="$(read_archive_version "${local_archive}")" || archive_version=""
 
-  if [[ -n "${local_archive_version}" ]] && version_is_same_or_newer "${local_archive_version}" "${release_version}"; then
+  if [[ -n "${archive_version}" ]] && version_is_same_or_newer "${archive_version}" "${release_version}"; then
     install_archive "${local_archive}"
 
     echo "Extracted shared toolchain archive ${local_archive} into ${install_root}"
-    echo "Toolchain version: ${local_archive_version}"
+    echo "Toolchain version: ${archive_version}"
     exit 0
   fi
 fi

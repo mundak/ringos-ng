@@ -530,7 +530,6 @@ set(CMAKE_SYSTEM_PROCESSOR ${system_processor})
 get_filename_component(RINGOS_TOOLCHAIN_ROOT "\${CMAKE_CURRENT_LIST_DIR}/.." ABSOLUTE)
 get_filename_component(RINGOS_SHARE_DIR "\${RINGOS_TOOLCHAIN_ROOT}/share/ringos" ABSOLUTE)
 get_filename_component(RINGOS_SYSROOT_DIR "\${RINGOS_TOOLCHAIN_ROOT}/sysroots/${target_triple}" ABSOLUTE)
-set(RINGOS_TOOLCHAIN_VERSION "${toolchain_version}")
 set(RINGOS_CLANG_RESOURCE_DIR "\${RINGOS_TOOLCHAIN_ROOT}/lib/clang/${clang_resource_version}")
 set(RINGOS_SYSROOT_INCLUDE_DIR "\${RINGOS_SYSROOT_DIR}/include")
 set(RINGOS_SYSROOT_CXX_INCLUDE_DIR "\${RINGOS_SYSROOT_INCLUDE_DIR}/c++/v1")
@@ -678,10 +677,6 @@ package_installed_toolchain()
 
   stage_toolchain_runtime_for_arch "${install_root}" x64 "${toolchain_runtime_x64_build_dir}"
   stage_toolchain_runtime_for_arch "${install_root}" arm64 "${toolchain_runtime_arm64_build_dir}"
-
-  cat > "${bundle_share_dir}/toolchain-version.txt" <<EOF
-${toolchain_version}
-EOF
 }
 
 output_archive=""
