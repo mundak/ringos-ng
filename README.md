@@ -328,9 +328,10 @@ The current Stage 7 bootstrap packages the SDK sysroot under
 target plus `stage-x64-sdk-sysroot` and `stage-arm64-sdk-sysroot` build
 presets. Each packaged sysroot now carries bootstrap Clang config files, a
 `crt0.obj` startup object, a minimal hosted C library archive implemented in
-C++ behind a C ABI, a bootstrap compiler-rt builtins archive, and toolchain
-metadata under `share/ringos/` so external build tooling can discover the
-provisional target triple and runtime layout.
+C++ behind a C ABI, and toolchain metadata under `share/ringos/` so external
+build tooling can discover the provisional target triple and runtime layout.
+The matching toolchain bundle carries the bootstrap compiler-rt builtins
+archive inside clang's resource directory.
 
 Stage 8 now freezes the first ringos-specific compiler contract in
 [docs/stage8-clang-bringup.md](docs/stage8-clang-bringup.md). The planned

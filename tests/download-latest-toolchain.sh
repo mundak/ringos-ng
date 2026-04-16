@@ -145,51 +145,6 @@ read_archive_version()
   return 1
 }
 
-read_bundle_version()
-{
-  local bundle_root="$1"
-  local version_file="${bundle_root}/share/ringos/toolchain-version.txt"
-
-  if [[ ! -f "${version_file}" ]]; then
-    return 1
-  fi
-
-  python3 - "${version_file}" <<'PY'
-import pathlib
-import sys
-
-print(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").strip())
-PY
-}
-
-cached_bundle_matches_release()
-{
-  local bundle_root="$1"
-  local expected_version="$2"
-  local actual_version=""
-  local required_path=""
-
-  for required_path in \
-    cmake/ringos-toolchain.cmake \
-    cmake/ringos-x64-toolchain.cmake \
-    cmake/ringos-arm64-toolchain.cmake \
-    cmake/modules/Platform/RingOS.cmake \
-    bin/clang \
-    bin/clang++ \
-    bin/ld.lld \
-    bin/lld-link \
-    bin/llvm-ar \
-    bin/llvm-ranlib \
-    bin/llvm-objcopy; do
-    if [[ ! -e "${bundle_root}/${required_path}" ]]; then
-      return 1
-    fi
-  done
-
-  actual_version="$(read_bundle_version "${bundle_root}")" || return 1
-  [[ "${actual_version}" == "${expected_version}" ]]
-}
-
 load_latest_release_metadata()
 {
   if [[ -z "${release_repo}" ]]; then
@@ -348,35 +303,18 @@ if [[ -n "${local_archive}" ]]; then
   local_archive_version="$(read_archive_version "${local_archive}")" || local_archive_version=""
 
   if [[ -n "${local_archive_version}" ]] && version_is_same_or_newer "${local_archive_version}" "${release_version}"; then
-    if cached_bundle_matches_release "${install_root}" "${local_archive_version}"; then
-      echo "Using extracted shared toolchain bundle at ${install_root}"
-      echo "Toolchain archive: ${local_archive}"
-      echo "Toolchain version: ${local_archive_version}"
-      exit 0
-    fi
-
     install_archive "${local_archive}"
 
-    if cached_bundle_matches_release "${install_root}" "${local_archive_version}"; then
-      echo "Extracted shared toolchain archive ${local_archive} into ${install_root}"
-      echo "Toolchain version: ${local_archive_version}"
-      exit 0
-    fi
-
-    echo "Extracted archive ${local_archive}, but the extracted bundle version does not match ${local_archive_version}." >&2
-    exit 1
+    echo "Extracted shared toolchain archive ${local_archive} into ${install_root}"
+    echo "Toolchain version: ${local_archive_version}"
+    exit 0
   fi
 fi
 
 downloaded_archive="${archive_dir}/${asset_name}"
+echo "Downloading published toolchain archive ${asset_name} into ${archive_dir}"
 download_release_archive "${downloaded_archive}"
 install_archive "${downloaded_archive}"
 
-if cached_bundle_matches_release "${install_root}" "${release_version}"; then
-  echo "Downloaded shared toolchain release ${release_tag} into ${downloaded_archive}"
-  echo "Extracted shared toolchain bundle into ${install_root}"
-  exit 0
-fi
-
-echo "Downloaded release ${release_tag}, but the extracted bundle version does not match ${release_version}." >&2
-exit 1
+echo "Downloaded shared toolchain release ${release_tag} into ${downloaded_archive}"
+echo "Extracted shared toolchain bundle into ${install_root}"

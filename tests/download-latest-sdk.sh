@@ -111,53 +111,6 @@ read_archive_version()
   return 1
 }
 
-read_bundle_version()
-{
-  local bundle_root="$1"
-  local version_file="${bundle_root}/share/ringos/sdk-version.txt"
-
-  if [[ ! -f "${version_file}" ]]; then
-    return 1
-  fi
-
-  python3 - "${version_file}" <<'PY'
-import pathlib
-import sys
-
-print(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8").strip())
-PY
-}
-
-cached_bundle_matches_release()
-{
-  local bundle_root="$1"
-  local expected_version="$2"
-  local actual_version=""
-  local required_path=""
-
-  for required_path in \
-    share/cmake/ringos_sdk/ringos_sdk-config.cmake \
-    share/ringos/compile-x64.cfg \
-    share/ringos/link-x64.cfg \
-    share/ringos/compile-arm64.cfg \
-    share/ringos/link-arm64.cfg \
-    sysroots/x86_64-unknown-ringos-msvc/lib/crt0.obj \
-    sysroots/x86_64-unknown-ringos-msvc/lib/ringos_sdk.lib \
-    sysroots/x86_64-unknown-ringos-msvc/lib/ringos_c.lib \
-    sysroots/x86_64-unknown-ringos-msvc/lib/clang_rt.builtins.lib \
-    sysroots/aarch64-unknown-ringos-msvc/lib/crt0.obj \
-    sysroots/aarch64-unknown-ringos-msvc/lib/ringos_sdk.lib \
-    sysroots/aarch64-unknown-ringos-msvc/lib/ringos_c.lib \
-    sysroots/aarch64-unknown-ringos-msvc/lib/clang_rt.builtins.lib; do
-    if [[ ! -e "${bundle_root}/${required_path}" ]]; then
-      return 1
-    fi
-  done
-
-  actual_version="$(read_bundle_version "${bundle_root}")" || return 1
-  [[ "${actual_version}" == "${expected_version}" ]]
-}
-
 load_latest_release_metadata()
 {
   if [[ -z "${release_repo}" ]]; then
@@ -312,22 +265,13 @@ local_archive="$(select_local_archive "${archive_dir}")"
 if [[ -n "${local_archive}" ]]; then
   archive_version="$(read_archive_version "${local_archive}")" || archive_version=""
 
-  if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
-    echo "Using extracted shared SDK bundle at ${install_root}"
-    echo "SDK archive: ${local_archive}"
-    echo "SDK version: ${archive_version}"
-    exit 0
-  fi
-
   install_archive "${local_archive}"
 
-  if [[ -n "${archive_version}" ]] && cached_bundle_matches_release "${install_root}" "${archive_version}"; then
-    echo "Extracted shared SDK archive ${local_archive} into ${install_root}"
-    exit 0
+  echo "Extracted shared SDK archive ${local_archive} into ${install_root}"
+  if [[ -n "${archive_version}" ]]; then
+    echo "SDK version: ${archive_version}"
   fi
-
-  echo "Extracted archive ${local_archive}, but the extracted SDK bundle version does not match ${archive_version}." >&2
-  exit 1
+  exit 0
 fi
 
 load_latest_release_metadata
@@ -336,11 +280,5 @@ downloaded_archive="${archive_dir}/${asset_name}"
 download_release_archive "${downloaded_archive}"
 install_archive "${downloaded_archive}"
 
-if cached_bundle_matches_release "${install_root}" "${release_version}"; then
-  echo "Downloaded shared SDK release ${release_tag} into ${downloaded_archive}"
-  echo "Extracted shared SDK bundle into ${install_root}"
-  exit 0
-fi
-
-echo "Downloaded release ${release_tag}, but the extracted SDK bundle version does not match ${release_version}." >&2
-exit 1
+echo "Downloaded shared SDK release ${release_tag} into ${downloaded_archive}"
+echo "Extracted shared SDK bundle into ${install_root}"
