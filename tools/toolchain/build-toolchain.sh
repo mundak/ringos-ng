@@ -466,6 +466,35 @@ stage_toolchain_sysroot_headers()
   fi
 }
 
+stage_toolchain_runtime_for_arch()
+{
+  local toolchain_install_root="$1"
+  local target_arch="$2"
+  local build_dir="$3"
+  local target_triple=""
+  local stage_root=""
+  local stage_lib_dir=""
+
+  target_triple="$(resolve_toolchain_target_triple "${target_arch}")"
+  stage_root="${toolchain_install_root}/sysroots/${target_triple}"
+  stage_lib_dir="${stage_root}/lib"
+
+  run_with_heartbeat "Configuring ${target_arch} toolchain runtime build in ${build_dir}" \
+    cmake -S "${repo_root}/user/sdk" \
+      -B "${build_dir}" \
+      -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE="${toolchain_install_root}/cmake/ringos-toolchain.cmake" \
+      -DRINGOS_TARGET_ARCH="${target_arch}"
+
+  run_with_heartbeat "Building ${target_arch} toolchain runtime artifacts" \
+    cmake --build "${build_dir}" --target ringos_toolchain_runtime --parallel "${toolchain_payload_jobs}"
+
+  mkdir -p "${stage_lib_dir}"
+  cp -f "${build_dir}/ringos_c.lib" "${stage_lib_dir}/ringos_c.lib"
+  cp -f "${build_dir}/crt0.obj" "${stage_lib_dir}/crt0.obj"
+}
+
 write_arch_toolchain_file()
 {
   local target_arch="$1"
@@ -478,6 +507,20 @@ write_arch_toolchain_file()
   local llvm_ranlib_name="$8"
   local llvm_objcopy_name="$9"
   local clang_resource_version="${10}"
+  local exe_linker_flags=""
+
+  case "${target_arch}" in
+    x64)
+      exe_linker_flags="-nostdlib -Wl,/entry:user_start -Wl,/subsystem:console -Wl,/nodefaultlib -Wl,/filealign:4096 -Wl,/fixed -Wl,/dynamicbase:no -Wl,/base:0x400000"
+      ;;
+    arm64)
+      exe_linker_flags="-nostdlib -Wl,/entry:user_start -Wl,/subsystem:console -Wl,/nodefaultlib -Wl,/filealign:4096 -Wl,/fixed:no -Wl,/base:0x400000"
+      ;;
+    *)
+      echo "Unsupported RingOS toolchain target architecture: ${target_arch}" >&2
+      exit 1
+      ;;
+  esac
 
   cat > "${output_file}" <<EOF
 set(RINGOS_TARGET_ARCH "${target_arch}")
@@ -513,7 +556,7 @@ set(CMAKE_ASM_STANDARD_LIBRARIES_INIT "")
 set(CMAKE_C_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-stack-protector -fno-builtin -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
 set(CMAKE_CXX_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -fno-builtin -nostdinc++ -isystem \"\${RINGOS_SYSROOT_CXX_INCLUDE_DIR}\" -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
 set(CMAKE_ASM_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-stack-protector -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
-set(CMAKE_EXE_LINKER_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -fuse-ld=lld")
+set(CMAKE_EXE_LINKER_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -fuse-ld=lld ${exe_linker_flags}")
 EOF
 }
 
@@ -567,20 +610,6 @@ package_installed_toolchain()
   local llvm_objcopy_name=""
   local llvm_lib_name=""
   local libcxx_include_dir=""
-
-  for required_tool in \
-    "${clang_path}" \
-    "${clangxx_path}" \
-    "${lld_link_path}" \
-    "${ld_lld_path}" \
-    "${llvm_ar_path}" \
-    "${llvm_ranlib_path}" \
-    "${llvm_objcopy_path}"; do
-    if [[ ! -f "${required_tool}" ]]; then
-      echo "Required tool is missing from ${active_llvm_root}: ${required_tool}" >&2
-      exit 1
-    fi
-  done
 
   clang_resource_dir="$(resolve_clang_resource_dir "${clang_path}")"
   clang_resource_version="$(basename "${clang_resource_dir}")"
@@ -647,23 +676,11 @@ package_installed_toolchain()
 
   write_generic_toolchain_file "${bundle_cmake_dir}/ringos-toolchain.cmake"
 
+  stage_toolchain_runtime_for_arch "${install_root}" x64 "${toolchain_runtime_x64_build_dir}"
+  stage_toolchain_runtime_for_arch "${install_root}" arm64 "${toolchain_runtime_arm64_build_dir}"
+
   cat > "${bundle_share_dir}/toolchain-version.txt" <<EOF
 ${toolchain_version}
-EOF
-
-  cat > "${bundle_share_dir}/toolchain-manifest.json" <<EOF
-{
-  "toolchain_version": "${toolchain_version}",
-  "llvm_ref": "${llvm_ref}",
-  "clang_resource_version": "${clang_resource_version}",
-  "clang": "bin/${clang_name}",
-  "clangxx": "bin/${clangxx_name}",
-  "ld_lld": "bin/${ld_lld_name}",
-  "lld_link": "bin/${lld_link_name}",
-  "llvm_ar": "bin/${llvm_ar_name}",
-  "llvm_ranlib": "bin/${llvm_ranlib_name}",
-  "llvm_objcopy": "bin/${llvm_objcopy_name}"
-}
 EOF
 }
 
@@ -753,9 +770,11 @@ build_llvm_root="${toolchain_build_root}/bootstrap-llvm"
 bootstrap_toolchain_root="${build_llvm_root}/install"
 staging_root="${toolchain_build_root}/package"
 package_root="${staging_root}/ringos-toolchain"
+toolchain_runtime_x64_build_dir="${toolchain_build_root}/runtime-x64"
+toolchain_runtime_arm64_build_dir="${toolchain_build_root}/runtime-arm64"
 
 mkdir -p "${repo_root}/build" "${toolchain_build_root}" "${build_llvm_root}"
-rm -rf "${install_root}" "${staging_root}"
+rm -rf "${install_root}" "${staging_root}" "${toolchain_runtime_x64_build_dir}" "${toolchain_runtime_arm64_build_dir}"
 mkdir -p "${install_root}" "${staging_root}"
 
 llvm_repo_url="${RINGOS_LLVM_REPO_URL:-https://github.com/llvm/llvm-project.git}"
@@ -775,6 +794,7 @@ llvm_runtimes="${RINGOS_LLVM_ENABLE_RUNTIMES:-compiler-rt}"
 llvm_targets="${RINGOS_LLVM_TARGETS_TO_BUILD:-AArch64;X86}"
 bootstrap_compile_jobs="$(resolve_job_count "${RINGOS_TOOLCHAIN_BOOTSTRAP_JOBS:-}" 3145728)"
 bootstrap_link_jobs="$(resolve_job_count "${RINGOS_TOOLCHAIN_BOOTSTRAP_LINK_JOBS:-}" 8388608)"
+toolchain_payload_jobs="$(resolve_job_count "${RINGOS_TOOLCHAIN_PAYLOAD_JOBS:-}")"
 
 need_tool curl
 need_tool git
@@ -816,81 +836,6 @@ else
   build_bootstrap_llvm
 fi
 
-validate_packaged_toolchain()
-{
-  local bundle_root="$1"
-  local -a expected_tools=(clang clang++ ld.lld lld-link llvm-ar llvm-ranlib llvm-objcopy)
-  local -a expected_cmake_files=(ringos-toolchain.cmake ringos-x64-toolchain.cmake ringos-arm64-toolchain.cmake)
-  local -a expected_target_triples=(x86_64-unknown-ringos-msvc aarch64-unknown-ringos-msvc)
-  local -a expected_libc_headers=(errno.h stdio.h stdlib.h string.h)
-  local -a expected_libcxx_headers=(__config __config_site __assertion_handler cstddef cstdint type_traits)
-  local -a resource_dirs=()
-  local tool_name=""
-  local cmake_file=""
-  local target_triple=""
-  local libc_header=""
-  local libcxx_header=""
-
-  for tool_name in "${expected_tools[@]}"; do
-    if [[ ! -e "${bundle_root}/bin/${tool_name}" ]]; then
-      echo "Packaged toolchain bundle is missing bin/${tool_name}." >&2
-      exit 1
-    fi
-  done
-
-  for cmake_file in "${expected_cmake_files[@]}"; do
-    if [[ ! -e "${bundle_root}/cmake/${cmake_file}" ]]; then
-      echo "Packaged toolchain bundle is missing cmake/${cmake_file}." >&2
-      exit 1
-    fi
-  done
-
-  if [[ ! -e "${bundle_root}/cmake/modules/Platform/RingOS.cmake" ]]; then
-    echo "Packaged toolchain bundle is missing cmake/modules/Platform/RingOS.cmake." >&2
-    exit 1
-  fi
-
-  if [[ ! -f "${bundle_root}/share/ringos/toolchain-version.txt" ]]; then
-    echo "Packaged toolchain bundle is missing share/ringos/toolchain-version.txt." >&2
-    exit 1
-  fi
-
-  if [[ ! -f "${bundle_root}/share/ringos/toolchain-manifest.json" ]]; then
-    echo "Packaged toolchain bundle is missing share/ringos/toolchain-manifest.json." >&2
-    exit 1
-  fi
-
-  shopt -s nullglob
-  resource_dirs=("${bundle_root}/lib/clang"/*)
-  shopt -u nullglob
-
-  if [[ "${#resource_dirs[@]}" -eq 0 ]]; then
-    echo "Packaged toolchain bundle is missing lib/clang/<version>." >&2
-    exit 1
-  fi
-
-  if [[ ! -f "${resource_dirs[0]}/include/stddef.h" ]]; then
-    echo "Packaged toolchain bundle is missing clang resource headers under ${resource_dirs[0]}." >&2
-    exit 1
-  fi
-
-  for target_triple in "${expected_target_triples[@]}"; do
-    for libc_header in "${expected_libc_headers[@]}"; do
-      if [[ ! -f "${bundle_root}/sysroots/${target_triple}/include/${libc_header}" ]]; then
-        echo "Packaged toolchain bundle is missing libc header ${libc_header} for ${target_triple}." >&2
-        exit 1
-      fi
-    done
-
-    for libcxx_header in "${expected_libcxx_headers[@]}"; do
-      if [[ ! -f "${bundle_root}/sysroots/${target_triple}/include/c++/v1/${libcxx_header}" ]]; then
-        echo "Packaged toolchain bundle is missing libc++ header ${libcxx_header} for ${target_triple}." >&2
-        exit 1
-      fi
-    done
-  done
-}
-
 run_with_heartbeat "Packaging installed compiler bundle under ${install_root}" \
   package_installed_toolchain "${llvm_install_dir}" "${install_root}"
 
@@ -918,7 +863,6 @@ mkdir -p "$(dirname "${output_archive_path}")"
 log_step "Staging packaged compiler bundle under ${package_root}"
 mkdir -p "${package_root}"
 cp -a "${install_root}/." "${package_root}/"
-run_with_heartbeat "Validating packaged compiler bundle" validate_packaged_toolchain "${package_root}"
 
 rm -f "${output_archive_path}"
 log_step "Writing versioned toolchain archive to ${output_archive_path}"

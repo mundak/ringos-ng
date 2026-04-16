@@ -5,14 +5,11 @@ REM Usage: user\sdk\docker-build-sdk.bat
 setlocal EnableExtensions EnableDelayedExpansion
 
 set IMAGE_NAME=ringos-ci-sdk-release
-set CONTEXT_DIR=%~dp0..\..
-set BUILD_VOLUME_NAME=%RINGOS_SDK_BUILD_VOLUME%
+pushd "%~dp0..\.."
+set CONTEXT_DIR=%cd%
+popd
 set OUTPUT_DIR=%CONTEXT_DIR%\build
 set OUTPUT_ARCHIVE=
-
-if not defined BUILD_VOLUME_NAME (
-    set BUILD_VOLUME_NAME=ringos-sdk-build
-)
 
 set RELEASE_REPO=
 if defined GITHUB_REPOSITORY (
@@ -52,19 +49,9 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
-docker volume inspect "%BUILD_VOLUME_NAME%" >nul 2>&1
-if %errorlevel% neq 0 (
-    echo === Creating Docker build volume: %BUILD_VOLUME_NAME% ===
-    docker volume create "%BUILD_VOLUME_NAME%" >nul
-    if errorlevel 1 (
-        echo ERROR: Docker volume creation failed.
-        exit /b %errorlevel%
-    )
-)
-
 echo.
 echo === Building shared SDK archive under %OUTPUT_DIR% ===
-docker run --rm !DOCKER_ENV_ARGS! -v "%BUILD_VOLUME_NAME%:/workspace/build" -v "%OUTPUT_DIR%:/sdk-output" -v "%OUTPUT_DIR%:/host-build" %IMAGE_NAME% bash -lc "set -euo pipefail; if ls /host-build/ringos-toolchain-*.tar.xz ^>/dev/null 2^>^&1; then cp /host-build/ringos-toolchain-*.tar.xz /workspace/build/; fi; status=0; user/sdk/build-sdk.sh !RELEASE_ARGS! --output-dir /sdk-output || status=$?; if ls /workspace/build/ringos-toolchain-*.tar.xz ^>/dev/null 2^>^&1; then cp /workspace/build/ringos-toolchain-*.tar.xz /host-build/; fi; exit $status"
+docker run --rm !DOCKER_ENV_ARGS! -v "%OUTPUT_DIR%:/workspace/build" %IMAGE_NAME% bash -lc "set -euo pipefail; user/sdk/build-sdk.sh !RELEASE_ARGS! --output-dir /workspace/build"
 if %errorlevel% neq 0 (
     echo ERROR: Container exited with an error.
     exit /b %errorlevel%
@@ -83,5 +70,5 @@ if not defined OUTPUT_ARCHIVE (
 
 echo.
 echo Shared SDK archive: %OUTPUT_ARCHIVE%
-echo Persistent Docker build volume: %BUILD_VOLUME_NAME%
+echo Host build directory: %OUTPUT_DIR%
 echo === Done ===
