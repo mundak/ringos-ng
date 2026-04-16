@@ -15,7 +15,7 @@ build on this ABI rather than replace it.
 - One process per address space.
 - One thread per process in the first cut.
 - Synchronous request-reply IPC over channels.
-- Handles are opaque 64-bit process-local object references.
+- Handles are opaque 64-bit shareable object references.
 - Architecture-specific trap details stay behind thin per-target SDK thunks.
 
 ## Architecture-Neutral ABI Rules
@@ -50,9 +50,10 @@ it. This keeps the raw trap ABI simple and keeps the SDK thunks predictable on b
 
 ### Process Model
 
-- A process owns one user address space, one handle table, and one initial thread.
+- A process owns one user address space and one initial thread.
 - The initial implementation supports exactly one thread per process.
 - There is no `fork`-style duplication model in the first cut.
+- Handles are not specified as process-local table entries in Stage 0.
 - A process starts at the image entry point of a statically linked user executable.
 - The detailed initial stack layout is deferred to Stage 2, but Stage 0 requires the loader to
   enter user mode with a valid, aligned stack and no ambient kernel pointers.
@@ -70,7 +71,7 @@ The first kernel object set is intentionally minimal and matches the next implem
 
 | Object type | Purpose | Initial notes |
 | --- | --- | --- |
-| `process` | Owns an address space and handle table | Created explicitly; no implicit inheritance. |
+| `process` | Owns an address space and initial thread | Created explicitly; no implicit inheritance. |
 | `thread` | Represents a schedulable user execution context | Initially one thread per process. |
 | `channel` | Carries synchronous request-reply IPC | Created as endpoint pairs. |
 | `shared_memory` | Represents explicitly granted shared pages | Used for bulk data instead of oversized copied messages. |
@@ -82,12 +83,13 @@ the Stage 0 contract.
 
 ### Handle Semantics
 
-- A handle is a process-local opaque 64-bit token.
-- Handle values have meaning only in the calling process.
-- The kernel maps each handle to a live object reference in the caller's handle table.
+- A handle is an opaque 64-bit token that refers to a kernel-managed object.
+- Handles follow a shareable-object direction rather than a per-process handle-table model.
+- The kernel resolves each live handle to an object reference and validates the requested operation.
 - A process may use any operation that is valid for an object it already holds a handle to.
 - A process does not gain ambient access to another process's address space or to kernel memory.
-- There is no implicit handle inheritance or duplication model in the first cut.
+- Stage 0 does not yet freeze ownership, rights reduction, duplication, or transfer semantics.
+- There is no implicit inheritance model in the first cut.
 
 ## IPC Model
 
@@ -123,7 +125,7 @@ commits only to blocking request-reply semantics.
 | --- | --- | --- |
 | `STATUS_OK` | `0` | Success. |
 | `STATUS_INVALID_ARGUMENT` | `-1` | An argument value or combination is invalid. |
-| `STATUS_BAD_HANDLE` | `-2` | The supplied handle does not name a live object reference in the caller. |
+| `STATUS_BAD_HANDLE` | `-2` | The supplied handle does not name a live object reference the caller may use. |
 | `STATUS_WRONG_TYPE` | `-3` | The handle refers to a different object type than required. |
 | `STATUS_BUFFER_TOO_SMALL` | `-4` | A caller-provided output or shared-memory buffer is too small. |
 | `STATUS_PEER_CLOSED` | `-5` | The opposite channel endpoint has been closed. |
@@ -173,11 +175,11 @@ Stage 1 implementation work should therefore target:
 
 - trap entry and return paths for `syscall` on x64 and `svc #0` on arm64
 - user address spaces with one initial thread per process
-- 64-bit handle tables with process-local object references
+- 64-bit shareable handles that refer to live kernel objects
 - channel endpoints that support synchronous function-call-style RPC
 - explicit shared-memory objects for bulk transfer and shared buffers
 
-Any Stage 1 design that changes the bare-handle model, requires implicit handle inheritance,
-asynchronous message-only IPC, or a different first user image format should be treated as a
-deliberate ABI change and updated here
-before code is written.
+Any Stage 1 design that changes the shareable-handle direction, reintroduces committed
+process-local handle tables, requires implicit handle inheritance, asynchronous message-only IPC,
+or a different first user image format should be treated as a deliberate ABI change and updated
+here before code is written.

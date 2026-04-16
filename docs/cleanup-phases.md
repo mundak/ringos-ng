@@ -3,16 +3,13 @@
 This document turns the cleanup backlog into a phased execution plan and a
 living progress tracker.
 
-It is based on [cleanup-gpt.md](./cleanup-gpt.md), but it also reflects one
-explicit design decision for upcoming work:
-
+Decisions:
 - Per-process handle table conversion is out of scope for this plan.
 - The intended direction is shareable handles, not process-local handles.
 - Follow-up design work should define ownership, rights, duplication, and
   transfer semantics for that model before multi-process features depend on it.
 
-That means this document supersedes the handle-related priority in
-[cleanup-gpt.md](./cleanup-gpt.md).
+While doing cleanup, don't touch cleanup-opus.md doc.
 
 ## Status Legend
 
@@ -25,7 +22,7 @@ That means this document supersedes the handle-related priority in
 
 | Phase | Status | Goal |
 | --- | --- | --- |
-| 0 | `[ ]` | Align the written contract with the current repo and handle direction |
+| 0 | `[x]` | Align the written contract with the current repo and handle direction |
 | 1 | `[ ]` | Introduce a canonical process and syscall model |
 | 2 | `[ ]` | Move Windows compatibility policy out of the kernel |
 | 3 | `[ ]` | Replace special-case runtime plumbing with generic service and object plumbing |
@@ -39,27 +36,36 @@ That means this document supersedes the handle-related priority in
 
 ## Cross-Cutting Decisions To Record Early
 
-- Decide whether [ci-and-testing.md](./ci-and-testing.md) should continue to
-  treat `CMakePresets.json` as the source of truth, or whether scripts and
-  workflow entry points are the real contract. There is currently no
-  top-level `CMakePresets.json` in the repo.
-- Update [user-space-abi.md](./user-space-abi.md) and
-  [cleanup-gpt.md](./cleanup-gpt.md) if the handle model is no longer meant to
-  be process-local.
+- Handle direction is shareable handles, not process-local handle tables.
+  Ownership, rights, duplication, and transfer semantics remain follow-up
+  design work.
 - Keep lane names identical across documentation, scripts, workflows, and build
   targets.
 
 ## Phase 0: Contract Alignment
 
-Status: `[ ]`
+Status: `[x]`
 
 Goal: make the written design match the repo and capture the shareable-handle
 decision before larger refactors start.
 
+Progress:
+
+- `[x]` Resolved the CI source-of-truth question in favor of direct CMake and
+  CTest commands plus repo-owned scripts and workflow entry points.
+  `CMakePresets.json` is not part of the repo contract.
+- `[x]` Updated [ci-and-testing.md](./ci-and-testing.md) to match the current
+  workflow and script surface and added a source-of-truth table.
+- `[x]` Marked stale preset assumptions in older cleanup notes.
+- `[x]` Updated [user-space-abi.md](./user-space-abi.md) to match the chosen
+  shareable-handle direction.
+- `[x]` Removed the remaining handle-direction mismatch from older cleanup
+  notes.
+
 Work items:
 
-- Update [cleanup-gpt.md](./cleanup-gpt.md) so it no longer treats per-process
-  handles as the top cleanup priority.
+- Update [cleanup-opus.md](./cleanup-opus.md) so it no longer acts as the
+  authoritative source for handle direction and stale CI assumptions.
 - Update [user-space-abi.md](./user-space-abi.md) if handles are meant to stay
   shareable rather than process-local.
 - Audit [ci-and-testing.md](./ci-and-testing.md) against the current repo
@@ -72,7 +78,7 @@ Work items:
 
 Primary files:
 
-- [cleanup-gpt.md](./cleanup-gpt.md)
+- [cleanup-opus.md](./cleanup-opus.md)
 - [user-space-abi.md](./user-space-abi.md)
 - [ci-and-testing.md](./ci-and-testing.md)
 
@@ -81,7 +87,7 @@ Verification:
 - No cleanup document still treats per-process handle tables as the committed
   direction.
 - The CI document names only workflows, scripts, and build entry points that
-  actually exist in the repo.
+  actually exist in the repo, and it flags stale workflow files separately.
 
 ## Phase 1: Canonical Process And Syscall Model
 

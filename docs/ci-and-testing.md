@@ -2,8 +2,8 @@
 
 This document defines the current verification contract for ringos-ng. The goal
 is to keep local development, containerized Windows workflows, and GitHub
-Actions aligned around the same Linux toolchain and the same CMake and CTest
-entry points.
+Actions aligned around the same Linux toolchain and the same repository-owned
+CMake, CTest, and shell entry points.
 
 ## Execution Environments
 
@@ -23,48 +23,50 @@ logic.
 
 Use these layers:
 
-1. `CMakePresets.json` defines configure, build, and test presets.
-2. `CTest` defines the smoke-test surface.
-3. `CTest` also runs host-side emulator unit tests for the x64 interpreter backend.
-4. `scripts/*.sh` contains shared QEMU run/debug helpers and toolchain helpers.
-5. `tests/*.sh` contains test assertions and deterministic wrapper checks.
+1. Direct top-level CMake configure and build commands are the canonical kernel
+	build interface. Pass an explicit build directory,
+	`-DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/<arch>.cmake`, and
+	`-DRINGOS_TARGET_ARCH=<x64|arm64>`.
+2. `CTest` registrations in `cmake/tests/smoke_tests.cmake`,
+	`cmake/tests/emulator_tests.cmake`, and `win32/tests/CMakeLists.txt` define
+	the host test names.
+3. `tests/build-tests.sh` is the canonical sample smoke-test implementation.
+	It resolves the published toolchain and SDK, builds the sample, rebuilds the
+	matching kernel image, and validates QEMU output.
+4. `user/samples/hello_world/*.sh` and `user/samples/hello_world_cpp/*.sh`
+	define the active sample lanes by passing lane-specific arguments into
+	`tests/build-tests.sh`.
+5. `scripts/*.sh` contains shared QEMU run and debug helpers.
 6. `tests/docker-*.bat` wraps the Windows container workflow.
-7. `.github/workflows/*.yml` installs dependencies and runs the same presets.
-8. `tools/toolchain/download-latest-toolchain.sh` resolves and downloads the
-	shared installed-toolchain bundle for test and run flows, while the dedicated
-	toolchain workflow handles build and publish operations.
+7. `.github/workflows/*.yml` should stay thin and invoke repository-owned
+	scripts.
+8. `tools/toolchain/download-latest-toolchain.sh`,
+	`tools/toolchain/build-toolchain.sh`, and `user/sdk/build-sdk.sh` remain the
+	published toolchain and SDK entry points.
 
 The workflow file should stay thin. If a command matters for local users, it
 should exist in the repository first.
 
-## Presets In Use
+There is currently no top-level `CMakePresets.json` in the repo contract.
 
-Configure presets:
+## Registered Test Names
 
-- `x64-debug`
-- `arm64-debug`
-
-Build presets:
-
-- `build-x64-debug`
-- `build-arm64-debug`
-
-Test presets:
+Host unit tests:
 
 - `x64_emulator_unit`
 - `x64_win32_loader_unit`
+
+Sample smoke tests:
+
 - `sample_hello_world_x64_native`
 - `sample_hello_world_cpp_x64_native`
-- `sample_console_service_write_x64_native`
 - `sample_hello_world_arm64_native`
 - `sample_hello_world_cpp_arm64_native`
-- `sample_console_service_write_arm64_native`
 - `sample_hello_world_arm64_x64_emulator`
 - `sample_hello_world_cpp_arm64_x64_emulator`
-- `sample_console_service_write_arm64_x64_emulator`
 
-Each test preset maps to exactly one distinct CI scenario and stops on the
-first failure.
+Each registered test name maps to exactly one distinct scenario and stops on
+the first failure.
 
 ## Local Workflows
 
@@ -86,11 +88,10 @@ user\samples\hello_world\docker-test-hello-world-x64-on-arm64.bat
 user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64.bat
 user\samples\hello_world_cpp\docker-test-hello-world-cpp-arm64.bat
 user\samples\hello_world_cpp\docker-test-hello-world-cpp-x64-on-arm64.bat
-user\samples\console_service_write\docker-test-console-service-write.bat
 ```
 
 The current sample-local Windows wrappers live under `user/samples/hello_world/`
-`user/samples/hello_world_cpp/`, and `user/samples/console_service_write/` and call the shared
+and `user/samples/hello_world_cpp/` and call the shared
 `tests\docker-run-sample-test.bat` helper.
 
 That helper rebuilds the sample-test image from `tests/tests.Dockerfile`, mounts
@@ -170,27 +171,18 @@ the helper so release downloads can authenticate successfully.
 Configure and build:
 
 ```bash
-cmake --preset x64-debug
-cmake --build --preset build-x64-debug
+cmake -S . -B build/x64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/x64.cmake -DRINGOS_TOOLCHAIN_ROOT=build/toolchain -DRINGOS_TARGET_ARCH=x64 -DRINGOS_ENABLE_TESTING=ON
+cmake --build build/x64-debug
 
-cmake --preset arm64-debug
-cmake --build --preset build-arm64-debug
+cmake -S . -B build/arm64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/arm64.cmake -DRINGOS_TOOLCHAIN_ROOT=build/toolchain -DRINGOS_TARGET_ARCH=arm64 -DRINGOS_ENABLE_TESTING=ON
+cmake --build build/arm64-debug
 ```
 
 Run tests:
 
 ```bash
-ctest --preset x64_emulator_unit
-ctest --preset x64_win32_loader_unit
-ctest --preset sample_hello_world_x64_native
-ctest --preset sample_hello_world_cpp_x64_native
-ctest --preset sample_console_service_write_x64_native
-ctest --preset sample_hello_world_arm64_native
-ctest --preset sample_hello_world_cpp_arm64_native
-ctest --preset sample_console_service_write_arm64_native
-ctest --preset sample_hello_world_arm64_x64_emulator
-ctest --preset sample_hello_world_cpp_arm64_x64_emulator
-ctest --preset sample_console_service_write_arm64_x64_emulator
+ctest --test-dir build/x64-debug --output-on-failure
+ctest --test-dir build/arm64-debug --output-on-failure
 ```
 
 Run QEMU directly:
@@ -235,11 +227,11 @@ Each sample test script should:
 5. Return a non-zero exit code on timeout, early crash, or missing output.
 
 The x64 emulator unit test binary should stay architecture-independent and run
-as a host executable under its dedicated CTest preset. Add new instruction coverage
+as a host executable under its dedicated CTest name. Add new instruction coverage
 there before expanding the interpreter or introducing a JIT backend.
 
 The x64 Win32 loader unit test binary should also run as a host executable
-under its own dedicated CTest preset so PE import-resolution coverage remains
+under its own dedicated CTest name so PE import-resolution coverage remains
 independent from the smoke tests.
 
 Keep raw QEMU command lines inside tests so the same execution path is used by
@@ -247,33 +239,26 @@ developers, wrappers, and CTest.
 
 ## CI Contract
 
-The current GitHub Actions setup should continue to expose twelve separately
-tracked CI workflows:
+The current GitHub Actions surface is the set of workflow files under
+`.github/workflows/`, not a set of CMake presets.
 
-1. `x64_emulator_unit`
-2. `x64_win32_loader_unit`
-3. `sample_hello_world_x64_native`
-4. `sample_hello_world_cpp_x64_native`
-5. `sample_console_service_write_x64_native`
-6. `sample_hello_world_arm64_native`
-7. `sample_hello_world_cpp_arm64_native`
-8. `sample_console_service_write_arm64_native`
-9. `sample_hello_world_arm64_x64_emulator`
-10. `sample_hello_world_cpp_arm64_x64_emulator`
-11. `sample_console_service_write_arm64_x64_emulator`
-12. `sample_hello_world_x64_on_arm64`
+| Workflow file | Trigger surface | Repo entry point | Current status |
+| --- | --- | --- | --- |
+| `test-hello-world.yml` | Push, pull request, manual | `user/samples/hello_world/test-hello-world-x64.sh`, `user/samples/hello_world/test-hello-world-arm64.sh`, `user/samples/hello_world/test-hello-world-x64-on-arm64.sh` | Canonical sample CI |
+| `test-hello-world-cpp.yml` | Push, pull request, manual | `user/samples/hello_world_cpp/test-hello-world-cpp-x64.sh`, `user/samples/hello_world_cpp/test-hello-world-cpp-arm64.sh`, `user/samples/hello_world_cpp/test-hello-world-cpp-x64-on-arm64.sh` | Canonical sample CI |
+| `test-console-service-write.yml` | Manual | Workflow references `user/samples/console_service_write/test-console-service-write.sh`, but that sample path is not present in the repo | Stale workflow; not part of the canonical verification contract until restored |
+| `toolchain-release.yml` | Manual | `tools/toolchain/build-toolchain.sh --publish` | Canonical release workflow |
+| `sdk-release.yml` | Manual | `user/sdk/build-sdk.sh --publish` | Canonical release workflow |
 
-Each workflow installs the Linux dependency set and builds the matching target.
-Most workflows then run exactly one scenario-specific CTest preset.
-
-Each sample workflow configures the matching architecture, builds only the
-single kernel target for that sample-platform lane, and runs exactly one CTest
-preset that asserts both platform bring-up and the sample-specific output.
+The active sample workflows build the sample-test container and then delegate
+to repo-owned shell entry points. Those shell entry points share the same
+`tests/build-tests.sh` implementation for configure, build, toolchain
+resolution, QEMU launch, timeout handling, and output assertions.
 
 If the dependency stack changes, update `tools/toolchain/Dockerfile` and
 the workflow files under `.github/workflows/` together so local container runs
 and CI stay in sync.
 
-The dedicated `toolchain_release` workflow sits outside that CI-gated set and
-is responsible for publishing a new release asset when the combined
-installed-toolchain manifest ID changes.
+The dedicated `toolchain_release` and `sdk_release` workflows sit outside the
+push and pull-request CI set and are responsible for publishing new release
+assets.

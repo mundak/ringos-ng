@@ -6,7 +6,11 @@ include(tools/toolchain/ringos_toolchain_common.cmake)
 include(tools/toolchain/ringos_installed_toolchain.cmake)
 
 if(NOT DEFINED RINGOS_TARGET_ARCH)
-  message(FATAL_ERROR "RINGOS_TARGET_ARCH is not set. Use a CMake preset (e.g. cmake --preset x64-debug).")
+  message(FATAL_ERROR
+    "RINGOS_TARGET_ARCH is not set. Configure with -DRINGOS_TARGET_ARCH=<x64|arm64> "
+    "and the matching kernel toolchain file (for example, "
+    "cmake -S . -B build/x64-debug -G Ninja "
+    "-DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/x64.cmake -DRINGOS_TARGET_ARCH=x64).")
 endif()
 
 if(NOT RINGOS_TARGET_ARCH STREQUAL "x64" AND NOT RINGOS_TARGET_ARCH STREQUAL "arm64")
