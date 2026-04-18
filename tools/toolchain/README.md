@@ -108,10 +108,12 @@ workflow, and the local `tools\toolchain\docker-build-toolchain.bat` flow now
 completes end to end again.
 
 The packaging path is now isolated from the main repo build graph: the release
-scripts assemble the published bundle layout directly, and the SDK runtime is
-built through the standalone `user/sdk/CMakeLists.txt` project instead of the
-repo root. That keeps `arch/*`, `kernel/`, `win32/tests/`, and the embedded
-`*_test_app_image.cmake` helpers out of the release packaging path.
+scripts assemble the published bundle layout directly, the toolchain runtime
+payload is built through the standalone `user/libc/CMakeLists.txt` and
+`user/crt/CMakeLists.txt` projects, and the SDK bundle is built separately
+through `user/sdk/CMakeLists.txt` instead of the repo root. That keeps
+`arch/*`, `kernel/`, `win32/tests/`, and the embedded `*_test_app_image.cmake`
+helpers out of the release packaging path.
 
 One practical cache note remains: if you change fundamental SDK payload
 configure inputs during manual iteration, delete `build/sdk-build/x64` and

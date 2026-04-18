@@ -98,7 +98,6 @@ fi
 
 case "${target_arch}" in
   x64)
-    kernel_toolchain_file="/repo/kernel/toolchains/x64.cmake"
     qemu_bin_default="qemu-system-x86_64"
     kernel_target="${kernel_target:-ringos_x64}"
     breakpoint_symbol="${breakpoint_symbol:-x64_handle_syscall}"
@@ -108,7 +107,6 @@ case "${target_arch}" in
     kernel_symbol_name="${kernel_target}.elf64"
     ;;
   arm64)
-    kernel_toolchain_file="/repo/kernel/toolchains/arm64.cmake"
     qemu_bin_default="qemu-system-aarch64"
     kernel_target="${kernel_target:-ringos_arm64}"
     breakpoint_symbol="${breakpoint_symbol:-arm64_handle_syscall}"
@@ -198,8 +196,7 @@ kernel_cmake_args=(
   -B "${kernel_build_root}"
   -G Ninja
   -DCMAKE_BUILD_TYPE=Debug
-  -DCMAKE_TOOLCHAIN_FILE="${kernel_toolchain_file}"
-  -DRINGOS_TOOLCHAIN_ROOT=/work/toolchain
+  -DRINGOS_INSTALLED_TOOLCHAIN_FILE=/work/toolchain/cmake/ringos-toolchain.cmake
   -DRINGOS_SDK_ROOT=/work/sdk
   -DRINGOS_TARGET_ARCH="${target_arch}"
   -DRINGOS_ENABLE_TESTING=OFF

@@ -25,8 +25,9 @@ Use these layers:
 
 1. Direct top-level CMake configure and build commands are the canonical kernel
 	build interface. Pass an explicit build directory,
-	`-DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/<arch>.cmake`, and
-	`-DRINGOS_TARGET_ARCH=<x64|arm64>`.
+	`-DRINGOS_TARGET_ARCH=<x64|arm64>`, and extract the RingOS toolchain bundle
+	under `build/toolchain/` or pass
+	`-DRINGOS_INSTALLED_TOOLCHAIN_FILE=<toolchain>/cmake/ringos-toolchain.cmake`.
 2. `CTest` registrations in `cmake/tests/smoke_tests.cmake`,
 	`cmake/tests/emulator_tests.cmake`, and `win32/tests/CMakeLists.txt` define
 	the host test names.
@@ -171,10 +172,10 @@ the helper so release downloads can authenticate successfully.
 Configure and build:
 
 ```bash
-cmake -S . -B build/x64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/x64.cmake -DRINGOS_TOOLCHAIN_ROOT=build/toolchain -DRINGOS_TARGET_ARCH=x64 -DRINGOS_ENABLE_TESTING=ON
+cmake -S . -B build/x64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DRINGOS_TARGET_ARCH=x64 -DRINGOS_ENABLE_TESTING=ON
 cmake --build build/x64-debug
 
-cmake -S . -B build/arm64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/arm64.cmake -DRINGOS_TOOLCHAIN_ROOT=build/toolchain -DRINGOS_TARGET_ARCH=arm64 -DRINGOS_ENABLE_TESTING=ON
+cmake -S . -B build/arm64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DRINGOS_TARGET_ARCH=arm64 -DRINGOS_ENABLE_TESTING=ON
 cmake --build build/arm64-debug
 ```
 

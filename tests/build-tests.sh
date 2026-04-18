@@ -52,7 +52,6 @@ kernel_build_root="${repo_root}/build/sample-tests/${build_name}_kernel"
 toolchain_root="${repo_root}/build/toolchain"
 sdk_root="${repo_root}/build/sdk"
 toolchain_file="${toolchain_root}/cmake/ringos-toolchain.cmake"
-kernel_toolchain_file="${repo_root}/kernel/toolchains/${kernel_target_arch}.cmake"
 
 rm -rf "${sample_build_root}" "${kernel_build_root}"
 
@@ -68,11 +67,6 @@ rm -rf "${sample_build_root}" "${kernel_build_root}"
 
 if [[ ! -f "${toolchain_file}" ]]; then
   echo "Installed toolchain file not found: ${toolchain_file}" >&2
-  exit 1
-fi
-
-if [[ ! -f "${kernel_toolchain_file}" ]]; then
-  echo "Kernel toolchain file not found: ${kernel_toolchain_file}" >&2
   exit 1
 fi
 
@@ -135,8 +129,7 @@ cmake -S "${repo_root}" \
   -B "${kernel_build_root}" \
   -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_TOOLCHAIN_FILE="${kernel_toolchain_file}" \
-  -DRINGOS_TOOLCHAIN_ROOT="${toolchain_root}" \
+  -DRINGOS_INSTALLED_TOOLCHAIN_FILE="${toolchain_file}" \
   -DRINGOS_SDK_ROOT="${sdk_root}" \
   -DRINGOS_TARGET_ARCH="${kernel_target_arch}" \
   -DRINGOS_ENABLE_TESTING=OFF \

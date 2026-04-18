@@ -280,6 +280,7 @@ EOF
 resolve_release_metadata()
 {
   local release_repo="$1"
+  local archive_search_root="$2"
   local release_date=""
   local releases_json=""
   local sequence_number=""
@@ -307,13 +308,15 @@ resolve_release_metadata()
     --output "${releases_json}" \
     "https://api.github.com/repos/${release_repo}/releases?per_page=100"
 
-  sequence_number="$(python3 - "${releases_json}" "${release_date}" <<'PY'
+  sequence_number="$(python3 - "${releases_json}" "${release_date}" "${archive_search_root}" <<'PY'
 import json
+import pathlib
 import re
 import sys
 
 releases_path = sys.argv[1]
 release_date = sys.argv[2]
+archive_search_root = pathlib.Path(sys.argv[3])
 pattern = re.compile(rf"^ringos-toolchain-{re.escape(release_date)}\.(\d+)$")
 max_sequence = 0
 
@@ -325,6 +328,13 @@ for release in releases:
     match = pattern.match(tag_name)
     if match is None:
         continue
+    max_sequence = max(max_sequence, int(match.group(1)))
+
+if archive_search_root.exists():
+  for archive in archive_search_root.glob(f"ringos-toolchain-{release_date}.*.tar.xz"):
+    match = pattern.match(archive.stem.removesuffix(".tar"))
+    if match is None:
+      continue
     max_sequence = max(max_sequence, int(match.group(1)))
 
 print(max_sequence + 1)
@@ -466,7 +476,7 @@ stage_toolchain_sysroot_headers()
   fi
 }
 
-stage_toolchain_runtime_for_arch()
+stage_toolchain_libc_for_arch()
 {
   local toolchain_install_root="$1"
   local target_arch="$2"
@@ -479,19 +489,46 @@ stage_toolchain_runtime_for_arch()
   stage_root="${toolchain_install_root}/sysroots/${target_triple}"
   stage_lib_dir="${stage_root}/lib"
 
-  run_with_heartbeat "Configuring ${target_arch} toolchain runtime build in ${build_dir}" \
-    cmake -S "${repo_root}/user/sdk" \
+  run_with_heartbeat "Configuring ${target_arch} toolchain libc build in ${build_dir}" \
+    cmake -S "${repo_root}/user/libc" \
       -B "${build_dir}" \
       -G Ninja \
       -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE="${toolchain_install_root}/cmake/ringos-toolchain.cmake" \
       -DRINGOS_TARGET_ARCH="${target_arch}"
 
-  run_with_heartbeat "Building ${target_arch} toolchain runtime artifacts" \
-    cmake --build "${build_dir}" --target ringos_toolchain_runtime --parallel "${toolchain_payload_jobs}"
+  run_with_heartbeat "Building ${target_arch} toolchain libc archive" \
+    cmake --build "${build_dir}" --target ringos_c --parallel "${toolchain_payload_jobs}"
 
   mkdir -p "${stage_lib_dir}"
   cp -f "${build_dir}/ringos_c.lib" "${stage_lib_dir}/ringos_c.lib"
+}
+
+stage_toolchain_crt_for_arch()
+{
+  local toolchain_install_root="$1"
+  local target_arch="$2"
+  local build_dir="$3"
+  local target_triple=""
+  local stage_root=""
+  local stage_lib_dir=""
+
+  target_triple="$(resolve_toolchain_target_triple "${target_arch}")"
+  stage_root="${toolchain_install_root}/sysroots/${target_triple}"
+  stage_lib_dir="${stage_root}/lib"
+
+  run_with_heartbeat "Configuring ${target_arch} toolchain crt build in ${build_dir}" \
+    cmake -S "${repo_root}/user/crt" \
+      -B "${build_dir}" \
+      -G Ninja \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_TOOLCHAIN_FILE="${toolchain_install_root}/cmake/ringos-toolchain.cmake" \
+      -DRINGOS_TARGET_ARCH="${target_arch}"
+
+  run_with_heartbeat "Building ${target_arch} toolchain crt object" \
+    cmake --build "${build_dir}" --target ringos_crt0_object --parallel "${toolchain_payload_jobs}"
+
+  mkdir -p "${stage_lib_dir}"
   cp -f "${build_dir}/crt0.obj" "${stage_lib_dir}/crt0.obj"
 }
 
@@ -533,6 +570,8 @@ get_filename_component(RINGOS_SYSROOT_DIR "\${RINGOS_TOOLCHAIN_ROOT}/sysroots/${
 set(RINGOS_CLANG_RESOURCE_DIR "\${RINGOS_TOOLCHAIN_ROOT}/lib/clang/${clang_resource_version}")
 set(RINGOS_SYSROOT_INCLUDE_DIR "\${RINGOS_SYSROOT_DIR}/include")
 set(RINGOS_SYSROOT_CXX_INCLUDE_DIR "\${RINGOS_SYSROOT_INCLUDE_DIR}/c++/v1")
+set(RINGOS_CRT0_OBJECT "\${RINGOS_SYSROOT_DIR}/lib/crt0.obj")
+set(RINGOS_C_RUNTIME_LIBRARY "\${RINGOS_SYSROOT_DIR}/lib/ringos_c.lib")
 get_filename_component(RINGOS_CMAKE_MODULE_DIR "\${RINGOS_TOOLCHAIN_ROOT}/cmake/modules" ABSOLUTE)
 list(PREPEND CMAKE_MODULE_PATH "\${RINGOS_CMAKE_MODULE_DIR}")
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
@@ -549,8 +588,8 @@ set(CMAKE_C_COMPILER_RANLIB "\${RINGOS_TOOLCHAIN_ROOT}/bin/${llvm_ranlib_name}")
 set(CMAKE_CXX_COMPILER_AR "\${RINGOS_TOOLCHAIN_ROOT}/bin/${llvm_ar_name}")
 set(CMAKE_CXX_COMPILER_RANLIB "\${RINGOS_TOOLCHAIN_ROOT}/bin/${llvm_ranlib_name}")
 set(CMAKE_OBJCOPY "\${RINGOS_TOOLCHAIN_ROOT}/bin/${llvm_objcopy_name}")
-set(CMAKE_C_STANDARD_LIBRARIES_INIT "")
-set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "")
+set(CMAKE_C_STANDARD_LIBRARIES_INIT "\"\${RINGOS_CRT0_OBJECT}\" \"\${RINGOS_C_RUNTIME_LIBRARY}\"")
+set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "\"\${RINGOS_CRT0_OBJECT}\" \"\${RINGOS_C_RUNTIME_LIBRARY}\"")
 set(CMAKE_ASM_STANDARD_LIBRARIES_INIT "")
 set(CMAKE_C_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-stack-protector -fno-builtin -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
 set(CMAKE_CXX_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -fno-builtin -nostdinc++ -isystem \"\${RINGOS_SYSROOT_CXX_INCLUDE_DIR}\" -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
@@ -675,8 +714,10 @@ package_installed_toolchain()
 
   write_generic_toolchain_file "${bundle_cmake_dir}/ringos-toolchain.cmake"
 
-  stage_toolchain_runtime_for_arch "${install_root}" x64 "${toolchain_runtime_x64_build_dir}"
-  stage_toolchain_runtime_for_arch "${install_root}" arm64 "${toolchain_runtime_arm64_build_dir}"
+  stage_toolchain_libc_for_arch "${install_root}" x64 "${toolchain_libc_x64_build_dir}"
+  stage_toolchain_crt_for_arch "${install_root}" x64 "${toolchain_crt_x64_build_dir}"
+  stage_toolchain_libc_for_arch "${install_root}" arm64 "${toolchain_libc_arm64_build_dir}"
+  stage_toolchain_crt_for_arch "${install_root}" arm64 "${toolchain_crt_arm64_build_dir}"
 }
 
 output_archive=""
@@ -691,6 +732,7 @@ publish_release=0
 release_tag=""
 release_asset_name=""
 release_version=""
+version_search_dir="${repo_root}/build"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -740,9 +782,22 @@ if [[ -n "${output_dir}" && -n "${output_archive}" ]]; then
   exit 1
 fi
 
+if [[ -n "${output_dir}" ]]; then
+  version_search_dir="${output_dir}"
+elif [[ -n "${output_archive}" ]]; then
+  case "${output_archive}" in
+    /*)
+      version_search_dir="$(dirname "${output_archive}")"
+      ;;
+    *)
+      version_search_dir="$(dirname "$PWD/${output_archive}")"
+      ;;
+  esac
+fi
+
 if [[ -z "${toolchain_version}" ]]; then
   if [[ -n "${release_repo}" ]]; then
-    resolve_release_metadata "${release_repo}"
+    resolve_release_metadata "${release_repo}" "${version_search_dir}"
     toolchain_version="${release_version}"
   else
     toolchain_version="dev-local"
@@ -765,11 +820,19 @@ build_llvm_root="${toolchain_build_root}/bootstrap-llvm"
 bootstrap_toolchain_root="${build_llvm_root}/install"
 staging_root="${toolchain_build_root}/package"
 package_root="${staging_root}/ringos-toolchain"
-toolchain_runtime_x64_build_dir="${toolchain_build_root}/runtime-x64"
-toolchain_runtime_arm64_build_dir="${toolchain_build_root}/runtime-arm64"
+toolchain_libc_x64_build_dir="${toolchain_build_root}/libc-x64"
+toolchain_crt_x64_build_dir="${toolchain_build_root}/crt-x64"
+toolchain_libc_arm64_build_dir="${toolchain_build_root}/libc-arm64"
+toolchain_crt_arm64_build_dir="${toolchain_build_root}/crt-arm64"
 
 mkdir -p "${repo_root}/build" "${toolchain_build_root}" "${build_llvm_root}"
-rm -rf "${install_root}" "${staging_root}" "${toolchain_runtime_x64_build_dir}" "${toolchain_runtime_arm64_build_dir}"
+rm -rf \
+  "${install_root}" \
+  "${staging_root}" \
+  "${toolchain_libc_x64_build_dir}" \
+  "${toolchain_crt_x64_build_dir}" \
+  "${toolchain_libc_arm64_build_dir}" \
+  "${toolchain_crt_arm64_build_dir}"
 mkdir -p "${install_root}" "${staging_root}"
 
 llvm_repo_url="${RINGOS_LLVM_REPO_URL:-https://github.com/llvm/llvm-project.git}"

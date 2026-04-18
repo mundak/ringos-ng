@@ -102,6 +102,16 @@ function(
       COMMENT "Building embedded arm64 PE64 test app against the extracted ringos toolchain bundle"
       VERBATIM)
   elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".c")
+    foreach(required_path
+        ${ARM64_TEST_APP_COMPILE_CONFIG}
+        ${ARM64_TEST_APP_LINK_CONFIG})
+      if(NOT EXISTS ${required_path})
+        message(FATAL_ERROR
+          "Bundled toolchain input is missing: ${required_path}. "
+          "Extract build/toolchain and build/sdk before building embedded arm64 C test apps.")
+      endif()
+    endforeach()
+
     add_custom_command(
       OUTPUT ${ARM64_TEST_APP_IMAGE_OBJECT}
       COMMAND ${ARM64_TEST_APP_CLANG}
@@ -131,6 +141,16 @@ function(
       COMMENT "Building embedded arm64 PE64 test app against the extracted ringos toolchain bundle"
       VERBATIM)
   elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".cpp")
+    foreach(required_path
+        ${ARM64_TEST_APP_COMPILE_CONFIG}
+        ${ARM64_TEST_APP_LINK_CONFIG})
+      if(NOT EXISTS ${required_path})
+        message(FATAL_ERROR
+          "Bundled toolchain input is missing: ${required_path}. "
+          "Extract build/toolchain and build/sdk before building embedded arm64 C++ test apps.")
+      endif()
+    endforeach()
+
     if(NOT EXISTS ${ARM64_TEST_APP_CXX_INCLUDE_DIR})
       message(FATAL_ERROR
         "Bundled C++ include directory is missing: ${ARM64_TEST_APP_CXX_INCLUDE_DIR}. "

@@ -150,8 +150,8 @@ If you want to invoke the container manually instead of using the wrappers:
 
 ```powershell
 docker build -f tools/toolchain/Dockerfile -t ringos-ci .
-docker run --rm ringos-ci bash -lc "bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain && cmake -S . -B build/x64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/x64.cmake -DRINGOS_TOOLCHAIN_ROOT=build/toolchain -DRINGOS_TARGET_ARCH=x64 -DRINGOS_ENABLE_TESTING=ON && cmake --build build/x64-debug && ctest --test-dir build/x64-debug --output-on-failure"
-docker run --rm ringos-ci bash -lc "bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain && cmake -S . -B build/arm64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_TOOLCHAIN_FILE=kernel/toolchains/arm64.cmake -DRINGOS_TOOLCHAIN_ROOT=build/toolchain -DRINGOS_TARGET_ARCH=arm64 -DRINGOS_ENABLE_TESTING=ON && cmake --build build/arm64-debug && ctest --test-dir build/arm64-debug --output-on-failure"
+docker run --rm ringos-ci bash -lc "bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain && cmake -S . -B build/x64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DRINGOS_TARGET_ARCH=x64 -DRINGOS_ENABLE_TESTING=ON && cmake --build build/x64-debug && ctest --test-dir build/x64-debug --output-on-failure"
+docker run --rm ringos-ci bash -lc "bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain && cmake -S . -B build/arm64-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug -DRINGOS_TARGET_ARCH=arm64 -DRINGOS_ENABLE_TESTING=ON && cmake --build build/arm64-debug && ctest --test-dir build/arm64-debug --output-on-failure"
 ```
 
 bash tools/toolchain/download-latest-toolchain.sh --repo mundak/ringos-ng --archive-dir build --install-root build/toolchain

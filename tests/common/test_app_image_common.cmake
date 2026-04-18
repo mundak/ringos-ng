@@ -1,13 +1,14 @@
-function(ringos_get_bundled_toolchain_root out_root)
-  if(DEFINED RINGOS_TOOLCHAIN_ROOT AND NOT RINGOS_TOOLCHAIN_ROOT STREQUAL "")
-    set(toolchain_root "${RINGOS_TOOLCHAIN_ROOT}")
-  elseif(DEFINED ENV{RINGOS_TOOLCHAIN_ROOT} AND NOT "$ENV{RINGOS_TOOLCHAIN_ROOT}" STREQUAL "")
-    file(TO_CMAKE_PATH "$ENV{RINGOS_TOOLCHAIN_ROOT}" toolchain_root)
+function(ringos_get_bundled_toolchain_file out_file)
+  if(DEFINED RINGOS_INSTALLED_TOOLCHAIN_FILE AND NOT RINGOS_INSTALLED_TOOLCHAIN_FILE STREQUAL "")
+    set(toolchain_file "${RINGOS_INSTALLED_TOOLCHAIN_FILE}")
   else()
-    set(toolchain_root "${CMAKE_SOURCE_DIR}/build/toolchain")
+    message(FATAL_ERROR
+      "Embedded test app builds require a RingOS user-space toolchain file. "
+      "Configure the kernel build with -DRINGOS_INSTALLED_TOOLCHAIN_FILE=<toolchain>/cmake/ringos-toolchain.cmake.")
   endif()
 
-  set(${out_root} "${toolchain_root}" PARENT_SCOPE)
+  get_filename_component(toolchain_file "${toolchain_file}" ABSOLUTE)
+  set(${out_file} "${toolchain_file}" PARENT_SCOPE)
 endfunction()
 
 function(ringos_get_bundled_sdk_root out_root)
@@ -23,8 +24,11 @@ function(ringos_get_bundled_sdk_root out_root)
 endfunction()
 
 function(ringos_resolve_bundled_test_app_tools target_arch prefix)
-  ringos_get_bundled_toolchain_root(toolchain_root)
+  ringos_get_bundled_toolchain_file(toolchain_file)
   ringos_get_bundled_sdk_root(sdk_root)
+
+  get_filename_component(toolchain_cmake_dir "${toolchain_file}" DIRECTORY)
+  get_filename_component(toolchain_root "${toolchain_cmake_dir}/.." ABSOLUTE)
 
   if(target_arch STREQUAL "x64")
     set(target_triple x86_64-unknown-ringos-msvc)
@@ -34,7 +38,6 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
     message(FATAL_ERROR "Unsupported test app target architecture: ${target_arch}")
   endif()
 
-  set(toolchain_file "${toolchain_root}/cmake/ringos-toolchain.cmake")
   set(compile_config "${sdk_root}/share/ringos/compile-${target_arch}.cfg")
   set(link_config "${sdk_root}/share/ringos/link-${target_arch}.cfg")
   set(cxx_include_dir "${sdk_root}/sysroots/${target_triple}/include/c++/v1")
@@ -49,35 +52,29 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
     "${cxx_include_dir}")
 
   foreach(required_path
-      "${toolchain_file}"
-      "${compile_config}"
-      "${link_config}")
+      "${toolchain_file}")
     if(NOT EXISTS "${required_path}")
       message(FATAL_ERROR
-        "Bundled toolchain input is missing: ${required_path}. "
-        "Extract build/toolchain and build/sdk before building embedded test app images.")
+        "Embedded test app input is missing: ${required_path}. "
+        "Provide a valid RingOS user-space toolchain file before building embedded test app images.")
     endif()
   endforeach()
 
   find_program(test_app_clang
     NAMES clang clang-18 clang-17
     HINTS "${toolchain_root}/bin"
-    NO_DEFAULT_PATH
     REQUIRED)
   find_program(test_app_clangxx
     NAMES clang++ clang++-18 clang++-17
     HINTS "${toolchain_root}/bin"
-    NO_DEFAULT_PATH
     REQUIRED)
   find_program(test_app_lld_link
     NAMES lld-link lld-link-18 lld-link-17
     HINTS "${toolchain_root}/bin"
-    NO_DEFAULT_PATH
     REQUIRED)
   find_program(test_app_objcopy
     NAMES llvm-objcopy llvm-objcopy-18 llvm-objcopy-17
     HINTS "${toolchain_root}/bin"
-    NO_DEFAULT_PATH
     REQUIRED)
 
   set(${prefix}_TOOLCHAIN_ROOT "${toolchain_root}" PARENT_SCOPE)
