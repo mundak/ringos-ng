@@ -592,7 +592,7 @@ set(CMAKE_C_STANDARD_LIBRARIES_INIT "\"\${RINGOS_CRT0_OBJECT}\" \"\${RINGOS_C_RU
 set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "\"\${RINGOS_CRT0_OBJECT}\" \"\${RINGOS_C_RUNTIME_LIBRARY}\"")
 set(CMAKE_ASM_STANDARD_LIBRARIES_INIT "")
 set(CMAKE_C_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-stack-protector -fno-builtin -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
-set(CMAKE_CXX_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -fno-builtin -nostdinc++ -isystem \"\${RINGOS_SYSROOT_CXX_INCLUDE_DIR}\" -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
+set(CMAKE_CXX_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-exceptions -fno-rtti -fno-threadsafe-statics -fno-stack-protector -fno-builtin -nostdinc++ -isystem \"\${RINGOS_SYSROOT_CXX_INCLUDE_DIR}\" -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -isystem \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
 set(CMAKE_ASM_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -fno-stack-protector -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -I \"\${RINGOS_SYSROOT_INCLUDE_DIR}\"")
 set(CMAKE_EXE_LINKER_FLAGS_INIT "--target=\"\${RINGOS_TARGET_TRIPLE}\" -resource-dir \"\${RINGOS_CLANG_RESOURCE_DIR}\" -fuse-ld=lld ${exe_linker_flags}")
 EOF
