@@ -24,8 +24,8 @@ While doing cleanup, don't touch cleanup-opus.md doc.
 | --- | --- | --- |
 | 0 | `[x]` | Align the written contract with the current repo and handle direction |
 | 1 | `[x]` | Introduce a canonical process and syscall model |
-| 2 | `[ ]` | Move Windows compatibility policy out of the kernel |
-| 3 | `[ ]` | Replace special-case runtime plumbing with generic service and object plumbing |
+| 2 | `[x]` | Move Windows compatibility policy out of the kernel |
+| 3 | `[-]` | Skip the generic service and object plumbing phase in this cleanup pass |
 | 4 | `[ ]` | Generalize the memory model and separate loading from execution layout |
 | 5 | `[ ]` | Separate guest faults from backend failures in the emulator path |
 | 6 | `[ ]` | Simplify sample integration and bring CI and docs back into alignment |
@@ -205,39 +205,29 @@ Verification:
 
 ## Phase 3: Generic Service And Object Plumbing
 
-Status: `[ ]`
+Status: `[-]`
 
-Goal: remove proof-path special cases and expose reusable service and shared
-memory primitives instead of hardwiring behavior into the runtime.
+Goal: skip this phase for the current cleanup pass.
 
-Work items:
+Rationale:
 
-- Introduce a generic service registration and lookup mechanism on top of the
-  existing RPC substrate in [../kernel/rpc.h](../kernel/rpc.h) and
-  [../kernel/user_runtime.h](../kernel/user_runtime.h).
-- Treat console support as one registered service implementation rather than a
-  special runtime path.
-- Expose shared-memory and device-memory concepts through public SDK headers
-  instead of leaving them as internal plumbing.
-- Replace the `STATUS_NOT_FOUND` stub path for `SYSCALL_DEVICE_MEMORY_MAP` in
-  [../kernel/user_runtime.cpp](../kernel/user_runtime.cpp) with a real object-
-  backed mapping flow, or remove the syscall until the public model is ready.
-- Keep the public ABI focused on generic objects, mappings, and channels rather
-  than service-specific shortcuts.
+- The old phase mixed several different concerns: service discovery, public
+  ABI design, device-memory exposure, and console-specific behavior.
+- That bundle does not currently describe one coherent cleanup step, so forcing
+  it into the plan would create churn without a stable target.
+- If a service or driver model becomes important later, it should come back as
+  a separate design task with a narrower scope and explicit kernel boundary.
 
 Primary files:
 
 - [../kernel/rpc.h](../kernel/rpc.h)
 - [../kernel/user_runtime.h](../kernel/user_runtime.h)
 - [../kernel/user_runtime.cpp](../kernel/user_runtime.cpp)
-- [../user/sdk/include/ringos/sdk.h](../user/sdk/include/ringos/sdk.h)
 
-Verification:
+Follow-up:
 
-- Console behavior goes through the same registration and lookup path as any
-  other service.
-- Shared memory and device memory have a documented public surface instead of
-  being runtime-only internals.
+- Revisit only if a later cleanup phase needs a concrete service or driver
+  boundary that cannot be handled within the existing RPC and object model.
 
 ## Phase 4: Memory Model And Loader Separation
 
