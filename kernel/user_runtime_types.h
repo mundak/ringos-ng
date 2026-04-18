@@ -1,5 +1,6 @@
 #pragma once
 
+#include "address_space.h"
 #include "device_memory_type.h"
 #include "user_space.h"
 
@@ -58,18 +59,6 @@ struct process_metadata
   process_guest_architecture guest_architecture;
   process_personality personality;
   process_execution_backend execution_backend;
-};
-
-struct address_space
-{
-  uintptr_t arch_root_table;
-  uintptr_t user_base;
-  size_t user_size;
-  uintptr_t user_host_base;
-  device_memory_type device_memory_type;
-  uintptr_t device_memory_user_address;
-  uintptr_t device_memory_host_address;
-  size_t device_memory_size;
 };
 
 struct thread_context

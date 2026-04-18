@@ -328,9 +328,15 @@ void arm64_initial_user_runtime_platform::populate_native_bootstrap_for_process(
   thread_context& thread_context_info = process_configuration.thread_context;
 
   address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.root_table);
-  address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
-  address_space_info.user_size = USER_REGION_SIZE;
-  address_space_info.user_host_base = reinterpret_cast<uintptr_t>(user_region);
+
+  if (!add_address_space_mapping(
+        address_space_info,
+        USER_REGION_VIRTUAL_ADDRESS,
+        reinterpret_cast<uintptr_t>(user_region),
+        USER_REGION_SIZE))
+  {
+    panic("failed to initialize arm64 bootstrap mappings");
+  }
 
   thread_context_info.instruction_pointer = entry_point;
   thread_context_info.stack_pointer = USER_REGION_VIRTUAL_ADDRESS + USER_REGION_SIZE;
@@ -359,9 +365,15 @@ void arm64_initial_user_runtime_platform::populate_x64_emulator_bootstrap(
   thread_context& thread_context_info = process_configuration.thread_context;
 
   address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.root_table);
-  address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
-  address_space_info.user_size = X64_USER_REGION_SIZE;
-  address_space_info.user_host_base = reinterpret_cast<uintptr_t>(user_region);
+
+  if (!add_address_space_mapping(
+        address_space_info,
+        USER_REGION_VIRTUAL_ADDRESS,
+        reinterpret_cast<uintptr_t>(user_region),
+        X64_USER_REGION_SIZE))
+  {
+    panic("failed to initialize x64 emulator bootstrap mappings");
+  }
 
   thread_context_info.instruction_pointer = entry_point;
   thread_context_info.stack_pointer

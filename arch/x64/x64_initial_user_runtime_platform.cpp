@@ -16,6 +16,7 @@ namespace
   constexpr size_t PAGE_SIZE = X64_USER_IMAGE_PAGE_SIZE;
   constexpr uintptr_t USER_IMAGE_VIRTUAL_ADDRESS = X64_USER_IMAGE_VIRTUAL_ADDRESS;
   constexpr uintptr_t USER_STACK_VIRTUAL_ADDRESS = X64_USER_STACK_VIRTUAL_ADDRESS;
+  constexpr size_t USER_IMAGE_SIZE = X64_USER_IMAGE_PAGE_COUNT * X64_USER_IMAGE_PAGE_SIZE;
   constexpr size_t USER_REGION_SIZE = X64_USER_REGION_SIZE;
   constexpr size_t WINDOWS_X64_STACK_HOME_SPACE_SIZE = 32;
 
@@ -174,9 +175,20 @@ void x64_initial_user_runtime_platform::populate_bootstrap_for_process(
   thread_context& thread_context_info = process_configuration.thread_context;
 
   address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.pml4);
-  address_space_info.user_base = USER_IMAGE_VIRTUAL_ADDRESS;
-  address_space_info.user_size = USER_REGION_SIZE;
-  address_space_info.user_host_base = reinterpret_cast<uintptr_t>(&storage.user_image_pages[0][0]);
+
+  if (!add_address_space_mapping(
+        address_space_info,
+        USER_IMAGE_VIRTUAL_ADDRESS,
+        reinterpret_cast<uintptr_t>(&storage.user_image_pages[0][0]),
+        USER_IMAGE_SIZE)
+      || !add_address_space_mapping(
+        address_space_info,
+        USER_STACK_VIRTUAL_ADDRESS,
+        reinterpret_cast<uintptr_t>(storage.user_stack_page),
+        PAGE_SIZE))
+  {
+    panic("failed to initialize x64 bootstrap mappings");
+  }
 
   thread_context_info.instruction_pointer = entry_point;
   thread_context_info.stack_pointer

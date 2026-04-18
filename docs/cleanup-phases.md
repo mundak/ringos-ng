@@ -26,7 +26,7 @@ While doing cleanup, don't touch cleanup-opus.md doc.
 | 1 | `[x]` | Introduce a canonical process and syscall model |
 | 2 | `[x]` | Move Windows compatibility policy out of the kernel |
 | 3 | `[-]` | Skip the generic service and object plumbing phase in this cleanup pass |
-| 4 | `[ ]` | Generalize the memory model and separate loading from execution layout |
+| 4 | `[x]` | Generalize the memory model and separate loading from execution layout |
 | 5 | `[ ]` | Separate guest faults from backend failures in the emulator path |
 | 6 | `[ ]` | Simplify sample integration and bring CI and docs back into alignment |
 
@@ -231,10 +231,21 @@ Follow-up:
 
 ## Phase 4: Memory Model And Loader Separation
 
-Status: `[ ]`
+Status: `[x]`
 
 Goal: replace the current fixed bootstrap layout with an explicit mapping model
 and separate image loading from how guest memory is backed and executed.
+
+Progress:
+
+- `[x]` Replaced the single `user_host_base` translation contract with an
+  explicit per-process mapping list in [../kernel/user_runtime_types.h](../kernel/user_runtime_types.h)
+  and [../kernel/user_runtime.cpp](../kernel/user_runtime.cpp).
+- `[x]` Split the x64 bootstrap layout into separate image and stack mappings
+  so the unmapped device-memory slot is no longer treated as linear host-backed
+  memory.
+- `[x]` Removed the unused device-memory placeholder fields from `address_space`
+  so bootstrap code now describes only the mappings it actually backs.
 
 Work items:
 

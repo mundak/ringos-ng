@@ -142,58 +142,14 @@ kernel_object* user_runtime::find_object_by_handle(handle_t handle_value)
 
 bool user_runtime::validate_user_range(const process& owner_process, uintptr_t user_address, size_t length) const
 {
-  const uintptr_t user_base = owner_process.get_address_space_info().user_base;
-  const size_t user_size = owner_process.get_address_space_info().user_size;
-
-  if (user_size > static_cast<size_t>(UINTPTR_MAX - user_base))
-  {
-    return false;
-  }
-
-  const uintptr_t user_limit = user_base + user_size;
-
-  if (user_address < user_base || user_address > user_limit)
-  {
-    return false;
-  }
-
-  if (length == 0)
-  {
-    return true;
-  }
-
-  if (static_cast<size_t>(user_limit - user_address) < length)
-  {
-    return false;
-  }
-
-  return true;
+  return validate_address_space_range(owner_process.get_address_space_info(), user_address, length);
 }
 
 bool user_runtime::try_translate_user_address(
   const process& owner_process, uintptr_t user_address, size_t length, uintptr_t* out_host_address) const
 {
-  if (out_host_address == nullptr)
-  {
-    return false;
-  }
-
-  if (!validate_user_range(owner_process, user_address, length))
-  {
-    return false;
-  }
-
-  const uintptr_t user_base = owner_process.get_address_space_info().user_base;
-  const uintptr_t user_host_base = owner_process.get_address_space_info().user_host_base;
-  const uintptr_t translated_offset = user_address - user_base;
-
-  if (user_host_base == 0 || translated_offset > UINTPTR_MAX - user_host_base)
-  {
-    return false;
-  }
-
-  *out_host_address = user_host_base + translated_offset;
-  return true;
+  return try_translate_address_space_address(
+    owner_process.get_address_space_info(), user_address, length, out_host_address);
 }
 
 int32_t user_runtime::copy_user_bytes(
@@ -209,14 +165,29 @@ int32_t user_runtime::copy_user_bytes(
     return STATUS_OK;
   }
 
-  uintptr_t host_address = 0;
+  uintptr_t current_user_address = user_address;
+  uint8_t* current_buffer = static_cast<uint8_t*>(buffer);
+  size_t remaining_size = buffer_size;
 
-  if (!try_translate_user_address(owner_process, user_address, buffer_size, &host_address))
+  while (remaining_size != 0)
   {
-    return STATUS_FAULT;
+    uintptr_t host_address = 0;
+    size_t translated_length = 0;
+
+    if (
+      !try_translate_address_space_chunk(
+        owner_process.get_address_space_info(), current_user_address, remaining_size, &host_address, &translated_length)
+      || translated_length == 0)
+    {
+      return STATUS_FAULT;
+    }
+
+    memcpy(current_buffer, reinterpret_cast<const void*>(host_address), translated_length);
+    current_buffer += translated_length;
+    current_user_address += translated_length;
+    remaining_size -= translated_length;
   }
 
-  memcpy(buffer, reinterpret_cast<const void*>(host_address), buffer_size);
   return STATUS_OK;
 }
 
@@ -233,14 +204,29 @@ int32_t user_runtime::write_user_bytes(
     return STATUS_OK;
   }
 
-  uintptr_t host_address = 0;
+  uintptr_t current_user_address = user_address;
+  const uint8_t* current_buffer = static_cast<const uint8_t*>(buffer);
+  size_t remaining_size = buffer_size;
 
-  if (!try_translate_user_address(owner_process, user_address, buffer_size, &host_address))
+  while (remaining_size != 0)
   {
-    return STATUS_FAULT;
+    uintptr_t host_address = 0;
+    size_t translated_length = 0;
+
+    if (
+      !try_translate_address_space_chunk(
+        owner_process.get_address_space_info(), current_user_address, remaining_size, &host_address, &translated_length)
+      || translated_length == 0)
+    {
+      return STATUS_FAULT;
+    }
+
+    memcpy(reinterpret_cast<void*>(host_address), current_buffer, translated_length);
+    current_buffer += translated_length;
+    current_user_address += translated_length;
+    remaining_size -= translated_length;
   }
 
-  memcpy(reinterpret_cast<void*>(host_address), buffer, buffer_size);
   return STATUS_OK;
 }
 
