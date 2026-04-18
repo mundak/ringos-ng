@@ -4,21 +4,10 @@
 #include "debug.h"
 #include "klibc/memory.h"
 #include "panic.h"
-#include "x64_windows_compat.h"
 
 namespace
 {
-  constexpr uint64_t WINDOWS_HANDLE_STDIN = 1;
-  constexpr uint64_t WINDOWS_HANDLE_STDOUT = 2;
-  constexpr uint64_t WINDOWS_HANDLE_STDERR = 3;
-  constexpr size_t WINDOWS_LOG_BUFFER_SIZE = 96;
-
   user_runtime g_user_runtime {};
-
-  bool is_windows_console_handle(uint64_t handle_value)
-  {
-    return handle_value == WINDOWS_HANDLE_STDOUT || handle_value == WINDOWS_HANDLE_STDERR;
-  }
 }
 
 void user_runtime::reset()
@@ -432,80 +421,6 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     }
 
     return STATUS_NOT_FOUND;
-  }
-
-  case SYSCALL_WINDOWS_GET_STD_HANDLE:
-  {
-    const int32_t standard_handle = static_cast<int32_t>(syscall_context.argument0);
-
-    if (standard_handle == X64_WINDOWS_STD_INPUT_HANDLE)
-    {
-      return static_cast<int32_t>(WINDOWS_HANDLE_STDIN);
-    }
-
-    if (standard_handle == X64_WINDOWS_STD_OUTPUT_HANDLE)
-    {
-      return static_cast<int32_t>(WINDOWS_HANDLE_STDOUT);
-    }
-
-    if (standard_handle == X64_WINDOWS_STD_ERROR_HANDLE)
-    {
-      return static_cast<int32_t>(WINDOWS_HANDLE_STDERR);
-    }
-
-    return -1;
-  }
-
-  case SYSCALL_WINDOWS_WRITE_FILE:
-  {
-    if (!is_windows_console_handle(syscall_context.argument0) || syscall_context.argument1 == 0)
-    {
-      return 0;
-    }
-
-    char write_buffer[WINDOWS_LOG_BUFFER_SIZE + 1];
-    uintptr_t current_address = static_cast<uintptr_t>(syscall_context.argument1);
-    size_t remaining_bytes = static_cast<size_t>(syscall_context.argument2);
-    uint32_t total_written = 0;
-
-    while (remaining_bytes > 0)
-    {
-      const size_t chunk_size = remaining_bytes < WINDOWS_LOG_BUFFER_SIZE ? remaining_bytes : WINDOWS_LOG_BUFFER_SIZE;
-      const int32_t copy_status = copy_user_bytes(*owner_process, current_address, write_buffer, chunk_size);
-
-      if (copy_status != STATUS_OK)
-      {
-        return 0;
-      }
-
-      write_buffer[chunk_size] = '\0';
-      debug_log(write_buffer);
-      current_address += chunk_size;
-      remaining_bytes -= chunk_size;
-      total_written += static_cast<uint32_t>(chunk_size);
-    }
-
-    if (syscall_context.argument3 != 0)
-    {
-      const int32_t write_status = write_user_bytes(
-        *owner_process, static_cast<uintptr_t>(syscall_context.argument3), &total_written, sizeof(total_written));
-
-      if (write_status != STATUS_OK)
-      {
-        return 0;
-      }
-    }
-
-    return 1;
-  }
-
-  case SYSCALL_WINDOWS_EXIT_PROCESS:
-  {
-    m_rpc_runtime.handle_thread_exit(*active_thread, STATUS_PEER_CLOSED);
-    active_thread->set_state(USER_THREAD_STATE_EXITED);
-    active_thread->set_exit_status(syscall_context.argument0);
-    schedule_next_ready_thread();
-    return STATUS_OK;
   }
 
   default:

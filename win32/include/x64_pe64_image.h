@@ -17,10 +17,26 @@ inline constexpr uintptr_t X64_USER_DEVICE_MEMORY_VIRTUAL_ADDRESS
   = X64_USER_STACK_VIRTUAL_ADDRESS + X64_USER_IMAGE_PAGE_SIZE;
 inline constexpr size_t X64_USER_REGION_SIZE = (X64_USER_IMAGE_PAGE_COUNT + 2) * X64_USER_IMAGE_PAGE_SIZE;
 
+enum x64_pe64_import_resolution_status : uint32_t
+{
+  X64_PE64_IMPORT_RESOLUTION_STATUS_OK = 0,
+  X64_PE64_IMPORT_RESOLUTION_STATUS_INVALID_ARGUMENT,
+  X64_PE64_IMPORT_RESOLUTION_STATUS_UNSUPPORTED_IMPORT,
+  X64_PE64_IMPORT_RESOLUTION_STATUS_IMPORT_STUB_OUT_OF_RANGE,
+};
+
 struct x64_pe64_import_resolver
 {
   void* context;
-  bool (*resolve_import)(void* context, const char* dll_name, const char* function_name, uint32_t* out_syscall_number);
+  x64_pe64_import_resolution_status (*resolve_import)(
+    void* context,
+    const char* dll_name,
+    const char* function_name,
+    uintptr_t image_base,
+    uint8_t* loaded_image,
+    size_t loaded_image_size,
+    size_t* inout_next_stub_offset,
+    uint64_t* out_function_address);
 };
 
 enum x64_pe64_image_load_status : uint32_t

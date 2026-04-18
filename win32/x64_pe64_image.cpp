@@ -2,12 +2,10 @@
 
 #include "klibc/memory.h"
 #include "pe_image.h"
-#include "x64_win32_emulation.h"
 
 namespace
 {
   constexpr uint64_t PE_IMPORT_BY_ORDINAL_MASK64 = 1ULL << 63;
-  constexpr size_t X64_WINDOWS_IMPORT_STUB_SIZE = 8;
 
   struct [[gnu::packed]] pe_import_descriptor
   {
@@ -25,17 +23,6 @@ namespace
   };
 
   static_assert(sizeof(pe_import_descriptor) == 20);
-
-  size_t align_up(size_t value, size_t alignment)
-  {
-    if (alignment == 0)
-    {
-      return value;
-    }
-
-    const size_t remainder = value % alignment;
-    return remainder == 0 ? value : value + (alignment - remainder);
-  }
 
   bool copy_loaded_record(
     void* record, size_t record_size, const uint8_t* loaded_image, uint32_t loaded_image_size, uint32_t rva)
@@ -207,15 +194,6 @@ namespace
       && descriptor.name == 0 && descriptor.first_thunk == 0;
   }
 
-  void write_x64_windows_import_stub(uint8_t* destination, uint32_t syscall_number)
-  {
-    destination[0] = 0xB8;
-    memcpy(destination + 1, &syscall_number, sizeof(syscall_number));
-    destination[5] = 0x0F;
-    destination[6] = 0x05;
-    destination[7] = 0xC3;
-  }
-
   x64_pe64_image_load_status resolve_x64_import(
     const x64_pe64_import_resolver* import_resolver,
     const char* dll_name,
@@ -231,31 +209,13 @@ namespace
       return X64_PE64_IMAGE_LOAD_STATUS_INVALID_ARGUMENT;
     }
 
-    if (import_resolver != nullptr && import_resolver->resolve_import != nullptr)
+    if (import_resolver == nullptr || import_resolver->resolve_import == nullptr)
     {
-      uint32_t syscall_number = 0;
-
-      if (!import_resolver->resolve_import(import_resolver->context, dll_name, function_name, &syscall_number))
-      {
-        return X64_PE64_IMAGE_LOAD_STATUS_UNSUPPORTED_IMPORT;
-      }
-
-      const uint32_t stub_rva = static_cast<uint32_t>(align_up(*inout_next_stub_offset, sizeof(uint64_t)));
-      uint8_t* stub_bytes
-        = translate_loaded_rva(loaded_image, loaded_image_size, stub_rva, X64_WINDOWS_IMPORT_STUB_SIZE);
-
-      if (stub_bytes == nullptr)
-      {
-        return X64_PE64_IMAGE_LOAD_STATUS_IMPORT_STUB_OUT_OF_RANGE;
-      }
-
-      write_x64_windows_import_stub(stub_bytes, syscall_number);
-      *out_function_address = expected_image_base + stub_rva;
-      *inout_next_stub_offset = stub_rva + X64_WINDOWS_IMPORT_STUB_SIZE;
-      return X64_PE64_IMAGE_LOAD_STATUS_OK;
+      return X64_PE64_IMAGE_LOAD_STATUS_UNSUPPORTED_IMPORT;
     }
 
-    const x64_win32_import_resolution_status resolution_status = resolve_x64_win32_import(
+    const x64_pe64_import_resolution_status resolution_status = import_resolver->resolve_import(
+      import_resolver->context,
       dll_name,
       function_name,
       expected_image_base,
@@ -266,15 +226,13 @@ namespace
 
     switch (resolution_status)
     {
-    case X64_WIN32_IMPORT_RESOLUTION_STATUS_OK:
+    case X64_PE64_IMPORT_RESOLUTION_STATUS_OK:
       return X64_PE64_IMAGE_LOAD_STATUS_OK;
-    case X64_WIN32_IMPORT_RESOLUTION_STATUS_INVALID_ARGUMENT:
+    case X64_PE64_IMPORT_RESOLUTION_STATUS_INVALID_ARGUMENT:
       return X64_PE64_IMAGE_LOAD_STATUS_INVALID_IMPORT_DIRECTORY;
-    case X64_WIN32_IMPORT_RESOLUTION_STATUS_DLL_NOT_FOUND:
-    case X64_WIN32_IMPORT_RESOLUTION_STATUS_SYMBOL_NOT_FOUND:
+    case X64_PE64_IMPORT_RESOLUTION_STATUS_UNSUPPORTED_IMPORT:
       return X64_PE64_IMAGE_LOAD_STATUS_UNSUPPORTED_IMPORT;
-    case X64_WIN32_IMPORT_RESOLUTION_STATUS_UNSUPPORTED_SYSCALL_NUMBER:
-    case X64_WIN32_IMPORT_RESOLUTION_STATUS_STUB_OUT_OF_SPACE:
+    case X64_PE64_IMPORT_RESOLUTION_STATUS_IMPORT_STUB_OUT_OF_RANGE:
       return X64_PE64_IMAGE_LOAD_STATUS_IMPORT_STUB_OUT_OF_RANGE;
     }
 

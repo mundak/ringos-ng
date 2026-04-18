@@ -6,7 +6,6 @@
 #include "pe_image.h"
 #include "x64_emulator.h"
 #include "x64_pe64_image.h"
-#include "x64_windows_compat.h"
 
 extern "C" const uint8_t arm64_exception_vectors[];
 extern "C" const uint8_t _binary_ringos_test_app_image_start[];
@@ -199,18 +198,6 @@ namespace
       : preserved_registers[ARM64_PRESERVED_REGISTER_X30_INDEX];
   }
 
-  bool resolve_initial_windows_import(
-    void* context, const char* dll_name, const char* function_name, uint32_t* out_syscall_number)
-  {
-    (void) context;
-    return try_resolve_x64_windows_import(dll_name, function_name, out_syscall_number);
-  }
-
-  constexpr x64_pe64_import_resolver INITIAL_WINDOWS_IMPORT_RESOLVER {
-    nullptr,
-    &resolve_initial_windows_import,
-  };
-
   [[noreturn]] void arm64_park_cpu()
   {
     asm volatile("msr daifset, #0xf\nisb" : : : "memory");
@@ -309,13 +296,7 @@ uintptr_t arm64_initial_user_runtime_platform::initialize_x64_emulator_image(
 
   x64_pe64_image_info image_info {};
   const x64_pe64_image_load_status load_status = load_x64_pe64_image(
-    image_bytes,
-    image_size,
-    X64_USER_IMAGE_VIRTUAL_ADDRESS,
-    user_region,
-    X64_USER_REGION_SIZE,
-    &INITIAL_WINDOWS_IMPORT_RESOLVER,
-    &image_info);
+    image_bytes, image_size, X64_USER_IMAGE_VIRTUAL_ADDRESS, user_region, X64_USER_REGION_SIZE, nullptr, &image_info);
 
   if (load_status != X64_PE64_IMAGE_LOAD_STATUS_OK)
   {
@@ -340,7 +321,7 @@ void arm64_initial_user_runtime_platform::populate_native_bootstrap_for_process(
 
   process_configuration.metadata = {
     PROCESS_GUEST_ARCHITECTURE_ARM64,
-    PROCESS_PERSONALITY_WINDOWS,
+    PROCESS_PERSONALITY_RINGOS,
     PROCESS_EXECUTION_BACKEND_NATIVE,
   };
   address_space& address_space_info = process_configuration.address_space;
@@ -371,7 +352,7 @@ void arm64_initial_user_runtime_platform::populate_x64_emulator_bootstrap(
 
   process_configuration.metadata = {
     PROCESS_GUEST_ARCHITECTURE_X64,
-    PROCESS_PERSONALITY_WINDOWS,
+    PROCESS_PERSONALITY_RINGOS,
     PROCESS_EXECUTION_BACKEND_X64_EMULATOR,
   };
   address_space& address_space_info = process_configuration.address_space;

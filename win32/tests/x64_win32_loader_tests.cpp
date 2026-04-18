@@ -1,5 +1,6 @@
 #include "user_space.h"
 #include "x64_pe64_image.h"
+#include "x64_win32_emulation.h"
 
 #include <array>
 #include <cstdio>
@@ -251,7 +252,7 @@ namespace
       X64_USER_IMAGE_VIRTUAL_ADDRESS,
       loaded_image.data(),
       loaded_image.size(),
-      nullptr,
+      get_x64_win32_import_resolver(),
       &image_info);
 
     if (!expect_x64_win32_test(

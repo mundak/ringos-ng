@@ -149,10 +149,26 @@ Verification:
 
 ## Phase 2: Personality Boundary And Windows Extraction
 
-Status: `[ ]`
+Status: `[x]`
 
 Goal: move Windows-specific policy and compatibility behavior out of the kernel
 boundary so the kernel stays ringos-native and personality-neutral.
+
+Progress:
+
+- `[x]` Removed the legacy Windows-only syscall numbers and dispatch cases from
+  [../kernel/user_space.h](../kernel/user_space.h) and
+  [../kernel/user_runtime.cpp](../kernel/user_runtime.cpp).
+- `[x]` Split the generic x64 PE loader from the Win32 import shim so kernel
+  targets now link [../win32/CMakeLists.txt](../win32/CMakeLists.txt) through
+  `ringos_x64_pe_loader` instead of `ringos_x64_win32_emulation`.
+- `[x]` Stopped pulling Windows compatibility headers into the architecture
+  bootstrap runtime paths and reclassified the embedded SDK sample processes as
+  `PROCESS_PERSONALITY_RINGOS`.
+- `[x]` Made Win32 import resolution an explicit loader boundary: the Win32
+  loader tests opt into [../win32/include/x64_win32_emulation.h](../win32/include/x64_win32_emulation.h),
+  while kernel bootstrap paths pass no resolver and therefore reject imported
+  x64 images cleanly.
 
 Work items:
 
@@ -176,6 +192,9 @@ Primary files:
 - [../arch/arm64/CMakeLists.txt](../arch/arm64/CMakeLists.txt)
 - [../arch/x64/user_runtime.cpp](../arch/x64/user_runtime.cpp)
 - [../arch/arm64/arm64_initial_user_runtime_platform.cpp](../arch/arm64/arm64_initial_user_runtime_platform.cpp)
+- [../win32/CMakeLists.txt](../win32/CMakeLists.txt)
+- [../win32/include/x64_pe64_image.h](../win32/include/x64_pe64_image.h)
+- [../win32/include/x64_win32_emulation.h](../win32/include/x64_win32_emulation.h)
 
 Verification:
 

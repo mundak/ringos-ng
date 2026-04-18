@@ -4,7 +4,6 @@
 #include "debug.h"
 #include "klibc/memory.h"
 #include "panic.h"
-#include "x64_windows_compat.h"
 
 extern "C" [[noreturn]] void x64_enter_user_thread(
   uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t flags);
@@ -37,18 +36,6 @@ namespace
   constexpr uint16_t USER_COMPAT_CODE_SELECTOR = 0x18;
 
   x64_initial_user_runtime_platform g_initial_user_runtime_platform {};
-
-  bool resolve_initial_windows_import(
-    void* context, const char* dll_name, const char* function_name, uint32_t* out_syscall_number)
-  {
-    (void) context;
-    return try_resolve_x64_windows_import(dll_name, function_name, out_syscall_number);
-  }
-
-  constexpr x64_pe64_import_resolver INITIAL_WINDOWS_IMPORT_RESOLVER {
-    nullptr,
-    &resolve_initial_windows_import,
-  };
 
   uint64_t make_table_entry(uintptr_t address, uint64_t flags)
   {
@@ -137,13 +124,7 @@ uintptr_t x64_initial_user_runtime_platform::initialize_user_image(
   uint8_t* const loaded_image = &storage.user_image_pages[0][0];
   x64_pe64_image_info image_info {};
   const x64_pe64_image_load_status load_status = load_x64_pe64_image(
-    image_bytes,
-    image_size,
-    USER_IMAGE_VIRTUAL_ADDRESS,
-    loaded_image,
-    USER_REGION_SIZE,
-    &INITIAL_WINDOWS_IMPORT_RESOLVER,
-    &image_info);
+    image_bytes, image_size, USER_IMAGE_VIRTUAL_ADDRESS, loaded_image, USER_REGION_SIZE, nullptr, &image_info);
 
   if (load_status != X64_PE64_IMAGE_LOAD_STATUS_OK)
   {
@@ -186,7 +167,7 @@ void x64_initial_user_runtime_platform::populate_bootstrap_for_process(
 
   process_configuration.metadata = {
     PROCESS_GUEST_ARCHITECTURE_X64,
-    PROCESS_PERSONALITY_WINDOWS,
+    PROCESS_PERSONALITY_RINGOS,
     PROCESS_EXECUTION_BACKEND_NATIVE,
   };
   address_space& address_space_info = process_configuration.address_space;

@@ -78,7 +78,7 @@ function(
     PRIVATE
       ringos_kernel
       ringos_x64_emulator
-      ringos_x64_win32_emulation
+      ringos_x64_pe_loader
   )
 
   set_target_properties(${target_name}

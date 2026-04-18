@@ -20,8 +20,6 @@ target_include_directories(ringos_kernel
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_SOURCE_DIR}/user/sdk/include
-  PRIVATE
-    ${CMAKE_SOURCE_DIR}/win32/include
 )
 
 if(RINGOS_TARGET_ARCH STREQUAL "x64")
