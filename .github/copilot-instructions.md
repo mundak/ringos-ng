@@ -58,6 +58,14 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 Before generating or modifying any code, read and follow the rules in [docs/contributing.md](../docs/contributing.md).
 
+After each code modification, run all sample Windows batch wrappers under `user/samples/` and make sure they pass:
+- `user/samples/hello_world/docker-test-hello-world-x64.bat`
+- `user/samples/hello_world/docker-test-hello-world-arm64.bat`
+- `user/samples/hello_world/docker-test-hello-world-x64-on-arm64.bat`
+- `user/samples/hello_world_cpp/docker-test-hello-world-cpp-x64.bat`
+- `user/samples/hello_world_cpp/docker-test-hello-world-cpp-arm64.bat`
+- `user/samples/hello_world_cpp/docker-test-hello-world-cpp-x64-on-arm64.bat`
+
 When working on a toolchain, read and follow the rules in [tools/README.md](../tools/README.md).
 
 ### Git Worktrees

@@ -32,6 +32,34 @@ enum user_thread_resume_kind : uint32_t
   USER_THREAD_RESUME_KIND_RPC = 1,
 };
 
+enum process_guest_architecture : uint32_t
+{
+  PROCESS_GUEST_ARCHITECTURE_UNKNOWN = 0,
+  PROCESS_GUEST_ARCHITECTURE_X64 = 1,
+  PROCESS_GUEST_ARCHITECTURE_ARM64 = 2,
+};
+
+enum process_personality : uint32_t
+{
+  PROCESS_PERSONALITY_UNKNOWN = 0,
+  PROCESS_PERSONALITY_RINGOS = 1,
+  PROCESS_PERSONALITY_WINDOWS = 2,
+};
+
+enum process_execution_backend : uint32_t
+{
+  PROCESS_EXECUTION_BACKEND_UNKNOWN = 0,
+  PROCESS_EXECUTION_BACKEND_NATIVE = 1,
+  PROCESS_EXECUTION_BACKEND_X64_EMULATOR = 2,
+};
+
+struct process_metadata
+{
+  process_guest_architecture guest_architecture;
+  process_personality personality;
+  process_execution_backend execution_backend;
+};
+
 struct address_space
 {
   uintptr_t arch_root_table;
@@ -66,17 +94,41 @@ struct user_thread_resume
 struct user_syscall_context
 {
   uint64_t syscall_number;
+  uintptr_t trap_instruction_pointer;
+  uintptr_t stack_pointer;
+  uintptr_t trap_flags;
   uint64_t argument0;
   uint64_t argument1;
   uint64_t argument2;
   uint64_t argument3;
-  uintptr_t stack_pointer;
+  uint64_t argument4;
+  uint64_t argument5;
 };
+
+struct initial_process_configuration
+{
+  process_metadata metadata;
+  address_space address_space;
+  thread_context thread_context;
+};
+
+user_syscall_context make_user_syscall_context(
+  uint64_t syscall_number,
+  uintptr_t trap_instruction_pointer,
+  uintptr_t stack_pointer,
+  uintptr_t trap_flags,
+  uint64_t argument0,
+  uint64_t argument1,
+  uint64_t argument2,
+  uint64_t argument3,
+  uint64_t argument4,
+  uint64_t argument5);
+
+thread_context make_thread_context_from_syscall(const user_syscall_context& syscall_context);
 
 struct initial_user_runtime_bootstrap
 {
   uint32_t process_count;
   uint32_t initial_process_index;
-  address_space address_space[USER_RUNTIME_MAX_INITIAL_PROCESSES];
-  thread_context thread_context[USER_RUNTIME_MAX_INITIAL_PROCESSES];
+  initial_process_configuration initial_processes[USER_RUNTIME_MAX_INITIAL_PROCESSES];
 };

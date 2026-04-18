@@ -23,7 +23,7 @@ While doing cleanup, don't touch cleanup-opus.md doc.
 | Phase | Status | Goal |
 | --- | --- | --- |
 | 0 | `[x]` | Align the written contract with the current repo and handle direction |
-| 1 | `[ ]` | Introduce a canonical process and syscall model |
+| 1 | `[x]` | Introduce a canonical process and syscall model |
 | 2 | `[ ]` | Move Windows compatibility policy out of the kernel |
 | 3 | `[ ]` | Replace special-case runtime plumbing with generic service and object plumbing |
 | 4 | `[ ]` | Generalize the memory model and separate loading from execution layout |
@@ -78,7 +78,6 @@ Work items:
 
 Primary files:
 
-- [cleanup-opus.md](./cleanup-opus.md)
 - [user-space-abi.md](./user-space-abi.md)
 - [ci-and-testing.md](./ci-and-testing.md)
 
@@ -91,11 +90,26 @@ Verification:
 
 ## Phase 1: Canonical Process And Syscall Model
 
-Status: `[ ]`
+Status: `[x]`
 
 Goal: give the runtime one canonical description of what a process is and one
 canonical representation of syscall entry, regardless of native or translated
 execution.
+
+Progress:
+
+- `[x]` Extended [../kernel/process.h](../kernel/process.h) and
+  [../kernel/user_runtime_types.h](../kernel/user_runtime_types.h) with
+  canonical process metadata for guest architecture, personality, and
+  execution backend.
+- `[x]` Replaced the partial syscall snapshot with one canonical
+  `user_syscall_context` carrying trap instruction pointer, stack pointer,
+  flags, and six syscall arguments.
+- `[x]` Routed native x64, native arm64, and translated x64-on-arm64 through
+  the same syscall-context construction contract and moved thread user-context
+  synchronization into [../kernel/user_runtime.cpp](../kernel/user_runtime.cpp).
+- `[x]` Recorded per-process metadata during initial bootstrap creation and
+  fixed dispatch-path truncation so syscall arguments 4 and 5 are preserved.
 
 Work items:
 

@@ -55,14 +55,12 @@ private:
     arm64_process_storage& storage,
     const uint8_t* image_start,
     const uint8_t* image_end,
-    address_space& address_space_info,
-    thread_context& thread_context_info);
+    initial_process_configuration& process_configuration);
   void populate_x64_emulator_bootstrap(
     arm64_process_storage& storage,
     const uint8_t* image_start,
     const uint8_t* image_end,
-    address_space& address_space_info,
-    thread_context& thread_context_info);
+    initial_process_configuration& process_configuration);
   uint64_t read_system_control() const;
   void write_mair(uintptr_t value);
   void write_system_control(uint64_t value);

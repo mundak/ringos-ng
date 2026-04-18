@@ -330,14 +330,21 @@ void arm64_initial_user_runtime_platform::populate_native_bootstrap_for_process(
   arm64_process_storage& storage,
   const uint8_t* image_start,
   const uint8_t* image_end,
-  address_space& address_space_info,
-  thread_context& thread_context_info)
+  initial_process_configuration& process_configuration)
 {
   initialize_process_storage(storage);
   initialize_translation_tables(storage);
   uint8_t* const user_region = get_user_region(storage);
   const uintptr_t entry_point
     = initialize_arm64_pe_image(image_start, static_cast<size_t>(image_end - image_start), storage);
+
+  process_configuration.metadata = {
+    PROCESS_GUEST_ARCHITECTURE_ARM64,
+    PROCESS_PERSONALITY_WINDOWS,
+    PROCESS_EXECUTION_BACKEND_NATIVE,
+  };
+  address_space& address_space_info = process_configuration.address_space;
+  thread_context& thread_context_info = process_configuration.thread_context;
 
   address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.root_table);
   address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
@@ -354,14 +361,21 @@ void arm64_initial_user_runtime_platform::populate_x64_emulator_bootstrap(
   arm64_process_storage& storage,
   const uint8_t* image_start,
   const uint8_t* image_end,
-  address_space& address_space_info,
-  thread_context& thread_context_info)
+  initial_process_configuration& process_configuration)
 {
   initialize_process_storage(storage);
   initialize_translation_tables(storage);
   uint8_t* const user_region = get_user_region(storage);
   const uintptr_t entry_point
     = initialize_x64_emulator_image(image_start, static_cast<size_t>(image_end - image_start), storage);
+
+  process_configuration.metadata = {
+    PROCESS_GUEST_ARCHITECTURE_X64,
+    PROCESS_PERSONALITY_WINDOWS,
+    PROCESS_EXECUTION_BACKEND_X64_EMULATOR,
+  };
+  address_space& address_space_info = process_configuration.address_space;
+  thread_context& thread_context_info = process_configuration.thread_context;
 
   address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.root_table);
   address_space_info.user_base = USER_REGION_VIRTUAL_ADDRESS;
@@ -450,22 +464,17 @@ int32_t arm64_initial_user_runtime_platform::dispatch_x64_syscall(
     return STATUS_BAD_STATE;
   }
 
-  const thread_context user_context {
+  const user_syscall_context syscall_context = make_user_syscall_context(
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RAX)],
     state.instruction_pointer,
     static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSP)]),
     static_cast<uintptr_t>(state.flags),
-    static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDI)]),
-  };
-  current_thread->set_user_context(user_context);
-
-  const user_syscall_context syscall_context {
-    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RAX)],
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDI)],
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSI)],
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDX)],
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R10)],
-    static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSP)]),
-  };
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R8)],
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R9)]);
 
   const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
 
@@ -497,8 +506,7 @@ void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootst
       m_process_storage[0],
       _binary_ringos_test_app_image_start,
       _binary_ringos_test_app_image_end,
-      bootstrap.address_space[0],
-      bootstrap.thread_context[0]);
+      bootstrap.initial_processes[0]);
     return;
   }
 
@@ -511,8 +519,7 @@ void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootst
       m_process_storage[0],
       _binary_ringos_test_app_image_start,
       _binary_ringos_test_app_image_end,
-      bootstrap.address_space[0],
-      bootstrap.thread_context[0]);
+      bootstrap.initial_processes[0]);
     return;
   }
 
@@ -646,13 +653,6 @@ extern "C" bool arm64_handle_syscall(void* frame)
     panic("arm64 syscall without current thread");
   }
 
-  const thread_context user_context {
-    static_cast<uintptr_t>(syscall_frame->elr),
-    static_cast<uintptr_t>(syscall_frame->sp_el0),
-    static_cast<uintptr_t>(syscall_frame->spsr),
-    static_cast<uintptr_t>(syscall_frame->x0),
-  };
-  current_thread->set_user_context(user_context);
   uintptr_t* const preserved_registers = current_thread->get_arch_preserved_registers();
   preserved_registers[ARM64_PRESERVED_REGISTER_X19_INDEX] = static_cast<uintptr_t>(syscall_frame->x19);
   preserved_registers[ARM64_PRESERVED_REGISTER_X20_INDEX] = static_cast<uintptr_t>(syscall_frame->x20);
@@ -667,10 +667,17 @@ extern "C" bool arm64_handle_syscall(void* frame)
   preserved_registers[ARM64_PRESERVED_REGISTER_X29_INDEX] = static_cast<uintptr_t>(syscall_frame->x29);
   preserved_registers[ARM64_PRESERVED_REGISTER_X30_INDEX] = static_cast<uintptr_t>(syscall_frame->x30);
 
-  const user_syscall_context syscall_context {
-    syscall_frame->x8, syscall_frame->x0, syscall_frame->x1,
-    syscall_frame->x2, syscall_frame->x3, static_cast<uintptr_t>(syscall_frame->sp_el0),
-  };
+  const user_syscall_context syscall_context = make_user_syscall_context(
+    syscall_frame->x8,
+    static_cast<uintptr_t>(syscall_frame->elr),
+    static_cast<uintptr_t>(syscall_frame->sp_el0),
+    static_cast<uintptr_t>(syscall_frame->spsr),
+    syscall_frame->x0,
+    syscall_frame->x1,
+    syscall_frame->x2,
+    syscall_frame->x3,
+    syscall_frame->x4,
+    syscall_frame->x5);
   const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
 
   if (!runtime.has_runnable_thread())

@@ -32,9 +32,9 @@ void user_runtime::reset()
   m_shared_memory_objects.reset(m_next_handle_value);
 }
 
-process* user_runtime::create_process(const address_space& address_space_info)
+process* user_runtime::create_process(const process_metadata& metadata, const address_space& address_space_info)
 {
-  process* current_process = m_processes.emplace(address_space_info);
+  process* current_process = m_processes.emplace(metadata, address_space_info);
 
   if (current_process == nullptr)
   {
@@ -381,6 +381,8 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
     return STATUS_BAD_STATE;
   }
 
+  active_thread->set_user_context(make_thread_context_from_syscall(syscall_context));
+
   switch (syscall_context.syscall_number)
   {
   case SYSCALL_DEBUG_LOG:
@@ -552,7 +554,8 @@ user_runtime& get_kernel_user_runtime()
 
   for (uint32_t index = 0; index < bootstrap.process_count; ++index)
   {
-    processes[index] = runtime.create_process(bootstrap.address_space[index]);
+    const initial_process_configuration& initial_process = bootstrap.initial_processes[index];
+    processes[index] = runtime.create_process(initial_process.metadata, initial_process.address_space);
 
     if (processes[index] == nullptr)
     {
@@ -560,7 +563,7 @@ user_runtime& get_kernel_user_runtime()
     }
 
     handle_t thread_handle = 0;
-    threads[index] = runtime.create_thread(*processes[index], bootstrap.thread_context[index], &thread_handle);
+    threads[index] = runtime.create_thread(*processes[index], initial_process.thread_context, &thread_handle);
 
     if (threads[index] == nullptr || thread_handle == 0)
     {

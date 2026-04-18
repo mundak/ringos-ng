@@ -100,14 +100,6 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
   {
     panic("x64 syscall without current thread");
   }
-
-  const thread_context user_context {
-    static_cast<uintptr_t>(frame->rcx),
-    static_cast<uintptr_t>(frame->user_rsp),
-    static_cast<uintptr_t>(frame->r11),
-    static_cast<uintptr_t>(frame->rdi),
-  };
-  current_thread->set_user_context(user_context);
   uintptr_t* const preserved_registers = current_thread->get_arch_preserved_registers();
   preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX] = static_cast<uintptr_t>(frame->rsi);
   preserved_registers[X64_PRESERVED_REGISTER_RDI_INDEX] = static_cast<uintptr_t>(frame->rdi);
@@ -120,9 +112,17 @@ extern "C" bool x64_handle_syscall(x64_syscall_frame* frame)
   memcpy(
     current_thread->get_arch_preserved_simd_qwords(), frame->preserved_xmm_qwords, sizeof(frame->preserved_xmm_qwords));
 
-  const user_syscall_context syscall_context {
-    frame->rax, frame->rdi, frame->rsi, frame->rdx, frame->r10, static_cast<uintptr_t>(frame->user_rsp),
-  };
+  const user_syscall_context syscall_context = make_user_syscall_context(
+    frame->rax,
+    static_cast<uintptr_t>(frame->rcx),
+    static_cast<uintptr_t>(frame->user_rsp),
+    static_cast<uintptr_t>(frame->r11),
+    frame->rdi,
+    frame->rsi,
+    frame->rdx,
+    frame->r10,
+    frame->r8,
+    frame->r9);
   const int32_t syscall_status = runtime.dispatch_syscall(syscall_context);
 
   if (!runtime.has_runnable_thread())

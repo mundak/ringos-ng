@@ -25,7 +25,7 @@ class user_runtime final
 {
 public:
   void reset();
-  process* create_process(const address_space& address_space_info);
+  process* create_process(const process_metadata& metadata, const address_space& address_space_info);
   thread* create_thread(process& process_context, const thread_context& initial_context, handle_t* out_thread_handle);
   device_memory_object* create_device_memory_object(
     device_memory_type type, uintptr_t user_address, uintptr_t host_address, size_t size, handle_t* out_handle);

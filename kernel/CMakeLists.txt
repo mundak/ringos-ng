@@ -12,6 +12,7 @@ add_library(ringos_kernel OBJECT
   klibc/memory.cpp
   klibc/string.cpp
   panic.cpp
+  user_runtime_types.cpp
   user_runtime.cpp
 )
 

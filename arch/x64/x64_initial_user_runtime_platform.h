@@ -58,8 +58,7 @@ private:
     x64_process_storage& storage,
     const uint8_t* image_start,
     const uint8_t* image_end,
-    address_space& address_space_info,
-    thread_context& thread_context_info);
+    initial_process_configuration& process_configuration);
 
   x64_process_storage m_process_storage[USER_RUNTIME_MAX_INITIAL_PROCESSES] {};
   x64_cpu_local m_cpu_local {};

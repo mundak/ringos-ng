@@ -179,11 +179,18 @@ void x64_initial_user_runtime_platform::populate_bootstrap_for_process(
   x64_process_storage& storage,
   const uint8_t* image_start,
   const uint8_t* image_end,
-  address_space& address_space_info,
-  thread_context& thread_context_info)
+  initial_process_configuration& process_configuration)
 {
   initialize_process_storage(storage);
   const uintptr_t entry_point = initialize_user_image(storage, image_start, image_end);
+
+  process_configuration.metadata = {
+    PROCESS_GUEST_ARCHITECTURE_X64,
+    PROCESS_PERSONALITY_WINDOWS,
+    PROCESS_EXECUTION_BACKEND_NATIVE,
+  };
+  address_space& address_space_info = process_configuration.address_space;
+  thread_context& thread_context_info = process_configuration.thread_context;
 
   address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.pml4);
   address_space_info.user_base = USER_IMAGE_VIRTUAL_ADDRESS;
@@ -206,8 +213,7 @@ void x64_initial_user_runtime_platform::initialize(initial_user_runtime_bootstra
     m_process_storage[0],
     _binary_ringos_test_app_image_start,
     _binary_ringos_test_app_image_end,
-    bootstrap.address_space[0],
-    bootstrap.thread_context[0]);
+    bootstrap.initial_processes[0]);
 }
 
 void x64_initial_user_runtime_platform::prepare_thread_launch(
