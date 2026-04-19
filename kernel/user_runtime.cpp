@@ -340,6 +340,21 @@ void user_runtime::set_current_thread(thread* current_thread)
   }
 }
 
+bool user_runtime::terminate_current_thread(uint64_t exit_status, int32_t peer_failure_status)
+{
+  thread* active_thread = get_current_thread();
+
+  if (active_thread == nullptr)
+  {
+    return false;
+  }
+
+  m_rpc_runtime.handle_thread_exit(*active_thread, peer_failure_status);
+  active_thread->set_state(USER_THREAD_STATE_EXITED);
+  active_thread->set_exit_status(exit_status);
+  return schedule_next_ready_thread();
+}
+
 int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_context)
 {
   thread* active_thread = get_current_thread();
@@ -383,10 +398,7 @@ int32_t user_runtime::dispatch_syscall(const user_syscall_context& syscall_conte
 
   case SYSCALL_THREAD_EXIT:
   {
-    m_rpc_runtime.handle_thread_exit(*active_thread, STATUS_PEER_CLOSED);
-    active_thread->set_state(USER_THREAD_STATE_EXITED);
-    active_thread->set_exit_status(syscall_context.argument0);
-    schedule_next_ready_thread();
+    (void) terminate_current_thread(syscall_context.argument0, STATUS_PEER_CLOSED);
     return STATUS_OK;
   }
 

@@ -12,6 +12,7 @@ struct x64_emulator_test_case
 };
 
 inline constexpr uintptr_t X64_TEST_PROGRAM_BASE = 0x400000;
+inline constexpr size_t X64_TEST_PROGRAM_MEMORY_SIZE = 256;
 
 struct x64_syscall_capture
 {
@@ -23,6 +24,10 @@ struct x64_syscall_capture
   const char* expected_string;
   size_t call_count;
 };
+
+bool did_x64_emulator_exit_cleanly(const x64_emulator_result& result);
+bool did_x64_emulator_fail_with_backend(const x64_emulator_result& result, x64_emulator_backend_failure failure);
+bool did_x64_emulator_stop_for_guest_fault(const x64_emulator_result& result, x64_emulator_guest_stop_reason reason);
 
 void fail_x64_emulator_test(const char* test_name, const char* message);
 bool expect_x64_emulator_test(bool condition, const char* test_name, const char* message);

@@ -30,9 +30,16 @@ void x64_execution_context::initialize_result()
   m_state.flags |= RFLAGS_RESERVED;
   m_result = {
     X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED,
+    X64_EMULATOR_GUEST_STOP_REASON_NONE,
+    X64_EMULATOR_BACKEND_FAILURE_INSTRUCTION_LIMIT_REACHED,
     0,
     m_state.instruction_pointer,
     0,
+    {
+      m_state.instruction_pointer,
+      0,
+      0,
+    },
   };
 }
 
@@ -73,13 +80,26 @@ const x64_emulator_result& x64_execution_context::get_result() const
 
 void x64_execution_context::set_fault(const x64_decoded_instruction& instruction)
 {
+  m_result.fault.instruction_pointer = instruction.address;
+  m_result.fault.memory_address = 0;
+  m_result.fault.opcode = instruction.opcode;
   m_result.fault_address = instruction.address;
   m_result.fault_opcode = instruction.opcode;
 }
 
-void x64_execution_context::set_invalid_memory_access(uintptr_t fault_address, uint8_t fault_opcode)
+void x64_execution_context::set_fault_opcode(uint8_t fault_opcode)
+{
+  m_result.fault.opcode = fault_opcode;
+  m_result.fault_opcode = fault_opcode;
+}
+
+void x64_execution_context::set_invalid_memory_access(uintptr_t fault_address, uint8_t fault_opcode) const
 {
   m_result.completion = X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS;
+  m_result.guest_stop_reason = X64_EMULATOR_GUEST_STOP_REASON_INVALID_MEMORY_ACCESS;
+  m_result.backend_failure = X64_EMULATOR_BACKEND_FAILURE_NONE;
+  m_result.fault.memory_address = fault_address;
+  m_result.fault.opcode = fault_opcode;
   m_result.fault_address = fault_address;
   m_result.fault_opcode = fault_opcode;
 }
@@ -87,7 +107,39 @@ void x64_execution_context::set_invalid_memory_access(uintptr_t fault_address, u
 void x64_execution_context::set_unsupported_instruction(uint8_t fault_opcode)
 {
   m_result.completion = X64_EMULATOR_COMPLETION_UNSUPPORTED_INSTRUCTION;
+  m_result.guest_stop_reason = X64_EMULATOR_GUEST_STOP_REASON_UNSUPPORTED_INSTRUCTION;
+  m_result.backend_failure = X64_EMULATOR_BACKEND_FAILURE_NONE;
+  m_result.fault.memory_address = 0;
+  m_result.fault.opcode = fault_opcode;
   m_result.fault_opcode = fault_opcode;
+}
+
+void x64_execution_context::set_thread_exited()
+{
+  m_result.completion = X64_EMULATOR_COMPLETION_THREAD_EXITED;
+  m_result.guest_stop_reason = X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED;
+  m_result.backend_failure = X64_EMULATOR_BACKEND_FAILURE_NONE;
+}
+
+void x64_execution_context::set_backend_failure(x64_emulator_backend_failure failure)
+{
+  m_result.guest_stop_reason = X64_EMULATOR_GUEST_STOP_REASON_NONE;
+  m_result.backend_failure = failure;
+
+  switch (failure)
+  {
+  case X64_EMULATOR_BACKEND_FAILURE_INSTRUCTION_LIMIT_REACHED:
+    m_result.completion = X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED;
+    break;
+  case X64_EMULATOR_BACKEND_FAILURE_INVALID_ARGUMENT:
+    m_result.completion = X64_EMULATOR_COMPLETION_INVALID_ARGUMENT;
+    break;
+  case X64_EMULATOR_BACKEND_FAILURE_UNSUPPORTED_ENGINE:
+    m_result.completion = X64_EMULATOR_COMPLETION_UNSUPPORTED_ENGINE;
+    break;
+  case X64_EMULATOR_BACKEND_FAILURE_NONE:
+    break;
+  }
 }
 
 uint64_t& x64_execution_context::get_register64(uint32_t register_index)
@@ -352,6 +404,7 @@ bool x64_execution_context::push_u64(uint64_t value)
 
   if (stack_pointer < m_memory.base_address + sizeof(uint64_t))
   {
+    set_invalid_memory_access(static_cast<uintptr_t>(stack_pointer), m_result.fault.opcode);
     return false;
   }
 
@@ -381,6 +434,7 @@ bool x64_execution_context::translate_guest_pointer(uintptr_t guest_address, siz
 
   if (guest_address < m_memory.base_address)
   {
+    set_invalid_memory_access(guest_address, m_result.fault.opcode);
     return false;
   }
 
@@ -388,11 +442,13 @@ bool x64_execution_context::translate_guest_pointer(uintptr_t guest_address, siz
 
   if (guest_offset > m_memory.size)
   {
+    set_invalid_memory_access(guest_address, m_result.fault.opcode);
     return false;
   }
 
   if (length > m_memory.size - static_cast<size_t>(guest_offset))
   {
+    set_invalid_memory_access(guest_address, m_result.fault.opcode);
     return false;
   }
 

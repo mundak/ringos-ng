@@ -19,8 +19,7 @@ namespace
       return false;
     }
 
-    return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED, "call_and_ret", "expected thread exit")
+    return expect_x64_emulator_test(did_x64_emulator_exit_cleanly(result), "call_and_ret", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "call_and_ret", "expected one syscall");
   }
 
@@ -40,8 +39,7 @@ namespace
       return false;
     }
 
-    return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED, "conditional_branch", "expected thread exit")
+    return expect_x64_emulator_test(did_x64_emulator_exit_cleanly(result), "conditional_branch", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "conditional_branch", "expected one syscall");
   }
 
@@ -86,9 +84,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "call_indirect_rip_relative",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "call_indirect_rip_relative", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "call_indirect_rip_relative", "expected one syscall");
   }
 
@@ -116,7 +112,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-      result.completion == X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED,
+      did_x64_emulator_fail_with_backend(result, X64_EMULATOR_BACKEND_FAILURE_INSTRUCTION_LIMIT_REACHED),
       "instruction_budget_limit",
       "expected instruction budget exhaustion");
   }
@@ -137,9 +133,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "prefixed_multi_byte_nop",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "prefixed_multi_byte_nop", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "prefixed_multi_byte_nop", "expected one syscall");
   }
 }

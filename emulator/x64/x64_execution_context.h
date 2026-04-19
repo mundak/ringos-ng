@@ -24,8 +24,11 @@ public:
   const x64_emulator_result& get_result() const;
 
   void set_fault(const x64_decoded_instruction& instruction);
-  void set_invalid_memory_access(uintptr_t fault_address, uint8_t fault_opcode);
+  void set_fault_opcode(uint8_t fault_opcode);
+  void set_invalid_memory_access(uintptr_t fault_address, uint8_t fault_opcode) const;
   void set_unsupported_instruction(uint8_t fault_opcode);
+  void set_thread_exited();
+  void set_backend_failure(x64_emulator_backend_failure failure);
 
   uint64_t& get_register64(uint32_t register_index);
   uint32_t get_register32(uint32_t register_index) const;

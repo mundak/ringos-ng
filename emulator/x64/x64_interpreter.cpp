@@ -18,8 +18,8 @@ bool x64_interpreter::run()
 
   if (!m_context.is_valid_invocation())
   {
-    m_context.get_result().completion = X64_EMULATOR_COMPLETION_INVALID_ARGUMENT;
-    return false;
+    m_context.set_backend_failure(X64_EMULATOR_BACKEND_FAILURE_INVALID_ARGUMENT);
+    return true;
   }
 
   while (m_context.get_result().retired_instructions < m_context.get_options().instruction_budget)
@@ -44,6 +44,6 @@ bool x64_interpreter::run()
     }
   }
 
-  m_context.get_result().completion = X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED;
+  m_context.set_backend_failure(X64_EMULATOR_BACKEND_FAILURE_INSTRUCTION_LIMIT_REACHED);
   return true;
 }

@@ -20,9 +20,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "mov_register_and_syscall",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "mov_register_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "mov_register_and_syscall", "expected one syscall");
   }
 
@@ -41,8 +39,7 @@ namespace
       return false;
     }
 
-    return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED, "mov_and_syscall", "expected thread exit")
+    return expect_x64_emulator_test(did_x64_emulator_exit_cleanly(result), "mov_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "mov_and_syscall", "expected one syscall");
   }
 
@@ -70,9 +67,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "lea_rip_relative_string",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "lea_rip_relative_string", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "lea_rip_relative_string", "expected one syscall");
   }
 
@@ -93,9 +88,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "mov_memory_to_register_and_syscall",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "mov_memory_to_register_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(
              capture.call_count == 1, "mov_memory_to_register_and_syscall", "expected one syscall");
   }
@@ -118,9 +111,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "mov_register_to_memory_and_syscall",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "mov_register_to_memory_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(
              capture.call_count == 1, "mov_register_to_memory_and_syscall", "expected one syscall");
   }
@@ -143,9 +134,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "mov_immediate64_memory_and_syscall",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "mov_immediate64_memory_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(
              capture.call_count == 1, "mov_immediate64_memory_and_syscall", "expected one syscall");
   }
@@ -179,9 +168,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "mov_immediate64_sib_memory_and_syscall",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "mov_immediate64_sib_memory_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(
              capture.call_count == 1, "mov_immediate64_sib_memory_and_syscall", "expected one syscall");
   }
@@ -216,9 +203,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "strlen_style_loop_and_syscall",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "strlen_style_loop_and_syscall", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "strlen_style_loop_and_syscall", "expected one syscall");
   }
 }

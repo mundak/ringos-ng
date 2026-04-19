@@ -103,6 +103,6 @@ x64_instruction_outcome x64_instruction_dispatch::dispatch_secondary_opcode(
     return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
   }
 
-  context.get_result().fault_opcode = secondary_opcode;
+  context.set_fault_opcode(secondary_opcode);
   return m_secondary_opcode_handlers[secondary_opcode](context, instruction);
 }

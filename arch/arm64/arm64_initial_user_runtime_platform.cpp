@@ -131,16 +131,40 @@ namespace
     }
   }
 
+  int32_t get_x64_emulator_guest_fault_status(const x64_emulator_result& result)
+  {
+    switch (result.guest_stop_reason)
+    {
+    case X64_EMULATOR_GUEST_STOP_REASON_INVALID_MEMORY_ACCESS:
+      return STATUS_FAULT;
+    case X64_EMULATOR_GUEST_STOP_REASON_UNSUPPORTED_INSTRUCTION:
+      return STATUS_NOT_SUPPORTED;
+    case X64_EMULATOR_GUEST_STOP_REASON_NONE:
+    case X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED:
+      return STATUS_BAD_STATE;
+    }
+
+    return STATUS_BAD_STATE;
+  }
+
+  bool is_x64_emulator_guest_fault(const x64_emulator_result& result)
+  {
+    return result.guest_stop_reason == X64_EMULATOR_GUEST_STOP_REASON_INVALID_MEMORY_ACCESS
+      || result.guest_stop_reason == X64_EMULATOR_GUEST_STOP_REASON_UNSUPPORTED_INSTRUCTION;
+  }
+
   void debug_log_x64_emulator_fault(const x64_emulator_result& result)
   {
-    char message[80] {};
+    char message[112] {};
     size_t cursor = 0;
 
     append_literal(message, &cursor, sizeof(message), "x64 fault ip=0x");
-    append_hex_u64(message, &cursor, sizeof(message), static_cast<uint64_t>(result.fault_address));
+    append_hex_u64(message, &cursor, sizeof(message), static_cast<uint64_t>(result.fault.instruction_pointer));
+    append_literal(message, &cursor, sizeof(message), " addr=0x");
+    append_hex_u64(message, &cursor, sizeof(message), static_cast<uint64_t>(result.fault.memory_address));
     append_literal(message, &cursor, sizeof(message), " opcode=0x");
-    append_hex_nibble(message, &cursor, sizeof(message), static_cast<uint8_t>(result.fault_opcode >> 4));
-    append_hex_nibble(message, &cursor, sizeof(message), result.fault_opcode);
+    append_hex_nibble(message, &cursor, sizeof(message), static_cast<uint8_t>(result.fault.opcode >> 4));
+    append_hex_nibble(message, &cursor, sizeof(message), result.fault.opcode);
     message[cursor] = '\0';
 
     debug_log(message);
@@ -330,10 +354,7 @@ void arm64_initial_user_runtime_platform::populate_native_bootstrap_for_process(
   address_space_info.arch_root_table = reinterpret_cast<uintptr_t>(&storage.root_table);
 
   if (!add_address_space_mapping(
-        address_space_info,
-        USER_REGION_VIRTUAL_ADDRESS,
-        reinterpret_cast<uintptr_t>(user_region),
-        USER_REGION_SIZE))
+        address_space_info, USER_REGION_VIRTUAL_ADDRESS, reinterpret_cast<uintptr_t>(user_region), USER_REGION_SIZE))
   {
     panic("failed to initialize arm64 bootstrap mappings");
   }
@@ -596,10 +617,23 @@ void arm64_initial_user_runtime_platform::activate_process_address_space(const p
       panic("arm64 failed to launch the x64 emulator backend");
     }
 
-    if (result.completion != X64_EMULATOR_COMPLETION_THREAD_EXITED)
+    if (result.backend_failure != X64_EMULATOR_BACKEND_FAILURE_NONE)
     {
+      panic(describe_x64_emulator_backend_failure(result.backend_failure));
+    }
+
+    if (is_x64_emulator_guest_fault(result))
+    {
+      const int32_t guest_fault_status = get_x64_emulator_guest_fault_status(result);
       debug_log_x64_emulator_fault(result);
-      panic(describe_x64_emulator_completion(result.completion));
+      (void) runtime.terminate_current_thread(
+        static_cast<uint64_t>(static_cast<int64_t>(guest_fault_status)), guest_fault_status);
+      arm64_user_thread_exit();
+    }
+
+    if (result.guest_stop_reason != X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED)
+    {
+      panic(describe_x64_emulator_guest_stop_reason(result.guest_stop_reason));
     }
 
     arm64_user_thread_exit();

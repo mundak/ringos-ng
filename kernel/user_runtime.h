@@ -34,6 +34,7 @@ public:
   int32_t copy_user_string(const thread& owner_thread, uintptr_t user_address, char* buffer, size_t buffer_size) const;
   thread* get_current_thread();
   void set_current_thread(thread* current_thread);
+  bool terminate_current_thread(uint64_t exit_status, int32_t peer_failure_status);
   int32_t dispatch_syscall(const user_syscall_context& syscall_context);
   bool has_runnable_thread() const;
 

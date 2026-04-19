@@ -277,10 +277,25 @@ Verification:
 
 ## Phase 5: Emulator Fault Model Cleanup
 
-Status: `[ ]`
+Status: `[x]`
 
 Goal: distinguish guest faults from backend or configuration failures so the
 translated execution path can report user faults without panicking the kernel.
+
+Progress:
+
+- `[x]` Split the emulator result contract in [../emulator/include/x64_emulator.h](../emulator/include/x64_emulator.h)
+  so guest stop reasons and backend failures are reported separately while
+  preserving the existing legacy completion field for internal compatibility.
+- `[x]` Added structured guest fault data for instruction pointer, memory
+  address, and opcode so translated faults no longer rely on one overloaded
+  address field.
+- `[x]` Routed translated x64 guest faults through
+  [../kernel/user_runtime.cpp](../kernel/user_runtime.cpp) thread termination
+  logic so the arm64 translated path reports process faults without panicking
+  the kernel, while backend failures still panic.
+- `[x]` Extended emulator unit tests to cover backend-failure classification
+  and structured guest-fault reporting.
 
 Work items:
 

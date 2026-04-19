@@ -19,8 +19,7 @@ namespace
       return false;
     }
 
-    return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED, "xor_and_add", "expected thread exit")
+    return expect_x64_emulator_test(did_x64_emulator_exit_cleanly(result), "xor_and_add", "expected thread exit")
       && expect_x64_emulator_test(capture.call_count == 1, "xor_and_add", "expected one syscall");
   }
 
@@ -42,9 +41,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "test_register_sets_zero_flag_for_je",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "test_register_sets_zero_flag_for_je", "expected thread exit")
       && expect_x64_emulator_test(
              capture.call_count == 1, "test_register_sets_zero_flag_for_je", "expected one syscall");
   }
@@ -67,9 +64,7 @@ namespace
     }
 
     return expect_x64_emulator_test(
-             result.completion == X64_EMULATOR_COMPLETION_THREAD_EXITED,
-             "test_extended_register_uses_rex_bits",
-             "expected thread exit")
+             did_x64_emulator_exit_cleanly(result), "test_extended_register_uses_rex_bits", "expected thread exit")
       && expect_x64_emulator_test(
              capture.call_count == 1, "test_extended_register_uses_rex_bits", "expected one syscall");
   }

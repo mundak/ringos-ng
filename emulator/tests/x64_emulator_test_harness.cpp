@@ -8,8 +8,6 @@
 
 namespace
 {
-  constexpr size_t TEST_MEMORY_SIZE = 256;
-
   uint8_t* translate_guest(const x64_emulator_memory& memory, uintptr_t guest_address, size_t length)
   {
     if (guest_address < memory.base_address)
@@ -85,6 +83,22 @@ bool expect_x64_emulator_test(bool condition, const char* test_name, const char*
   return true;
 }
 
+bool did_x64_emulator_exit_cleanly(const x64_emulator_result& result)
+{
+  return result.guest_stop_reason == X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED
+    && result.backend_failure == X64_EMULATOR_BACKEND_FAILURE_NONE;
+}
+
+bool did_x64_emulator_fail_with_backend(const x64_emulator_result& result, x64_emulator_backend_failure failure)
+{
+  return result.guest_stop_reason == X64_EMULATOR_GUEST_STOP_REASON_NONE && result.backend_failure == failure;
+}
+
+bool did_x64_emulator_stop_for_guest_fault(const x64_emulator_result& result, x64_emulator_guest_stop_reason reason)
+{
+  return result.guest_stop_reason == reason && result.backend_failure == X64_EMULATOR_BACKEND_FAILURE_NONE;
+}
+
 bool run_x64_emulator_test_program(
   const char* test_name,
   const uint8_t* program,
@@ -95,7 +109,7 @@ bool run_x64_emulator_test_program(
   uint64_t instruction_budget,
   uint64_t initial_rax)
 {
-  std::array<uint8_t, TEST_MEMORY_SIZE> memory_bytes {};
+  std::array<uint8_t, X64_TEST_PROGRAM_MEMORY_SIZE> memory_bytes {};
 
   if (program == nullptr)
   {
