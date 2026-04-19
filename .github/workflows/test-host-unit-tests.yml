@@ -1,4 +1,4 @@
-name: test-hello-world
+name: test-host-unit-tests
 
 on:
   push:
@@ -10,25 +10,15 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: test-hello-world-${{ github.ref }}
+  group: test-host-unit-tests-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  test_hello_world:
-    name: hello_world (${{ matrix.display_name }})
+  test_host_unit_tests:
+    name: host unit tests
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - lane: x64-native
-            display_name: x64 native
-          - lane: arm64-native
-            display_name: arm64 native
-          - lane: arm64-x64-emulator
-            display_name: arm64 x64 emulator path
 
     steps:
       - name: Check out repository
@@ -38,7 +28,7 @@ jobs:
         run: |
           docker build -f tests/tests.Dockerfile -t ringos-sample-tests .
 
-      - name: Run hello world sample test (${{ matrix.display_name }})
+      - name: Run host unit tests
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -49,4 +39,4 @@ jobs:
             -e GITHUB_REPOSITORY \
             -v "${RUNNER_TEMP}/ringos-build:/workspace/build" \
             ringos-sample-tests \
-            bash -lc "user/samples/hello_world/test-hello-world.sh ${{ matrix.lane }}"
+            bash -lc "tests/run-host-unit-tests.sh"

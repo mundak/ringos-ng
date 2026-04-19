@@ -22,12 +22,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - lane: x64
-            display_name: x64
-          - lane: arm64
-            display_name: arm64
-          - lane: x64-on-arm64
-            display_name: x64 on arm64 emulator path
+          - lane: x64-native
+            display_name: x64 native
+          - lane: arm64-native
+            display_name: arm64 native
+          - lane: arm64-x64-emulator
+            display_name: arm64 x64 emulator path
 
     steps:
       - name: Check out repository

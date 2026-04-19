@@ -1,5 +1,7 @@
 find_program(RINGOS_HOST_BASH NAMES bash REQUIRED)
 
+include(${CMAKE_SOURCE_DIR}/tests/common/sample_harness.cmake)
+
 function(ringos_add_sample_smoke_test test_name script_path)
   if(ARGC GREATER 2)
     add_test(
@@ -21,33 +23,7 @@ function(ringos_add_sample_smoke_test test_name script_path)
   )
 endfunction()
 
-ringos_add_sample_smoke_test(
-  sample_hello_world_x64_native
-  ${CMAKE_SOURCE_DIR}/user/samples/hello_world/test-hello-world-x64.sh
-)
-
-ringos_add_sample_smoke_test(
-  sample_hello_world_cpp_x64_native
-  ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp/test-hello-world-cpp-x64.sh
-)
-
-ringos_add_sample_smoke_test(
-  sample_hello_world_arm64_native
-  ${CMAKE_SOURCE_DIR}/user/samples/hello_world/test-hello-world-arm64.sh
-)
-
-ringos_add_sample_smoke_test(
-  sample_hello_world_cpp_arm64_native
-  ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp/test-hello-world-cpp-arm64.sh
-)
-
-ringos_add_sample_smoke_test(
-  sample_hello_world_arm64_x64_emulator
-  ${CMAKE_SOURCE_DIR}/user/samples/hello_world/test-hello-world-x64-on-arm64.sh
-)
-
-ringos_add_sample_smoke_test(
-  sample_hello_world_cpp_arm64_x64_emulator
-  ${CMAKE_SOURCE_DIR}/user/samples/hello_world_cpp/test-hello-world-cpp-x64-on-arm64.sh
-)
+foreach(sample_target IN LISTS RINGOS_SAMPLE_PROJECT_TARGETS)
+  ringos_add_sample_smoke_test_lanes(${sample_target})
+endforeach()
 

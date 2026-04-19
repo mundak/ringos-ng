@@ -3,12 +3,5 @@
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-repo_root="$(cd "${script_dir}/../../.." && pwd)"
 
-"${repo_root}/tests/build-tests.sh" \
-  "${script_dir}" \
-  x64 \
-  hello_world_x64 \
-  hello_world \
-  x64 \
-  ringos_x64
+"${script_dir}/test-hello-world.sh" x64-native

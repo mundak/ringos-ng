@@ -2,39 +2,17 @@
 
 set -euo pipefail
 
-if [[ $# -lt 6 || $# -gt 7 ]]; then
-  echo "Usage: tests/build-tests.sh <sample-dir> <sample-target-arch> <build-name> <sample-cmake-target> <kernel-target-arch> <kernel-target> [expected-output-line]" >&2
+if [[ $# -lt 2 || $# -gt 3 ]]; then
+  echo "Usage: tests/build-tests.sh <sample-dir> <lane> [expected-output-line]" >&2
   exit 1
 fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "${script_dir}/.." && pwd)"
 sample_dir_input="$1"
-sample_target_arch="$2"
-build_name="$3"
-cmake_target="$4"
-kernel_target_arch="$5"
-kernel_target="$6"
-expected_output_line="${7:-[gdb] hello world from ANSI C}"
+lane="$2"
+expected_output_line="${3:-[gdb] hello world from ANSI C}"
 release_repo="${GITHUB_REPOSITORY:-mundak/ringos-ng}"
-
-case "${sample_target_arch}" in
-  x64|arm64)
-    ;;
-  *)
-    echo "Unsupported sample target architecture: ${sample_target_arch}" >&2
-    exit 1
-    ;;
-esac
-
-case "${kernel_target_arch}" in
-  x64|arm64)
-    ;;
-  *)
-    echo "Unsupported kernel target architecture: ${kernel_target_arch}" >&2
-    exit 1
-    ;;
-esac
 
 if [[ "${sample_dir_input}" = /* ]]; then
   sample_dir="${sample_dir_input}"
@@ -46,6 +24,44 @@ if [[ ! -f "${sample_dir}/CMakeLists.txt" ]]; then
   echo "Sample directory does not contain CMakeLists.txt: ${sample_dir}" >&2
   exit 1
 fi
+
+sample_target="$(basename "${sample_dir}")"
+build_name="${sample_target}_${lane//-/_}"
+
+case "${lane}" in
+  x64-native)
+    sample_target_arch="x64"
+    kernel_target_arch="x64"
+    kernel_target="ringos_x64"
+    expected_kernel_banner_line="[gdb] ringos x64"
+    expected_runtime_ready_line="[gdb] x64 initial user runtime ready"
+    ;;
+  arm64-native)
+    sample_target_arch="arm64"
+    kernel_target_arch="arm64"
+    kernel_target="ringos_arm64"
+    expected_kernel_banner_line="[gdb] ringos arm64"
+    expected_runtime_ready_line="[gdb] arm64 initial user runtime ready"
+    ;;
+  arm64-x64-emulator)
+    sample_target_arch="x64"
+    kernel_target_arch="arm64"
+    kernel_target="ringos_arm64_x64_emulator"
+    expected_kernel_banner_line="[gdb] ringos arm64"
+    expected_runtime_ready_line="[gdb] arm64 x64 emulator runtime ready"
+    ;;
+  *)
+    echo "Unsupported sample lane: ${lane}" >&2
+    exit 1
+    ;;
+esac
+
+if [[ "${sample_target}" != "hello_world" ]]; then
+  kernel_target="${kernel_target}_${sample_target}"
+fi
+
+sample_target_upper="${sample_target^^}"
+sample_target_arch_upper="${sample_target_arch^^}"
 
 sample_build_root="${repo_root}/build/sample-tests/${build_name}"
 kernel_build_root="${repo_root}/build/sample-tests/${build_name}_kernel"
@@ -79,51 +95,16 @@ cmake -S "${sample_dir}" \
   -DRINGOS_SDK_ROOT="${sdk_root}" \
   -DRINGOS_TARGET_ARCH="${sample_target_arch}"
 
-cmake --build "${sample_build_root}" --target "${cmake_target}"
+cmake --build "${sample_build_root}" --target "${sample_target}"
 
-sample_executable="${sample_build_root}/${cmake_target}.exe"
+sample_executable="${sample_build_root}/${sample_target}.exe"
 
 if [[ ! -f "${sample_executable}" ]]; then
   echo "Expected executable was not produced: ${sample_executable}" >&2
   exit 1
 fi
 
-case "${kernel_target}" in
-  ringos_x64)
-    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_X64_BINARY=${sample_executable}"
-    expected_kernel_banner_line="[gdb] ringos x64"
-    expected_runtime_ready_line="[gdb] x64 initial user runtime ready"
-    ;;
-  ringos_x64_hello_world_cpp)
-    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_CPP_X64_BINARY=${sample_executable}"
-    expected_kernel_banner_line="[gdb] ringos x64"
-    expected_runtime_ready_line="[gdb] x64 initial user runtime ready"
-    ;;
-  ringos_arm64)
-    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_ARM64_BINARY=${sample_executable}"
-    expected_kernel_banner_line="[gdb] ringos arm64"
-    expected_runtime_ready_line="[gdb] arm64 initial user runtime ready"
-    ;;
-  ringos_arm64_hello_world_cpp)
-    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_CPP_ARM64_BINARY=${sample_executable}"
-    expected_kernel_banner_line="[gdb] ringos arm64"
-    expected_runtime_ready_line="[gdb] arm64 initial user runtime ready"
-    ;;
-  ringos_arm64_x64_emulator)
-    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_X64_BINARY=${sample_executable}"
-    expected_kernel_banner_line="[gdb] ringos arm64"
-    expected_runtime_ready_line="[gdb] arm64 x64 emulator runtime ready"
-    ;;
-  ringos_arm64_x64_emulator_hello_world_cpp)
-    kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_HELLO_WORLD_CPP_X64_BINARY=${sample_executable}"
-    expected_kernel_banner_line="[gdb] ringos arm64"
-    expected_runtime_ready_line="[gdb] arm64 x64 emulator runtime ready"
-    ;;
-  *)
-    echo "Unsupported kernel target: ${kernel_target}" >&2
-    exit 1
-    ;;
-esac
+kernel_test_app_cmake_arg="-DRINGOS_TEST_APP_${sample_target_upper}_${sample_target_arch_upper}_BINARY=${sample_executable}"
 
 cmake -S "${repo_root}" \
   -B "${kernel_build_root}" \
@@ -239,12 +220,12 @@ while (( SECONDS < deadline )); do
 done
 
 if [[ "${test_passed}" == "1" ]]; then
-  echo "Built ${cmake_target}.exe for ${sample_target_arch} using the published toolchain bundle"
+  echo "Built ${sample_target}.exe for ${sample_target_arch} using the published toolchain bundle"
   echo "Sample build directory: ${sample_build_root}"
   echo "Sample executable: ${sample_executable}"
   echo "Kernel build directory: ${kernel_build_root}"
   echo "Kernel image: ${kernel_image}"
-  echo "PASS: ${kernel_target} booted the compiled ${cmake_target}.exe under QEMU"
+  echo "PASS: ${kernel_target} booted the compiled ${sample_target}.exe under QEMU"
   exit 0
 fi
 

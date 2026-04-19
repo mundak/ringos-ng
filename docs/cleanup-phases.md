@@ -28,7 +28,7 @@ While doing cleanup, don't touch cleanup-opus.md doc.
 | 3 | `[-]` | Skip the generic service and object plumbing phase in this cleanup pass |
 | 4 | `[x]` | Generalize the memory model and separate loading from execution layout |
 | 5 | `[ ]` | Separate guest faults from backend failures in the emulator path |
-| 6 | `[ ]` | Simplify sample integration and bring CI and docs back into alignment |
+| 6 | `[x]` | Simplify sample integration and bring CI and docs back into alignment |
 
 ## Explicit Non-Goals
 
@@ -322,10 +322,29 @@ Verification:
 
 ## Phase 6: Sample, Test, CI, And Documentation Alignment
 
-Status: `[ ]`
+Status: `[x]`
 
 Goal: reduce bespoke sample integration and make the actual build and CI
 contract easy to understand and maintain.
+
+Progress:
+
+- `[x]` Replaced the repeated sample-lane wiring in
+  [../arch/x64/CMakeLists.txt](../arch/x64/CMakeLists.txt),
+  [../arch/arm64/CMakeLists.txt](../arch/arm64/CMakeLists.txt), and
+  [../cmake/tests/smoke_tests.cmake](../cmake/tests/smoke_tests.cmake) with a
+  shared sample harness and canonical lane ids.
+- `[x]` Simplified [../tests/build-tests.sh](../tests/build-tests.sh) so the
+  sample smoke-test contract is driven by sample directory plus canonical lane
+  instead of hard-coded per-target case tables.
+- `[x]` Kept the installed toolchain bundle as the only sample-facing toolchain
+  interface and routed the per-sample shell entry points through that same
+  harness.
+- `[x]` Aligned lane names across [./ci-and-testing.md](./ci-and-testing.md),
+  sample test scripts under [../user/samples](../user/samples), and workflow
+  files under [../.github/workflows](../.github/workflows).
+- `[x]` Restored explicit CI coverage for the emulator and Win32 loader host
+  unit tests through [../.github/workflows/test-host-unit-tests.yml](../.github/workflows/test-host-unit-tests.yml).
 
 Work items:
 

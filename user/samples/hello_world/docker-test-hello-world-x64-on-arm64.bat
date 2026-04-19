@@ -1,3 +1,3 @@
 @echo off
-call "%~dp0..\..\..\tests\docker-run-sample-test.bat" "user/samples/hello_world/test-hello-world-x64-on-arm64.sh"
+call "%~dp0docker-test-hello-world.bat" arm64-x64-emulator
 exit /b %errorlevel%
