@@ -1,6 +1,6 @@
 #include "x64_emulator_test_harness.h"
 
-#include "user_space.h"
+#include "syscalls.h"
 
 #include <array>
 #include <cstdio>

@@ -29,7 +29,6 @@ function(
   target_include_directories(${target_name}
     PRIVATE
       ${CMAKE_SOURCE_DIR}/kernel
-      ${CMAKE_SOURCE_DIR}/user/sdk/include
   )
 
   add_dependencies(${target_name} ${client_dependency_target})

@@ -1,10 +1,21 @@
 #pragma once
 
+#include <stdint.h>
+
 #include "kernel_object.h"
 #include "kernel_object_pool.h"
 #include "thread.h"
 
-#include <ringos/rpc.h>
+inline constexpr size_t RINGOS_RPC_ENDPOINT_NAME_MAX_LENGTH = 31;
+
+struct ringos_rpc_request
+{
+  uint64_t operation;
+  uintptr_t argument0;
+  uintptr_t argument1;
+  uintptr_t argument2;
+  uintptr_t argument3;
+};
 
 class process;
 class user_runtime;

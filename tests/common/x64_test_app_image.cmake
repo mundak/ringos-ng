@@ -8,7 +8,8 @@ function(
   out_object)
   set(options)
   set(oneValueArgs BINARY_STEM BINARY_PATH SOURCE_PATH PROJECT_PATH PROJECT_TARGET PROJECT_OUTPUT_NAME)
-  cmake_parse_arguments(RINGOS_TEST_APP "${options}" "${oneValueArgs}" "" ${ARGN})
+  set(multiValueArgs PROJECT_DEPENDENCY_PATHS)
+  cmake_parse_arguments(RINGOS_TEST_APP "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
   if((RINGOS_TEST_APP_SOURCE_PATH AND RINGOS_TEST_APP_PROJECT_PATH)
      OR (RINGOS_TEST_APP_BINARY_PATH AND RINGOS_TEST_APP_SOURCE_PATH)
@@ -66,6 +67,13 @@ function(
   elseif(RINGOS_TEST_APP_PROJECT_PATH)
     file(GLOB_RECURSE X64_TEST_APP_PROJECT_INPUTS CONFIGURE_DEPENDS ${RINGOS_TEST_APP_PROJECT_PATH}/*)
 
+    foreach(project_dependency_path IN LISTS RINGOS_TEST_APP_PROJECT_DEPENDENCY_PATHS)
+      file(GLOB_RECURSE X64_TEST_APP_PROJECT_DEPENDENCY_INPUTS CONFIGURE_DEPENDS ${project_dependency_path}/*)
+      list(APPEND X64_TEST_APP_PROJECT_INPUTS ${X64_TEST_APP_PROJECT_DEPENDENCY_INPUTS})
+    endforeach()
+
+    list(REMOVE_DUPLICATES X64_TEST_APP_PROJECT_INPUTS)
+
     set(X64_TEST_APP_WINDOWS_EXE ${X64_TEST_APP_BUILD_DIR}/${RINGOS_TEST_APP_PROJECT_OUTPUT_NAME}.exe)
     set(X64_TEST_APP_CONFIGURE_COMMAND
       COMMAND ${CMAKE_COMMAND}
@@ -106,11 +114,11 @@ function(
     if(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".c")
       message(FATAL_ERROR
         "Direct SOURCE_PATH C test apps are no longer supported. "
-        "Use PROJECT_PATH so the sample builds the in-tree SDK target, or pass BINARY_PATH to embed a prebuilt executable.")
+        "Use PROJECT_PATH so the sample builds its in-tree runtime dependencies, or pass BINARY_PATH to embed a prebuilt executable.")
     elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".cpp")
       message(FATAL_ERROR
         "Direct SOURCE_PATH C++ test apps are no longer supported. "
-        "Use PROJECT_PATH so the sample builds the in-tree SDK target, or pass BINARY_PATH to embed a prebuilt executable.")
+        "Use PROJECT_PATH so the sample builds its in-tree runtime dependencies, or pass BINARY_PATH to embed a prebuilt executable.")
     else()
       add_custom_command(
         OUTPUT ${X64_TEST_APP_IMAGE_OBJECT}

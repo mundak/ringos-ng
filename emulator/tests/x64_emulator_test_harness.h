@@ -1,6 +1,6 @@
 #pragma once
 
-#include "user_space.h"
+#include "syscalls.h"
 #include "x64_emulator.h"
 
 #include <vector>

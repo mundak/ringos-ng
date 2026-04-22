@@ -32,9 +32,9 @@ Use these layers:
 	`cmake/tests/emulator_tests.cmake`, and `win32/tests/CMakeLists.txt` define
 	the host test names.
 3. `tests/build-tests.sh` is the canonical sample smoke-test implementation.
-	It resolves the published toolchain and SDK, builds the selected sample for a
-	canonical lane id, rebuilds the matching kernel image, and validates QEMU
-	output.
+	It resolves the published toolchain bundle, builds the selected sample for a
+	canonical lane id against `kernelsdk`,
+	rebuilds the matching kernel image, and validates QEMU output.
 4. `user/samples/hello_world/test-hello-world.sh` and
 	`user/samples/hello_world_cpp/test-hello-world-cpp.sh` define the active
 	sample lanes with the canonical ids `x64-native`, `arm64-native`, and
@@ -46,7 +46,7 @@ Use these layers:
 	scripts.
 8. `tools/toolchain/download-latest-toolchain.sh` and
 	`tools/toolchain/build-toolchain.sh` remain the published toolchain entry
-	points. User-space sample builds pull the SDK directly from `user/sdk/`.
+	points. The hello world sample builds pull `kernelsdk/` directly.
 
 The workflow file should stay thin. If a command matters for local users, it
 should exist in the repository first.
@@ -136,10 +136,10 @@ entry point that powers the manual `toolchain_release` GitHub Actions job. The
 Windows wrapper mounts the repo-local `build` directory so iterative LLVM patch
 work can reuse the clone, build directory, and bootstrap install root locally.
 The hosted C and bootstrap hosted C++ sample scripts resolve the published
-installed-toolchain bundle, then build the SDK target directly from `user/sdk/`
-inside the sample build. Those sample lanes no longer depend on a separately
-published SDK archive, repo-local staged bootstrap config files, or arbitrary
-host compiler paths.
+installed-toolchain bundle, then build the `kernelsdk` target directly from
+`kernelsdk/`. Those sample lanes no longer depend on a separately published SDK
+archive, repo-local staged bootstrap config files, or arbitrary host compiler
+paths.
 
 For Windows Docker iteration on native LLVM patches, use:
 

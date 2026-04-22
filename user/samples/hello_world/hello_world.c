@@ -1,9 +1,8 @@
-#include <ringos/debug.h>
-#include <ringos/status.h>
+#include <kernelsdk/kernel_debug.h>
 
 int main(void)
 {
-  if (ringos_debug_log("hello world from ANSI C") != RINGOS_STATUS_OK)
+  if (ringos_debug_log("hello world from ANSI C") != STATUS_OK)
   {
     return 1;
   }

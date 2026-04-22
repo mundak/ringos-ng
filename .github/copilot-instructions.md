@@ -79,3 +79,13 @@ Do not use VS Code editor-integrated tools for this workspace.
 - Do not use CMake editor integration for configure, build, or test operations.
 - Do not use editor diagnostics or problems integration to inspect errors.
 - Prefer terminal commands and the repository's own scripts or Docker wrappers for build, test, and error inspection.
+
+### Build and validation restrictions
+
+Do not run host-machine build or validation fallbacks for this repository unless the user explicitly asks for a host-only command.
+
+- Do not run `cmake`, `ctest`, `ninja`, `clang`, `clang++`, linkers, or ad hoc compiler or linker invocations directly on the host machine for repository validation.
+- Do not search for or use host-installed CMake, Ninja, compiler, or linker binaries as a fallback.
+- Run configure, build, and test validation only through repository-owned scripts and wrappers.
+- On Windows, use the sample Docker wrappers under `user/samples/` for sample validation.
+- If Docker is unavailable, the Docker daemon is not running, or a repository-owned Docker validation wrapper cannot run because Docker is unavailable, stop immediately and report that validation is blocked. Do not fall back to host CMake, host Ninja, host compiler discovery, or manual compile checks.

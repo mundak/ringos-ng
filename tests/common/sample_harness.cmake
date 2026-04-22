@@ -41,7 +41,9 @@ function(ringos_resolve_sample_project_args out_var sample_target sample_target_
 
   set(sample_args
     PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/${sample_target}
-    PROJECT_TARGET ${sample_target})
+    PROJECT_TARGET ${sample_target}
+    PROJECT_DEPENDENCY_PATHS
+      ${CMAKE_SOURCE_DIR}/kernelsdk)
 
   if(DEFINED ${binary_override_var} AND NOT "${${binary_override_var}}" STREQUAL "")
     set(sample_args BINARY_PATH ${${binary_override_var}})

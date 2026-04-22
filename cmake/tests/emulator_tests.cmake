@@ -36,7 +36,7 @@ add_custom_command(
   DEPENDS
     ${CMAKE_SOURCE_DIR}/emulator/include/x64_emulator.h
     ${CMAKE_SOURCE_DIR}/emulator/tests/x64_emulator_test_harness.h
-    ${CMAKE_SOURCE_DIR}/kernel/user_space.h
+    ${CMAKE_SOURCE_DIR}/kernel/syscalls.h
     ${RINGOS_X64_EMULATOR_UNIT_TEST_SOURCES}
   COMMENT "Building x64 emulator unit tests"
   VERBATIM

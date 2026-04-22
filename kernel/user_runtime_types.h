@@ -2,7 +2,7 @@
 
 #include "address_space.h"
 #include "device_memory_type.h"
-#include "user_space.h"
+#include "syscalls.h"
 
 #include <stddef.h>
 #include <stdint.h>

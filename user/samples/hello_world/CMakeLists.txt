@@ -11,8 +11,8 @@ if(NOT DEFINED RINGOS_TARGET_TRIPLE)
 endif()
 
 add_subdirectory(
-  "${CMAKE_CURRENT_LIST_DIR}/../../sdk"
-  "${CMAKE_CURRENT_BINARY_DIR}/ringos_sdk")
+  "${CMAKE_CURRENT_LIST_DIR}/../../../kernelsdk"
+  "${CMAKE_CURRENT_BINARY_DIR}/ringos_kernelsdk")
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -32,5 +32,5 @@ target_compile_options(hello_world
 
 target_link_libraries(hello_world
   PRIVATE
-    ringos_sdk
+    ringos_kernelsdk
 )

@@ -188,13 +188,13 @@ build toolchains on demand.
 ## User-Space Samples
 
 The user-facing sample entry points under `user/samples/` should consume the
-published installed-toolchain bundle plus the in-tree SDK target under
-`user/sdk/`.
+published installed-toolchain bundle plus the in-tree `kernelsdk` target under
+`kernelsdk/`.
 
 They should not depend on repo-local `tools/toolchain/` implementation details,
 they should not depend on a separately published SDK archive, and they should
-not depend on kernel-private headers or build rules just to produce their own
-user executable payload.
+not depend on arbitrary host compiler paths or kernel-private build rules just
+to produce their own user executable payload.
 
 ## Architecture Overview
 

@@ -9,6 +9,10 @@
   library surface. The SDK implementation under `user/sdk/src/` may also be
   written in freestanding C++ as long as the installed public headers keep the
   exported ABI C-compatible.
+* The repository assumes Clang toolchains. Do not add compiler guards such as
+  `#if defined(__clang__)` around Clang-specific attributes or syntax. Use the
+  Clang form directly unless the user explicitly asks for cross-compiler
+  portability.
 * Compile with `-Wall -Wextra -Wpedantic` (GCC/Clang) or `/W4` (MSVC).
   **Zero warnings policy.**
 
@@ -221,6 +225,8 @@ Getter-style accessors should use a `get_` prefix. Boolean accessors should use
   `int`, `uint32_t` over `unsigned int`, `int64_t` over `long long`, etc.
 * Use standard fixed-width integer names directly: `uint8_t`, `uint16_t`,
   `uint32_t`, `uint64_t`, `intptr_t`, `uintptr_t`, etc.
+* For headers that can be included both in C and C++ use `typedef` for type aliases in this repository. Do not switch between `using` in C++ and `typedef` in C with `#ifdef __cplusplus`; use `typedef`
+  consistently.
 * Do **not** introduce custom aliases such as `uint16_type`, `u32`, or
   compiler builtin wrappers for standard fixed-width integers.
 * Use `<cstdint>` for hosted code and `<stdint.h>` for freestanding code when

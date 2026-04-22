@@ -2,4 +2,6 @@
 
 #include <stdint.h>
 
-using handle_t = uint64_t;
+typedef uint64_t handle_t;
+
+#define RINGOS_HANDLE_INVALID 0

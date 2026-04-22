@@ -1,7 +1,5 @@
-#include <ringos/debug.h>
-#include <ringos/status.h>
-
 #include <cstdint>
+#include <kernelsdk/kernel_debug.h>
 #include <type_traits>
 
 namespace
@@ -27,7 +25,7 @@ int main()
     return g_status;
   }
 
-  if (ringos_debug_log("hello world from libc++") != RINGOS_STATUS_OK)
+  if (ringos_debug_log("hello world from libc++") != STATUS_OK)
   {
     return 1;
   }

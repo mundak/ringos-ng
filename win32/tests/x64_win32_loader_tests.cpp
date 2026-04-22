@@ -1,4 +1,4 @@
-#include "user_space.h"
+#include "syscalls.h"
 #include "x64_pe64_image.h"
 #include "x64_win32_emulation.h"
 
