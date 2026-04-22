@@ -21,8 +21,7 @@ Options:
                                 Default: 8
   --gdb-port <port>             QEMU GDB stub port. Default: RINGOS_GDB_PORT
                                 or 1234
-  --toolchain-archive-dir <p>   Directory that contains ringos-toolchain-*.tar.xz
-                                and ringos-sdk-*.tar.xz.
+  --toolchain-archive-dir <p>   Directory that contains ringos-toolchain-*.tar.xz.
                                 Default: /workspace-host/build
   --help                        Show this help text.
 
@@ -156,8 +155,7 @@ find /repo -type f -name '*.sh' -exec dos2unix {} + >/dev/null
 
 shopt -s nullglob
 local_archives=(
-  "${toolchain_archive_dir}"/ringos-toolchain-*.tar.xz
-  "${toolchain_archive_dir}"/ringos-sdk-*.tar.xz)
+  "${toolchain_archive_dir}"/ringos-toolchain-*.tar.xz)
 if [[ "${#local_archives[@]}" -gt 0 ]]; then
   cp "${local_archives[@]}" /work/
 fi
@@ -169,12 +167,6 @@ bash /repo/tests/download-latest-toolchain.sh \
   --install-root /work/toolchain \
   --repo mundak/ringos-ng >/dev/null
 
-echo "[debug] extracting SDK archive"
-bash /repo/tests/download-latest-sdk.sh \
-  --archive-dir /work \
-  --install-root /work/sdk \
-  --repo mundak/ringos-ng >/dev/null
-
 if [[ -n "${test_app_binary_var}" ]]; then
   echo "[debug] building ${target_arch} sample"
   cmake -S "${sample_project}" \
@@ -182,8 +174,6 @@ if [[ -n "${test_app_binary_var}" ]]; then
     -G Ninja \
     -DCMAKE_BUILD_TYPE=Debug \
     -DCMAKE_TOOLCHAIN_FILE=/work/toolchain/cmake/ringos-toolchain.cmake \
-    -DCMAKE_PREFIX_PATH=/work/sdk \
-    -DRINGOS_SDK_ROOT=/work/sdk \
     -DRINGOS_TARGET_ARCH="${target_arch}" >/dev/null
   cmake --build "${sample_build_root}" --target "${sample_target}" >/dev/null
 else
@@ -197,7 +187,6 @@ kernel_cmake_args=(
   -G Ninja
   -DCMAKE_BUILD_TYPE=Debug
   -DRINGOS_INSTALLED_TOOLCHAIN_FILE=/work/toolchain/cmake/ringos-toolchain.cmake
-  -DRINGOS_SDK_ROOT=/work/sdk
   -DRINGOS_TARGET_ARCH="${target_arch}"
   -DRINGOS_ENABLE_TESTING=OFF
 )

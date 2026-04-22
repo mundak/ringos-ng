@@ -10,7 +10,9 @@ if(NOT DEFINED RINGOS_TARGET_TRIPLE)
   )
 endif()
 
-find_package(ringos_sdk CONFIG REQUIRED)
+add_subdirectory(
+  "${CMAKE_CURRENT_LIST_DIR}/../../sdk"
+  "${CMAKE_CURRENT_BINARY_DIR}/ringos_sdk")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -31,5 +33,5 @@ target_compile_options(hello_world_cpp
 
 target_link_libraries(hello_world_cpp
   PRIVATE
-    ringos-sdk
+    ringos_sdk
 )

@@ -44,9 +44,9 @@ Use these layers:
 6. `tests/docker-*.bat` wraps the Windows container workflow.
 7. `.github/workflows/*.yml` should stay thin and invoke repository-owned
 	scripts.
-8. `tools/toolchain/download-latest-toolchain.sh`,
-	`tools/toolchain/build-toolchain.sh`, and `user/sdk/build-sdk.sh` remain the
-	published toolchain and SDK entry points.
+8. `tools/toolchain/download-latest-toolchain.sh` and
+	`tools/toolchain/build-toolchain.sh` remain the published toolchain entry
+	points. User-space sample builds pull the SDK directly from `user/sdk/`.
 
 The workflow file should stay thin. If a command matters for local users, it
 should exist in the repository first.
@@ -135,11 +135,11 @@ The toolchain release path uses the same `tools/toolchain/build-toolchain.sh`
 entry point that powers the manual `toolchain_release` GitHub Actions job. The
 Windows wrapper mounts the repo-local `build` directory so iterative LLVM patch
 work can reuse the clone, build directory, and bootstrap install root locally.
-The hosted C and bootstrap hosted C++ sample scripts resolve
-the published installed-toolchain bundle and compile against the downloaded
-compiler configs and sysroot for the selected target. Those sample lanes no
-longer depend on repo-local staged bootstrap config files or arbitrary host
-compiler paths.
+The hosted C and bootstrap hosted C++ sample scripts resolve the published
+installed-toolchain bundle, then build the SDK target directly from `user/sdk/`
+inside the sample build. Those sample lanes no longer depend on a separately
+published SDK archive, repo-local staged bootstrap config files, or arbitrary
+host compiler paths.
 
 For Windows Docker iteration on native LLVM patches, use:
 
@@ -275,7 +275,6 @@ The current GitHub Actions surface is the set of workflow files under
 | `test-host-unit-tests.yml` | Push, pull request, manual | `tests/run-host-unit-tests.sh` | Canonical host unit-test CI |
 | `test-console-service-write.yml` | Manual | Workflow references `user/samples/console_service_write/test-console-service-write.sh <lane>`, but that sample path is not present in the repo | Stale workflow; not part of the canonical verification contract until restored |
 | `toolchain-release.yml` | Manual | `tools/toolchain/build-toolchain.sh --publish` | Canonical release workflow |
-| `sdk-release.yml` | Manual | `user/sdk/build-sdk.sh --publish` | Canonical release workflow |
 
 The active sample workflows build the sample-test container and then delegate
 to repo-owned shell entry points. Those shell entry points share the same
@@ -291,6 +290,5 @@ If the dependency stack changes, update `tools/toolchain/Dockerfile` and
 the workflow files under `.github/workflows/` together so local container runs
 and CI stay in sync.
 
-The dedicated `toolchain_release` and `sdk_release` workflows sit outside the
-push and pull-request CI set and are responsible for publishing new release
-assets.
+The dedicated `toolchain_release` workflow sits outside the push and pull-
+request CI set and is responsible for publishing new release assets.
