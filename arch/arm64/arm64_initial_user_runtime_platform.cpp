@@ -10,6 +10,8 @@
 extern "C" const uint8_t arm64_exception_vectors[];
 extern "C" const uint8_t _binary_ringos_test_app_image_start[];
 extern "C" const uint8_t _binary_ringos_test_app_image_end[];
+extern "C" const uint8_t _binary_ringos_terminal_service_image_start[];
+extern "C" const uint8_t _binary_ringos_terminal_service_image_end[];
 extern "C" [[noreturn]] void arm64_enter_user_thread(
   uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t spsr);
 extern "C" [[noreturn]] void arm64_user_thread_exit();
@@ -190,6 +192,13 @@ namespace
   {
     return reinterpret_cast<uint8_t*>(
       align_up(reinterpret_cast<uintptr_t>(storage.user_region_storage), LARGE_PAGE_SIZE));
+  }
+
+  bool has_embedded_image(const uint8_t* image_start, const uint8_t* image_end)
+  {
+    const uintptr_t start_address = reinterpret_cast<uintptr_t>(image_start);
+    const uintptr_t end_address = reinterpret_cast<uintptr_t>(image_end);
+    return start_address != 0 && end_address > start_address;
   }
 
   void load_arm64_syscall_frame(arm64_syscall_frame* frame, thread& current_thread)
@@ -506,6 +515,10 @@ void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootst
 {
   memset(&bootstrap, 0, sizeof(bootstrap));
 
+  const bool has_terminal_service
+    = has_embedded_image(_binary_ringos_terminal_service_image_start, _binary_ringos_terminal_service_image_end);
+  const uint32_t client_process_index = has_terminal_service ? 1U : 0U;
+
   uint16_t pe_machine = 0;
   const uint8_t* const test_app_image_start = _binary_ringos_test_app_image_start;
   const size_t test_app_image_size
@@ -514,18 +527,33 @@ void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootst
   if (try_get_pe_machine(test_app_image_start, test_app_image_size, &pe_machine) && pe_machine == PE_MACHINE_ARM64)
   {
     m_user_image_kind = ARM64_USER_IMAGE_KIND_NATIVE_ARM64_PE64;
-    bootstrap.process_count = 1;
+    bootstrap.process_count = has_terminal_service ? 2 : 1;
     bootstrap.initial_process_index = 0;
+
+    if (has_terminal_service)
+    {
+      populate_native_bootstrap_for_process(
+        m_process_storage[0],
+        _binary_ringos_terminal_service_image_start,
+        _binary_ringos_terminal_service_image_end,
+        bootstrap.initial_processes[0]);
+    }
+
     populate_native_bootstrap_for_process(
-      m_process_storage[0],
+      m_process_storage[client_process_index],
       _binary_ringos_test_app_image_start,
       _binary_ringos_test_app_image_end,
-      bootstrap.initial_processes[0]);
+      bootstrap.initial_processes[client_process_index]);
     return;
   }
 
   if (try_get_pe_machine(test_app_image_start, test_app_image_size, &pe_machine) && pe_machine == PE_MACHINE_X64)
   {
+    if (has_terminal_service)
+    {
+      panic("arm64 x64 emulator runtime does not support terminal service bootstrap");
+    }
+
     m_user_image_kind = ARM64_USER_IMAGE_KIND_X64_PE64;
     bootstrap.process_count = 1;
     bootstrap.initial_process_index = 0;

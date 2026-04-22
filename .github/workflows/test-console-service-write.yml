@@ -26,8 +26,6 @@ jobs:
             display_name: x64 native
           - lane: arm64-native
             display_name: arm64 native
-          - lane: arm64-x64-emulator
-            display_name: arm64 x64 emulator path
 
     steps:
       - name: Check out repository

@@ -10,6 +10,8 @@ extern "C" [[noreturn]] void x64_enter_user_thread(
 extern "C" void x64_syscall_entry();
 extern "C" const uint8_t _binary_ringos_test_app_image_start[];
 extern "C" const uint8_t _binary_ringos_test_app_image_end[];
+extern "C" const uint8_t _binary_ringos_terminal_service_image_start[];
+extern "C" const uint8_t _binary_ringos_terminal_service_image_end[];
 
 namespace
 {
@@ -56,6 +58,13 @@ namespace
     uint32_t high_value = 0;
     asm volatile("rdmsr" : "=a"(low_value), "=d"(high_value) : "c"(msr) : "memory");
     return (static_cast<uint64_t>(high_value) << 32) | low_value;
+  }
+
+  bool has_embedded_image(const uint8_t* image_start, const uint8_t* image_end)
+  {
+    const uintptr_t start_address = reinterpret_cast<uintptr_t>(image_start);
+    const uintptr_t end_address = reinterpret_cast<uintptr_t>(image_end);
+    return start_address != 0 && end_address > start_address;
   }
 }
 
@@ -200,13 +209,27 @@ void x64_initial_user_runtime_platform::populate_bootstrap_for_process(
 void x64_initial_user_runtime_platform::initialize(initial_user_runtime_bootstrap& bootstrap)
 {
   memset(&bootstrap, 0, sizeof(bootstrap));
-  bootstrap.process_count = 1;
+  const bool has_terminal_service
+    = has_embedded_image(_binary_ringos_terminal_service_image_start, _binary_ringos_terminal_service_image_end);
+  const uint32_t client_process_index = has_terminal_service ? 1U : 0U;
+
+  bootstrap.process_count = has_terminal_service ? 2 : 1;
   bootstrap.initial_process_index = 0;
+
+  if (has_terminal_service)
+  {
+    populate_bootstrap_for_process(
+      m_process_storage[0],
+      _binary_ringos_terminal_service_image_start,
+      _binary_ringos_terminal_service_image_end,
+      bootstrap.initial_processes[0]);
+  }
+
   populate_bootstrap_for_process(
-    m_process_storage[0],
+    m_process_storage[client_process_index],
     _binary_ringos_test_app_image_start,
     _binary_ringos_test_app_image_end,
-    bootstrap.initial_processes[0]);
+    bootstrap.initial_processes[client_process_index]);
 }
 
 void x64_initial_user_runtime_platform::prepare_thread_launch(

@@ -273,7 +273,7 @@ The current GitHub Actions surface is the set of workflow files under
 | `test-hello-world.yml` | Push, pull request, manual | `user/samples/hello_world/test-hello-world.sh <lane>` | Canonical sample CI |
 | `test-hello-world-cpp.yml` | Push, pull request, manual | `user/samples/hello_world_cpp/test-hello-world-cpp.sh <lane>` | Canonical sample CI |
 | `test-host-unit-tests.yml` | Push, pull request, manual | `tests/run-host-unit-tests.sh` | Canonical host unit-test CI |
-| `test-console-service-write.yml` | Manual | Workflow references `user/samples/console_service_write/test-console-service-write.sh <lane>`, but that sample path is not present in the repo | Stale workflow; not part of the canonical verification contract until restored |
+| `test-console-service-write.yml` | Manual | `user/samples/console_service_write/test-console-service-write.sh <lane>` | Native-only terminal service sample CI |
 | `toolchain-release.yml` | Manual | `tools/toolchain/build-toolchain.sh --publish` | Canonical release workflow |
 
 The active sample workflows build the sample-test container and then delegate

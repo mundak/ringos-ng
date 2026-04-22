@@ -1,6 +1,7 @@
 set(RINGOS_SAMPLE_PROJECT_TARGETS
   hello_world
   hello_world_cpp
+  console_service_write
 )
 
 set(RINGOS_SAMPLE_LANE_IDS
@@ -8,6 +9,25 @@ set(RINGOS_SAMPLE_LANE_IDS
   arm64-native
   arm64-x64-emulator
 )
+
+function(ringos_get_sample_lane_ids out_var sample_target)
+  if(sample_target STREQUAL "console_service_write")
+    set(${out_var}
+      x64-native
+      arm64-native
+      PARENT_SCOPE)
+  else()
+    set(${out_var} ${RINGOS_SAMPLE_LANE_IDS} PARENT_SCOPE)
+  endif()
+endfunction()
+
+function(ringos_sample_requires_terminal_service out_var sample_target)
+  if(sample_target STREQUAL "console_service_write")
+    set(${out_var} TRUE PARENT_SCOPE)
+  else()
+    set(${out_var} FALSE PARENT_SCOPE)
+  endif()
+endfunction()
 
 function(ringos_get_sample_kernel_suffix out_var sample_target)
   if(sample_target STREQUAL "hello_world")
@@ -52,10 +72,43 @@ function(ringos_resolve_sample_project_args out_var sample_target sample_target_
   set(${out_var} "${sample_args}" PARENT_SCOPE)
 endfunction()
 
+function(ringos_add_x64_terminal_service_image sample_target out_dependency_target out_object)
+  set(dependency_target "ringos_x64_${sample_target}_terminal_service")
+
+  ringos_add_embedded_x64_test_app(
+    ${dependency_target}
+    elf64-x86-64
+    i386:x86-64
+    terminal_service_image_object
+    BINARY_STEM ringos_terminal_service_x64_pe64_image
+    PROJECT_PATH ${CMAKE_SOURCE_DIR}/services/terminal
+    PROJECT_TARGET terminal_service)
+
+  set(${out_dependency_target} ${dependency_target} PARENT_SCOPE)
+  set(${out_object} ${terminal_service_image_object} PARENT_SCOPE)
+endfunction()
+
+function(ringos_add_arm64_terminal_service_image sample_target out_dependency_target out_object)
+  set(dependency_target "ringos_arm64_${sample_target}_terminal_service")
+
+  ringos_add_embedded_arm64_test_app(
+    ${dependency_target}
+    elf64-littleaarch64
+    aarch64
+    terminal_service_image_object
+    BINARY_STEM ringos_terminal_service_arm64_pe64_image
+    PROJECT_PATH ${CMAKE_SOURCE_DIR}/services/terminal
+    PROJECT_TARGET terminal_service)
+
+  set(${out_dependency_target} ${dependency_target} PARENT_SCOPE)
+  set(${out_object} ${terminal_service_image_object} PARENT_SCOPE)
+endfunction()
+
 function(ringos_add_x64_sample_kernel_target sample_target)
   ringos_get_sample_kernel_suffix(kernel_suffix "${sample_target}")
   ringos_get_sample_binary_stem(binary_stem "${sample_target}" x64)
   ringos_resolve_sample_project_args(sample_args "${sample_target}" x64)
+  ringos_sample_requires_terminal_service(sample_requires_terminal_service "${sample_target}")
 
   set(dependency_target "ringos_x64${kernel_suffix}_test_app")
 
@@ -67,17 +120,31 @@ function(ringos_add_x64_sample_kernel_target sample_target)
     BINARY_STEM ${binary_stem}
     ${sample_args})
 
-  ringos_add_x64_kernel_target(
-    ringos_x64${kernel_suffix}
-    ${dependency_target}
-    ${sample_image_object}
-    ${binary_stem})
+  if(sample_requires_terminal_service)
+    ringos_add_x64_terminal_service_image("${sample_target}" service_dependency_target service_image_object)
+
+    ringos_add_x64_kernel_target(
+      ringos_x64${kernel_suffix}
+      ${dependency_target}
+      ${sample_image_object}
+      ${binary_stem}
+      SERVICE_DEPENDENCY_TARGET ${service_dependency_target}
+      SERVICE_IMAGE_OBJECT ${service_image_object}
+      SERVICE_RUNTIME_MODE ringos_terminal_service_x64_pe64_image)
+  else()
+    ringos_add_x64_kernel_target(
+      ringos_x64${kernel_suffix}
+      ${dependency_target}
+      ${sample_image_object}
+      ${binary_stem})
+  endif()
 endfunction()
 
 function(ringos_add_arm64_sample_kernel_target sample_target)
   ringos_get_sample_kernel_suffix(kernel_suffix "${sample_target}")
   ringos_get_sample_binary_stem(binary_stem "${sample_target}" arm64)
   ringos_resolve_sample_project_args(sample_args "${sample_target}" arm64)
+  ringos_sample_requires_terminal_service(sample_requires_terminal_service "${sample_target}")
 
   set(dependency_target "ringos_arm64${kernel_suffix}_test_app")
 
@@ -89,11 +156,24 @@ function(ringos_add_arm64_sample_kernel_target sample_target)
     BINARY_STEM ${binary_stem}
     ${sample_args})
 
-  ringos_add_arm64_kernel_target(
-    ringos_arm64${kernel_suffix}
-    ${dependency_target}
-    ${sample_image_object}
-    ${binary_stem})
+  if(sample_requires_terminal_service)
+    ringos_add_arm64_terminal_service_image("${sample_target}" service_dependency_target service_image_object)
+
+    ringos_add_arm64_kernel_target(
+      ringos_arm64${kernel_suffix}
+      ${dependency_target}
+      ${sample_image_object}
+      ${binary_stem}
+      SERVICE_DEPENDENCY_TARGET ${service_dependency_target}
+      SERVICE_IMAGE_OBJECT ${service_image_object}
+      SERVICE_RUNTIME_MODE ringos_terminal_service_arm64_pe64_image)
+  else()
+    ringos_add_arm64_kernel_target(
+      ringos_arm64${kernel_suffix}
+      ${dependency_target}
+      ${sample_image_object}
+      ${binary_stem})
+  endif()
 endfunction()
 
 function(ringos_add_arm64_x64_emulator_sample_kernel_target sample_target)
@@ -120,8 +200,9 @@ endfunction()
 
 function(ringos_add_sample_smoke_test_lanes sample_target)
   ringos_get_sample_script_path(script_path "${sample_target}")
+  ringos_get_sample_lane_ids(sample_lane_ids "${sample_target}")
 
-  foreach(lane IN LISTS RINGOS_SAMPLE_LANE_IDS)
+  foreach(lane IN LISTS sample_lane_ids)
     ringos_get_sample_smoke_test_name(test_name "${sample_target}" "${lane}")
 
     ringos_add_sample_smoke_test(
