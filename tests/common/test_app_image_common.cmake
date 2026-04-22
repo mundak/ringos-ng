@@ -11,21 +11,8 @@ function(ringos_get_bundled_toolchain_file out_file)
   set(${out_file} "${toolchain_file}" PARENT_SCOPE)
 endfunction()
 
-function(ringos_get_bundled_sdk_root out_root)
-  if(DEFINED RINGOS_SDK_ROOT AND NOT RINGOS_SDK_ROOT STREQUAL "")
-    set(sdk_root "${RINGOS_SDK_ROOT}")
-  elseif(DEFINED ENV{RINGOS_SDK_ROOT} AND NOT "$ENV{RINGOS_SDK_ROOT}" STREQUAL "")
-    file(TO_CMAKE_PATH "$ENV{RINGOS_SDK_ROOT}" sdk_root)
-  else()
-    set(sdk_root "${CMAKE_SOURCE_DIR}/build/sdk")
-  endif()
-
-  set(${out_root} "${sdk_root}" PARENT_SCOPE)
-endfunction()
-
 function(ringos_resolve_bundled_test_app_tools target_arch prefix)
   ringos_get_bundled_toolchain_file(toolchain_file)
-  ringos_get_bundled_sdk_root(sdk_root)
 
   get_filename_component(toolchain_cmake_dir "${toolchain_file}" DIRECTORY)
   get_filename_component(toolchain_root "${toolchain_cmake_dir}/.." ABSOLUTE)
@@ -37,19 +24,6 @@ function(ringos_resolve_bundled_test_app_tools target_arch prefix)
   else()
     message(FATAL_ERROR "Unsupported test app target architecture: ${target_arch}")
   endif()
-
-  set(compile_config "${sdk_root}/share/ringos/compile-${target_arch}.cfg")
-  set(link_config "${sdk_root}/share/ringos/link-${target_arch}.cfg")
-  set(cxx_include_dir "${sdk_root}/sysroots/${target_triple}/include/c++/v1")
-  set(cxx_compile_flags
-    -std=c++20
-    -fno-ms-compatibility
-    -fno-exceptions
-    -fno-rtti
-    -fno-threadsafe-statics
-    -nostdinc++
-    -isystem
-    "${cxx_include_dir}")
 
   foreach(required_path
       "${toolchain_file}")

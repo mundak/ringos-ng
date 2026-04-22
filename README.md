@@ -137,14 +137,9 @@ written to local disk instead of publishing.
 For direct shell invocation without the Windows wrapper, run
 `tools/toolchain/build-toolchain.sh`.
 
-Build the shared SDK package tar.xz archive from Windows:
-
-```bat
-user\sdk\docker-build-sdk.bat
-```
-
-For direct shell invocation without the Windows wrapper, run
-`user/sdk/build-sdk.sh`.
+User-space sample builds now compile the SDK directly from `user/sdk/` as part
+of the normal repository build graph. There is no separate SDK archive step in
+the default local or CI workflows.
 
 If you want to invoke the container manually instead of using the wrappers:
 
@@ -192,12 +187,14 @@ build toolchains on demand.
 
 ## User-Space Samples
 
-The user-facing sample entry points under `user/samples/` should consume only
-the published installed-toolchain bundle and its bundled sysroots.
+The user-facing sample entry points under `user/samples/` should consume the
+published installed-toolchain bundle plus the in-tree SDK target under
+`user/sdk/`.
 
 They should not depend on repo-local `tools/toolchain/` implementation details,
-and they should not depend on kernel-private headers or build rules just to
-produce their own user executable payload.
+they should not depend on a separately published SDK archive, and they should
+not depend on kernel-private headers or build rules just to produce their own
+user executable payload.
 
 ## Architecture Overview
 

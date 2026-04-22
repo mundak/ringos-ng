@@ -17,7 +17,8 @@ function(
   endif()
 
   if(NOT RINGOS_TEST_APP_BINARY_PATH AND NOT RINGOS_TEST_APP_SOURCE_PATH AND NOT RINGOS_TEST_APP_PROJECT_PATH)
-    set(RINGOS_TEST_APP_SOURCE_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world/hello_world.c)
+    set(RINGOS_TEST_APP_PROJECT_PATH ${CMAKE_SOURCE_DIR}/user/samples/hello_world)
+    set(RINGOS_TEST_APP_PROJECT_TARGET hello_world)
   endif()
 
   if(NOT RINGOS_TEST_APP_BINARY_STEM)
@@ -101,121 +102,46 @@ function(
         ${ARM64_TEST_APP_WINDOWS_EXE}
       COMMENT "Building embedded arm64 PE64 test app against the extracted ringos toolchain bundle"
       VERBATIM)
-  elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".c")
-    foreach(required_path
-        ${ARM64_TEST_APP_COMPILE_CONFIG}
-        ${ARM64_TEST_APP_LINK_CONFIG})
-      if(NOT EXISTS ${required_path})
-        message(FATAL_ERROR
-          "Bundled toolchain input is missing: ${required_path}. "
-          "Extract build/toolchain and build/sdk before building embedded arm64 C test apps.")
-      endif()
-    endforeach()
-
-    add_custom_command(
-      OUTPUT ${ARM64_TEST_APP_IMAGE_OBJECT}
-      COMMAND ${ARM64_TEST_APP_CLANG}
-              --config=${ARM64_TEST_APP_COMPILE_CONFIG}
-              --config=${ARM64_TEST_APP_LINK_CONFIG}
-              -O2
-              -Wall
-              -Wextra
-              -Wpedantic
-              ${ARM64_TEST_APP_SOURCE}
-              -o ${ARM64_TEST_APP_WINDOWS_EXE}
-      COMMAND ${CMAKE_COMMAND} -E copy ${ARM64_TEST_APP_WINDOWS_EXE} ${ARM64_TEST_APP_IMAGE}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}
-              ${ARM64_TEST_APP_OBJCOPY}
-              -I binary
-              -O ${output_format}
-              -B ${output_architecture}
-              ${RINGOS_TEST_APP_BINARY_STEM}
-              ${RINGOS_TEST_APP_BINARY_STEM}.o
-      DEPENDS
-        ${ARM64_TEST_APP_COMPILE_CONFIG}
-        ${ARM64_TEST_APP_LINK_CONFIG}
-        ${ARM64_TEST_APP_SOURCE}
-      BYPRODUCTS
-        ${ARM64_TEST_APP_IMAGE}
-        ${ARM64_TEST_APP_WINDOWS_EXE}
-      COMMENT "Building embedded arm64 PE64 test app against the extracted ringos toolchain bundle"
-      VERBATIM)
-  elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".cpp")
-    foreach(required_path
-        ${ARM64_TEST_APP_COMPILE_CONFIG}
-        ${ARM64_TEST_APP_LINK_CONFIG})
-      if(NOT EXISTS ${required_path})
-        message(FATAL_ERROR
-          "Bundled toolchain input is missing: ${required_path}. "
-          "Extract build/toolchain and build/sdk before building embedded arm64 C++ test apps.")
-      endif()
-    endforeach()
-
-    if(NOT EXISTS ${ARM64_TEST_APP_CXX_INCLUDE_DIR})
-      message(FATAL_ERROR
-        "Bundled C++ include directory is missing: ${ARM64_TEST_APP_CXX_INCLUDE_DIR}. "
-        "Extract a toolchain bundle that includes libc++ headers before building embedded arm64 C++ test apps.")
-    endif()
-
-    add_custom_command(
-      OUTPUT ${ARM64_TEST_APP_IMAGE_OBJECT}
-      COMMAND ${ARM64_TEST_APP_CLANGXX}
-              --config=${ARM64_TEST_APP_COMPILE_CONFIG}
-              --config=${ARM64_TEST_APP_LINK_CONFIG}
-              -O2
-              -Wall
-              -Wextra
-              -Wpedantic
-              ${ARM64_TEST_APP_CXX_COMPILE_FLAGS}
-              ${ARM64_TEST_APP_SOURCE}
-              -o ${ARM64_TEST_APP_WINDOWS_EXE}
-      COMMAND ${CMAKE_COMMAND} -E copy ${ARM64_TEST_APP_WINDOWS_EXE} ${ARM64_TEST_APP_IMAGE}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}
-              ${ARM64_TEST_APP_OBJCOPY}
-              -I binary
-              -O ${output_format}
-              -B ${output_architecture}
-              ${RINGOS_TEST_APP_BINARY_STEM}
-              ${RINGOS_TEST_APP_BINARY_STEM}.o
-      DEPENDS
-        ${ARM64_TEST_APP_COMPILE_CONFIG}
-        ${ARM64_TEST_APP_LINK_CONFIG}
-        ${ARM64_TEST_APP_SOURCE}
-      BYPRODUCTS
-        ${ARM64_TEST_APP_IMAGE}
-        ${ARM64_TEST_APP_WINDOWS_EXE}
-      COMMENT "Building embedded arm64 PE64 C++ test app against the extracted ringos toolchain bundle"
-      VERBATIM)
   else()
-    add_custom_command(
-      OUTPUT ${ARM64_TEST_APP_IMAGE_OBJECT}
-      COMMAND ${CMAKE_ASM_COMPILER}
-              --target=aarch64-pc-windows-msvc
-              -ffreestanding
-              -fno-stack-protector
-              -c ${ARM64_TEST_APP_SOURCE}
-              -o ${ARM64_TEST_APP_OBJECT}
-      COMMAND ${ARM64_TEST_APP_LLD_LINK}
-              /machine:arm64
-              /entry:user_start
-              /subsystem:native
-              /nodefaultlib
-              /fixed:no
-              /base:0x400000
-              /filealign:4096
-              /out:${ARM64_TEST_APP_IMAGE}
-              ${ARM64_TEST_APP_OBJECT}
-      COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}
-              ${ARM64_TEST_APP_OBJCOPY}
-              -I binary
-              -O ${output_format}
-              -B ${output_architecture}
-              ${RINGOS_TEST_APP_BINARY_STEM}
-              ${RINGOS_TEST_APP_BINARY_STEM}.o
-      DEPENDS ${ARM64_TEST_APP_SOURCE}
-      BYPRODUCTS ${ARM64_TEST_APP_OBJECT} ${ARM64_TEST_APP_IMAGE}
-      COMMENT "Building embedded arm64 PE64 test app"
-      VERBATIM)
+    if(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".c")
+      message(FATAL_ERROR
+        "Direct SOURCE_PATH C test apps are no longer supported. "
+        "Use PROJECT_PATH so the sample builds the in-tree SDK target, or pass BINARY_PATH to embed a prebuilt executable.")
+    elseif(RINGOS_TEST_APP_SOURCE_EXTENSION STREQUAL ".cpp")
+      message(FATAL_ERROR
+        "Direct SOURCE_PATH C++ test apps are no longer supported. "
+        "Use PROJECT_PATH so the sample builds the in-tree SDK target, or pass BINARY_PATH to embed a prebuilt executable.")
+    else()
+      add_custom_command(
+        OUTPUT ${ARM64_TEST_APP_IMAGE_OBJECT}
+        COMMAND ${CMAKE_ASM_COMPILER}
+                --target=aarch64-pc-windows-msvc
+                -ffreestanding
+                -fno-stack-protector
+                -c ${ARM64_TEST_APP_SOURCE}
+                -o ${ARM64_TEST_APP_OBJECT}
+        COMMAND ${ARM64_TEST_APP_LLD_LINK}
+                /machine:arm64
+                /entry:user_start
+                /subsystem:native
+                /nodefaultlib
+                /fixed:no
+                /base:0x400000
+                /filealign:4096
+                /out:${ARM64_TEST_APP_IMAGE}
+                ${ARM64_TEST_APP_OBJECT}
+        COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}
+                ${ARM64_TEST_APP_OBJCOPY}
+                -I binary
+                -O ${output_format}
+                -B ${output_architecture}
+                ${RINGOS_TEST_APP_BINARY_STEM}
+                ${RINGOS_TEST_APP_BINARY_STEM}.o
+        DEPENDS ${ARM64_TEST_APP_SOURCE}
+        BYPRODUCTS ${ARM64_TEST_APP_OBJECT} ${ARM64_TEST_APP_IMAGE}
+        COMMENT "Building embedded arm64 PE64 test app"
+        VERBATIM)
+    endif()
   endif()
 
   add_custom_target(${dependency_target} DEPENDS ${ARM64_TEST_APP_IMAGE_OBJECT})

@@ -66,7 +66,6 @@ sample_target_arch_upper="${sample_target_arch^^}"
 sample_build_root="${repo_root}/build/sample-tests/${build_name}"
 kernel_build_root="${repo_root}/build/sample-tests/${build_name}_kernel"
 toolchain_root="${repo_root}/build/toolchain"
-sdk_root="${repo_root}/build/sdk"
 toolchain_file="${toolchain_root}/cmake/ringos-toolchain.cmake"
 
 rm -rf "${sample_build_root}" "${kernel_build_root}"
@@ -75,11 +74,6 @@ rm -rf "${sample_build_root}" "${kernel_build_root}"
   --repo "${release_repo}" \
   --archive-dir "${repo_root}/build" \
   --install-root "${toolchain_root}"
-
-"${repo_root}/tests/download-latest-sdk.sh" \
-  --repo "${release_repo}" \
-  --archive-dir "${repo_root}/build" \
-  --install-root "${sdk_root}"
 
 if [[ ! -f "${toolchain_file}" ]]; then
   echo "Installed toolchain file not found: ${toolchain_file}" >&2
@@ -91,8 +85,6 @@ cmake -S "${sample_dir}" \
   -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_TOOLCHAIN_FILE="${toolchain_file}" \
-  -DCMAKE_PREFIX_PATH="${sdk_root}" \
-  -DRINGOS_SDK_ROOT="${sdk_root}" \
   -DRINGOS_TARGET_ARCH="${sample_target_arch}"
 
 cmake --build "${sample_build_root}" --target "${sample_target}"
@@ -111,7 +103,6 @@ cmake -S "${repo_root}" \
   -G Ninja \
   -DCMAKE_BUILD_TYPE=Release \
   -DRINGOS_INSTALLED_TOOLCHAIN_FILE="${toolchain_file}" \
-  -DRINGOS_SDK_ROOT="${sdk_root}" \
   -DRINGOS_TARGET_ARCH="${kernel_target_arch}" \
   -DRINGOS_ENABLE_TESTING=OFF \
   "${kernel_test_app_cmake_arg}"
