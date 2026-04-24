@@ -50,7 +50,9 @@ namespace
     frame->user_rsp = resume_state.stack_pointer;
     const uintptr_t* const preserved_registers = current_thread.get_arch_preserved_registers();
     frame->rsi = preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX];
-    frame->rdi = resume_state.argument0;
+    frame->rdi = resume_state.kind == USER_THREAD_RESUME_KIND_RPC
+      ? resume_state.argument0
+      : preserved_registers[X64_PRESERVED_REGISTER_RDI_INDEX];
     frame->rbx = preserved_registers[X64_PRESERVED_REGISTER_RBX_INDEX];
     frame->rbp = preserved_registers[X64_PRESERVED_REGISTER_RBP_INDEX];
     frame->r12 = preserved_registers[X64_PRESERVED_REGISTER_R12_INDEX];

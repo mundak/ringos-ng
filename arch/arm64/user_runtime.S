@@ -15,9 +15,32 @@
 .endm
 
 arm64_enter_user_thread:
-  msr sp_el0, x1
-  msr elr_el1, x0
-  msr spsr_el1, x2
+  sub sp, sp, #96
+  stp x19, x20, [sp, #0]
+  stp x21, x22, [sp, #16]
+  stp x23, x24, [sp, #32]
+  stp x25, x26, [sp, #48]
+  stp x27, x28, [sp, #64]
+  stp x29, x30, [sp, #80]
+  mov x29, sp
+  mov x9, x0
+  ldr x10, [x9, #88]
+  msr sp_el0, x10
+  ldr x10, [x9, #72]
+  msr elr_el1, x10
+  ldr x10, [x9, #80]
+  msr spsr_el1, x10
+  ldp x19, x20, [x9, #104]
+  ldp x21, x22, [x9, #120]
+  ldp x23, x24, [x9, #136]
+  ldp x25, x26, [x9, #152]
+  ldp x27, x28, [x9, #168]
+  ldp x29, x30, [x9, #184]
+  ldp x0, x1, [x9, #0]
+  ldp x2, x3, [x9, #16]
+  ldp x4, x5, [x9, #32]
+  ldp x6, x7, [x9, #48]
+  ldr x8, [x9, #64]
   eret
 
 .align 11
@@ -87,7 +110,14 @@ arm64_lower_el_aarch64_sync:
 
 .Lthread_exit:
   add sp, sp, #208
-  bl arm64_user_thread_exit
+  ldp x19, x20, [sp, #0]
+  ldp x21, x22, [sp, #16]
+  ldp x23, x24, [sp, #32]
+  ldp x25, x26, [sp, #48]
+  ldp x27, x28, [sp, #64]
+  ldp x29, x30, [sp, #80]
+  add sp, sp, #96
+  ret
 
 arm64_user_stub_start:
   adr x0, arm64_user_message

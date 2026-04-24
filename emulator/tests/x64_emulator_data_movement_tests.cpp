@@ -71,6 +71,26 @@ namespace
       && expect_x64_emulator_test(capture.call_count == 1, "lea_rip_relative_string", "expected one syscall");
   }
 
+  bool test_lea_32bit_sib_and_syscall()
+  {
+    constexpr std::array<uint8_t, 15> program {
+      0xB9, 0x02, 0x00, 0x00, 0x00, 0x8D, 0x3C, 0x49, 0xB8, 0x34, 0x12, 0x00, 0x00, 0x0F, 0x05,
+    };
+    x64_syscall_capture capture {
+      nullptr, 0x1234, 6, STATUS_OK, true, nullptr, 0,
+    };
+    x64_emulator_result result {};
+
+    if (!run_x64_emulator_test_program("lea_32bit_sib_and_syscall", program.data(), program.size(), capture, &result))
+    {
+      return false;
+    }
+
+    return expect_x64_emulator_test(
+             did_x64_emulator_exit_cleanly(result), "lea_32bit_sib_and_syscall", "expected thread exit")
+      && expect_x64_emulator_test(capture.call_count == 1, "lea_32bit_sib_and_syscall", "expected one syscall");
+  }
+
   bool test_mov_memory_to_register_and_syscall()
   {
     constexpr std::array<uint8_t, 19> program {
@@ -213,6 +233,7 @@ void append_x64_data_movement_tests(std::vector<x64_emulator_test_case>& tests)
   tests.push_back({ "mov_register_and_syscall", &test_mov_register_and_syscall });
   tests.push_back({ "mov_and_syscall", &test_mov_and_syscall });
   tests.push_back({ "lea_rip_relative_string", &test_lea_rip_relative_string });
+  tests.push_back({ "lea_32bit_sib_and_syscall", &test_lea_32bit_sib_and_syscall });
   tests.push_back({ "mov_memory_to_register_and_syscall", &test_mov_memory_to_register_and_syscall });
   tests.push_back({ "mov_register_to_memory_and_syscall", &test_mov_register_to_memory_and_syscall });
   tests.push_back({ "mov_immediate64_memory_and_syscall", &test_mov_immediate64_memory_and_syscall });

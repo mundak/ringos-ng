@@ -88,6 +88,26 @@ namespace
       && expect_x64_emulator_test(capture.call_count == 1, "call_indirect_rip_relative", "expected one syscall");
   }
 
+  bool test_group_ff_inc_register()
+  {
+    constexpr std::array<uint8_t, 19> program {
+      0x49, 0xC7, 0xC6, 0xFF, 0xFF, 0xFF, 0xFF, 0x49, 0xFF, 0xC6, 0x75, 0x07, 0xB8, 0x01, 0x00, 0x00, 0x00, 0x0F, 0x05,
+    };
+    x64_syscall_capture capture {
+      nullptr, 1, 0, STATUS_OK, true, nullptr, 0,
+    };
+    x64_emulator_result result {};
+
+    if (!run_x64_emulator_test_program("group_ff_inc_register", program.data(), program.size(), capture, &result))
+    {
+      return false;
+    }
+
+    return expect_x64_emulator_test(
+             did_x64_emulator_exit_cleanly(result), "group_ff_inc_register", "expected thread exit")
+      && expect_x64_emulator_test(capture.call_count == 1, "group_ff_inc_register", "expected one syscall");
+  }
+
   bool test_instruction_budget_limit()
   {
     constexpr std::array<uint8_t, 2> program {
@@ -143,6 +163,7 @@ void append_x64_stack_and_control_flow_tests(std::vector<x64_emulator_test_case>
   tests.push_back({ "call_and_ret", &test_call_and_ret });
   tests.push_back({ "conditional_branch", &test_conditional_branch });
   tests.push_back({ "call_indirect_rip_relative", &test_call_indirect_rip_relative });
+  tests.push_back({ "group_ff_inc_register", &test_group_ff_inc_register });
   tests.push_back({ "instruction_budget_limit", &test_instruction_budget_limit });
   tests.push_back({ "prefixed_multi_byte_nop", &test_prefixed_multi_byte_nop });
 }

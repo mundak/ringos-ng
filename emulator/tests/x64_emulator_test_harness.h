@@ -23,9 +23,11 @@ struct x64_syscall_capture
   bool stop_after_call;
   const char* expected_string;
   size_t call_count;
+  x64_emulator_syscall_action stop_action = X64_EMULATOR_SYSCALL_ACTION_EXIT_THREAD;
 };
 
 bool did_x64_emulator_exit_cleanly(const x64_emulator_result& result);
+bool did_x64_emulator_yield(const x64_emulator_result& result);
 bool did_x64_emulator_fail_with_backend(const x64_emulator_result& result, x64_emulator_backend_failure failure);
 bool did_x64_emulator_stop_for_guest_fault(const x64_emulator_result& result, x64_emulator_guest_stop_reason reason);
 

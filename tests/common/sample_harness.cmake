@@ -15,6 +15,7 @@ function(ringos_get_sample_lane_ids out_var sample_target)
     set(${out_var}
       x64-native
       arm64-native
+      arm64-x64-emulator
       PARENT_SCOPE)
   else()
     set(${out_var} ${RINGOS_SAMPLE_LANE_IDS} PARENT_SCOPE)
@@ -72,36 +73,42 @@ function(ringos_resolve_sample_project_args out_var sample_target sample_target_
   set(${out_var} "${sample_args}" PARENT_SCOPE)
 endfunction()
 
-function(ringos_add_x64_terminal_service_image sample_target out_dependency_target out_object)
-  set(dependency_target "ringos_x64_${sample_target}_terminal_service")
+function(ringos_add_x64_terminal_service_image sample_target lane_tag out_dependency_target out_object out_runtime_mode)
+  string(REPLACE "-" "_" normalized_lane_tag "${lane_tag}")
+  set(dependency_target "ringos_x64_${sample_target}_${normalized_lane_tag}_terminal_service")
+  set(binary_stem "ringos_terminal_service_x64_pe64_image_${sample_target}_${normalized_lane_tag}")
 
   ringos_add_embedded_x64_test_app(
     ${dependency_target}
     elf64-x86-64
     i386:x86-64
     terminal_service_image_object
-    BINARY_STEM ringos_terminal_service_x64_pe64_image
+    BINARY_STEM ${binary_stem}
     PROJECT_PATH ${CMAKE_SOURCE_DIR}/services/terminal
     PROJECT_TARGET terminal_service)
 
   set(${out_dependency_target} ${dependency_target} PARENT_SCOPE)
   set(${out_object} ${terminal_service_image_object} PARENT_SCOPE)
+  set(${out_runtime_mode} ${binary_stem} PARENT_SCOPE)
 endfunction()
 
-function(ringos_add_arm64_terminal_service_image sample_target out_dependency_target out_object)
-  set(dependency_target "ringos_arm64_${sample_target}_terminal_service")
+function(ringos_add_arm64_terminal_service_image sample_target lane_tag out_dependency_target out_object out_runtime_mode)
+  string(REPLACE "-" "_" normalized_lane_tag "${lane_tag}")
+  set(dependency_target "ringos_arm64_${sample_target}_${normalized_lane_tag}_terminal_service")
+  set(binary_stem "ringos_terminal_service_arm64_pe64_image_${sample_target}_${normalized_lane_tag}")
 
   ringos_add_embedded_arm64_test_app(
     ${dependency_target}
     elf64-littleaarch64
     aarch64
     terminal_service_image_object
-    BINARY_STEM ringos_terminal_service_arm64_pe64_image
+    BINARY_STEM ${binary_stem}
     PROJECT_PATH ${CMAKE_SOURCE_DIR}/services/terminal
     PROJECT_TARGET terminal_service)
 
   set(${out_dependency_target} ${dependency_target} PARENT_SCOPE)
   set(${out_object} ${terminal_service_image_object} PARENT_SCOPE)
+  set(${out_runtime_mode} ${binary_stem} PARENT_SCOPE)
 endfunction()
 
 function(ringos_add_x64_sample_kernel_target sample_target)
@@ -121,7 +128,12 @@ function(ringos_add_x64_sample_kernel_target sample_target)
     ${sample_args})
 
   if(sample_requires_terminal_service)
-    ringos_add_x64_terminal_service_image("${sample_target}" service_dependency_target service_image_object)
+    ringos_add_x64_terminal_service_image(
+      "${sample_target}"
+      "x64-native"
+      service_dependency_target
+      service_image_object
+      service_runtime_mode)
 
     ringos_add_x64_kernel_target(
       ringos_x64${kernel_suffix}
@@ -130,7 +142,7 @@ function(ringos_add_x64_sample_kernel_target sample_target)
       ${binary_stem}
       SERVICE_DEPENDENCY_TARGET ${service_dependency_target}
       SERVICE_IMAGE_OBJECT ${service_image_object}
-      SERVICE_RUNTIME_MODE ringos_terminal_service_x64_pe64_image)
+      SERVICE_RUNTIME_MODE ${service_runtime_mode})
   else()
     ringos_add_x64_kernel_target(
       ringos_x64${kernel_suffix}
@@ -157,7 +169,12 @@ function(ringos_add_arm64_sample_kernel_target sample_target)
     ${sample_args})
 
   if(sample_requires_terminal_service)
-    ringos_add_arm64_terminal_service_image("${sample_target}" service_dependency_target service_image_object)
+    ringos_add_arm64_terminal_service_image(
+      "${sample_target}"
+      "arm64-native"
+      service_dependency_target
+      service_image_object
+      service_runtime_mode)
 
     ringos_add_arm64_kernel_target(
       ringos_arm64${kernel_suffix}
@@ -166,7 +183,7 @@ function(ringos_add_arm64_sample_kernel_target sample_target)
       ${binary_stem}
       SERVICE_DEPENDENCY_TARGET ${service_dependency_target}
       SERVICE_IMAGE_OBJECT ${service_image_object}
-      SERVICE_RUNTIME_MODE ringos_terminal_service_arm64_pe64_image)
+      SERVICE_RUNTIME_MODE ${service_runtime_mode})
   else()
     ringos_add_arm64_kernel_target(
       ringos_arm64${kernel_suffix}
@@ -180,6 +197,7 @@ function(ringos_add_arm64_x64_emulator_sample_kernel_target sample_target)
   ringos_get_sample_kernel_suffix(kernel_suffix "${sample_target}")
   ringos_get_sample_binary_stem(binary_stem "${sample_target}" x64)
   ringos_resolve_sample_project_args(sample_args "${sample_target}" x64)
+  ringos_sample_requires_terminal_service(sample_requires_terminal_service "${sample_target}")
 
   set(dependency_target "ringos_arm64_x64_emulator${kernel_suffix}_test_app")
 
@@ -191,11 +209,29 @@ function(ringos_add_arm64_x64_emulator_sample_kernel_target sample_target)
     BINARY_STEM ${binary_stem}
     ${sample_args})
 
-  ringos_add_arm64_kernel_target(
-    ringos_arm64_x64_emulator${kernel_suffix}
-    ${dependency_target}
-    ${sample_image_object}
-    ${binary_stem})
+  if(sample_requires_terminal_service)
+    ringos_add_arm64_terminal_service_image(
+      "${sample_target}"
+      "arm64-x64-emulator"
+      service_dependency_target
+      service_image_object
+      service_runtime_mode)
+
+    ringos_add_arm64_kernel_target(
+      ringos_arm64_x64_emulator${kernel_suffix}
+      ${dependency_target}
+      ${sample_image_object}
+      ${binary_stem}
+      SERVICE_DEPENDENCY_TARGET ${service_dependency_target}
+      SERVICE_IMAGE_OBJECT ${service_image_object}
+      SERVICE_RUNTIME_MODE ${service_runtime_mode})
+  else()
+    ringos_add_arm64_kernel_target(
+      ringos_arm64_x64_emulator${kernel_suffix}
+      ${dependency_target}
+      ${sample_image_object}
+      ${binary_stem})
+  endif()
 endfunction()
 
 function(ringos_add_sample_smoke_test_lanes sample_target)

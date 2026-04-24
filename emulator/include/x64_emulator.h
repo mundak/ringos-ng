@@ -32,19 +32,34 @@ enum x64_emulator_engine : uint32_t
 enum x64_emulator_completion : uint32_t
 {
   X64_EMULATOR_COMPLETION_THREAD_EXITED = 0,
-  X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED = 1,
-  X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS = 2,
-  X64_EMULATOR_COMPLETION_UNSUPPORTED_INSTRUCTION = 3,
-  X64_EMULATOR_COMPLETION_INVALID_ARGUMENT = 4,
-  X64_EMULATOR_COMPLETION_UNSUPPORTED_ENGINE = 5,
+  X64_EMULATOR_COMPLETION_YIELDED = 1,
+  X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED = 2,
+  X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS = 3,
+  X64_EMULATOR_COMPLETION_UNSUPPORTED_INSTRUCTION = 4,
+  X64_EMULATOR_COMPLETION_INVALID_ARGUMENT = 5,
+  X64_EMULATOR_COMPLETION_UNSUPPORTED_ENGINE = 6,
 };
 
 enum x64_emulator_guest_stop_reason : uint32_t
 {
   X64_EMULATOR_GUEST_STOP_REASON_NONE = 0,
   X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED = 1,
-  X64_EMULATOR_GUEST_STOP_REASON_INVALID_MEMORY_ACCESS = 2,
-  X64_EMULATOR_GUEST_STOP_REASON_UNSUPPORTED_INSTRUCTION = 3,
+  X64_EMULATOR_GUEST_STOP_REASON_YIELDED = 2,
+  X64_EMULATOR_GUEST_STOP_REASON_INVALID_MEMORY_ACCESS = 3,
+  X64_EMULATOR_GUEST_STOP_REASON_UNSUPPORTED_INSTRUCTION = 4,
+};
+
+enum x64_emulator_syscall_action : uint32_t
+{
+  X64_EMULATOR_SYSCALL_ACTION_CONTINUE = 0,
+  X64_EMULATOR_SYSCALL_ACTION_YIELD = 1,
+  X64_EMULATOR_SYSCALL_ACTION_EXIT_THREAD = 2,
+};
+
+struct x64_emulator_syscall_result
+{
+  int32_t status;
+  x64_emulator_syscall_action action;
 };
 
 enum x64_emulator_backend_failure : uint32_t
@@ -78,7 +93,7 @@ struct x64_emulator_memory
 struct x64_emulator_callbacks
 {
   void* context;
-  int32_t (*handle_syscall)(void* context, const x64_emulator_state& state, bool* out_should_continue);
+  x64_emulator_syscall_result (*handle_syscall)(void* context, const x64_emulator_state& state);
 };
 
 struct x64_emulator_options

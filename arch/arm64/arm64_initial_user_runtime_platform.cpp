@@ -12,8 +12,7 @@ extern "C" const uint8_t _binary_ringos_test_app_image_start[];
 extern "C" const uint8_t _binary_ringos_test_app_image_end[];
 extern "C" const uint8_t _binary_ringos_terminal_service_image_start[];
 extern "C" const uint8_t _binary_ringos_terminal_service_image_end[];
-extern "C" [[noreturn]] void arm64_enter_user_thread(
-  uintptr_t instruction_pointer, uintptr_t stack_pointer, uintptr_t spsr);
+extern "C" void arm64_enter_user_thread(const void* frame);
 extern "C" [[noreturn]] void arm64_user_thread_exit();
 
 namespace
@@ -35,6 +34,14 @@ namespace
   constexpr uint64_t ESR_EXCEPTION_CLASS_MASK = 0x3FULL;
   constexpr uint64_t ESR_EXCEPTION_CLASS_SHIFT = 26;
   constexpr uint64_t ESR_EXCEPTION_CLASS_SVC64 = 0x15ULL;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RSI_INDEX = 0;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RDI_INDEX = 1;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RBX_INDEX = 2;
+  constexpr uint32_t X64_PRESERVED_REGISTER_RBP_INDEX = 3;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R12_INDEX = 4;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R13_INDEX = 5;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R14_INDEX = 6;
+  constexpr uint32_t X64_PRESERVED_REGISTER_R15_INDEX = 7;
   constexpr uint32_t ARM64_PRESERVED_REGISTER_X19_INDEX = 0;
   constexpr uint32_t ARM64_PRESERVED_REGISTER_X20_INDEX = 1;
   constexpr uint32_t ARM64_PRESERVED_REGISTER_X21_INDEX = 2;
@@ -143,6 +150,7 @@ namespace
       return STATUS_NOT_SUPPORTED;
     case X64_EMULATOR_GUEST_STOP_REASON_NONE:
     case X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED:
+    case X64_EMULATOR_GUEST_STOP_REASON_YIELDED:
       return STATUS_BAD_STATE;
     }
 
@@ -199,6 +207,70 @@ namespace
     const uintptr_t start_address = reinterpret_cast<uintptr_t>(image_start);
     const uintptr_t end_address = reinterpret_cast<uintptr_t>(image_end);
     return start_address != 0 && end_address > start_address;
+  }
+
+  process_execution_backend get_process_execution_backend(const process& process_context)
+  {
+    return process_context.get_metadata().execution_backend;
+  }
+
+  void store_x64_emulator_preserved_state(thread& current_thread, const x64_emulator_state& state)
+  {
+    uintptr_t* const preserved_registers = current_thread.get_arch_preserved_registers();
+    preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSI)]);
+    preserved_registers[X64_PRESERVED_REGISTER_RDI_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDI)]);
+    preserved_registers[X64_PRESERVED_REGISTER_RBX_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RBX)]);
+    preserved_registers[X64_PRESERVED_REGISTER_RBP_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RBP)]);
+    preserved_registers[X64_PRESERVED_REGISTER_R12_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R12)]);
+    preserved_registers[X64_PRESERVED_REGISTER_R13_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R13)]);
+    preserved_registers[X64_PRESERVED_REGISTER_R14_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R14)]);
+    preserved_registers[X64_PRESERVED_REGISTER_R15_INDEX]
+      = static_cast<uintptr_t>(state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R15)]);
+    memcpy(
+      current_thread.get_arch_preserved_simd_qwords(),
+      &state.simd_registers[6],
+      sizeof(uint64_t) * USER_THREAD_ARCH_PRESERVED_SIMD_QWORD_COUNT);
+  }
+
+  void load_x64_emulator_resume_state(x64_emulator_state& state, const thread& current_thread)
+  {
+    const user_thread_resume& resume_state = current_thread.get_resume_state();
+    const uintptr_t* const preserved_registers = current_thread.get_arch_preserved_registers();
+
+    state.instruction_pointer = resume_state.instruction_pointer;
+    state.flags = static_cast<uint64_t>(resume_state.flags);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RAX)]
+      = static_cast<uint64_t>(static_cast<int64_t>(resume_state.status_code));
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSP)] = resume_state.stack_pointer;
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSI)]
+      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX]);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDI)]
+      = resume_state.kind == USER_THREAD_RESUME_KIND_RPC
+      ? static_cast<uint64_t>(resume_state.argument0)
+      : static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_RDI_INDEX]);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RBX)]
+      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_RBX_INDEX]);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RBP)]
+      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_RBP_INDEX]);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R12)]
+      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_R12_INDEX]);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R13)]
+      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_R13_INDEX]);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R14)]
+      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_R14_INDEX]);
+    state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_R15)]
+      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_R15_INDEX]);
+    memcpy(
+      &state.simd_registers[6],
+      current_thread.get_arch_preserved_simd_qwords(),
+      sizeof(uint64_t) * USER_THREAD_ARCH_PRESERVED_SIMD_QWORD_COUNT);
   }
 
   void load_arm64_syscall_frame(arm64_syscall_frame* frame, thread& current_thread)
@@ -290,9 +362,25 @@ void arm64_initial_user_runtime_platform::initialize_translation_tables(arm64_pr
   }
 }
 
-arm64_user_image_kind arm64_initial_user_runtime_platform::get_user_image_kind() const
+arm64_process_storage& arm64_initial_user_runtime_platform::get_process_storage(const process& process_context)
 {
-  return m_user_image_kind;
+  const uintptr_t root_table = process_context.get_address_space_info().arch_root_table;
+
+  for (arm64_process_storage& storage : m_process_storage)
+  {
+    if (reinterpret_cast<uintptr_t>(&storage.root_table) == root_table)
+    {
+      return storage;
+    }
+  }
+
+  panic("arm64 could not resolve process storage for the scheduled process");
+}
+
+const arm64_process_storage& arm64_initial_user_runtime_platform::get_process_storage(
+  const process& process_context) const
+{
+  return const_cast<arm64_initial_user_runtime_platform*>(this)->get_process_storage(process_context);
 }
 
 uintptr_t arm64_initial_user_runtime_platform::initialize_arm64_pe_image(
@@ -471,12 +559,15 @@ void arm64_initial_user_runtime_platform::enable_mmu()
   m_mmu_enabled = true;
 }
 
-int32_t arm64_initial_user_runtime_platform::dispatch_x64_syscall(
-  void* context, const x64_emulator_state& state, bool* out_should_continue)
+x64_emulator_syscall_result arm64_initial_user_runtime_platform::dispatch_x64_syscall(
+  void* context, const x64_emulator_state& state)
 {
-  if (context == nullptr || out_should_continue == nullptr)
+  if (context == nullptr)
   {
-    return STATUS_INVALID_ARGUMENT;
+    return {
+      STATUS_INVALID_ARGUMENT,
+      X64_EMULATOR_SYSCALL_ACTION_EXIT_THREAD,
+    };
   }
 
   user_runtime& runtime = *static_cast<user_runtime*>(context);
@@ -484,8 +575,13 @@ int32_t arm64_initial_user_runtime_platform::dispatch_x64_syscall(
 
   if (current_thread == nullptr)
   {
-    return STATUS_BAD_STATE;
+    return {
+      STATUS_BAD_STATE,
+      X64_EMULATOR_SYSCALL_ACTION_EXIT_THREAD,
+    };
   }
+
+  store_x64_emulator_preserved_state(*current_thread, state);
 
   const user_syscall_context syscall_context = make_user_syscall_context(
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RAX)],
@@ -504,11 +600,25 @@ int32_t arm64_initial_user_runtime_platform::dispatch_x64_syscall(
   if (runtime.get_current_thread() == current_thread)
   {
     current_thread->prepare_syscall_resume(syscall_status);
+
+    return {
+      current_thread->get_pending_syscall_status(),
+      X64_EMULATOR_SYSCALL_ACTION_CONTINUE,
+    };
   }
 
-  *out_should_continue = runtime.has_runnable_thread();
-  return runtime.get_current_thread() != nullptr ? runtime.get_current_thread()->get_pending_syscall_status()
-                                                 : syscall_status;
+  if (current_thread->get_state() == USER_THREAD_STATE_EXITED)
+  {
+    return {
+      syscall_status,
+      X64_EMULATOR_SYSCALL_ACTION_EXIT_THREAD,
+    };
+  }
+
+  return {
+    syscall_status,
+    X64_EMULATOR_SYSCALL_ACTION_YIELD,
+  };
 }
 
 void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootstrap& bootstrap)
@@ -526,7 +636,6 @@ void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootst
 
   if (try_get_pe_machine(test_app_image_start, test_app_image_size, &pe_machine) && pe_machine == PE_MACHINE_ARM64)
   {
-    m_user_image_kind = ARM64_USER_IMAGE_KIND_NATIVE_ARM64_PE64;
     bootstrap.process_count = has_terminal_service ? 2 : 1;
     bootstrap.initial_process_index = 0;
 
@@ -549,19 +658,23 @@ void arm64_initial_user_runtime_platform::initialize(initial_user_runtime_bootst
 
   if (try_get_pe_machine(test_app_image_start, test_app_image_size, &pe_machine) && pe_machine == PE_MACHINE_X64)
   {
+    bootstrap.process_count = has_terminal_service ? 2 : 1;
+    bootstrap.initial_process_index = 0;
+
     if (has_terminal_service)
     {
-      panic("arm64 x64 emulator runtime does not support terminal service bootstrap");
+      populate_native_bootstrap_for_process(
+        m_process_storage[0],
+        _binary_ringos_terminal_service_image_start,
+        _binary_ringos_terminal_service_image_end,
+        bootstrap.initial_processes[0]);
     }
 
-    m_user_image_kind = ARM64_USER_IMAGE_KIND_X64_PE64;
-    bootstrap.process_count = 1;
-    bootstrap.initial_process_index = 0;
     populate_x64_emulator_bootstrap(
-      m_process_storage[0],
+      m_process_storage[client_process_index],
       _binary_ringos_test_app_image_start,
       _binary_ringos_test_app_image_end,
-      bootstrap.initial_processes[0]);
+      bootstrap.initial_processes[client_process_index]);
     return;
   }
 
@@ -603,71 +716,110 @@ void arm64_initial_user_runtime_platform::activate_process_address_space(const p
 [[noreturn]] void arm64_initial_user_runtime_platform::enter_user_thread(
   const process& initial_process, const thread& initial_thread)
 {
-  activate_process_address_space(&initial_process);
+  (void) initial_process;
+  (void) initial_thread;
 
-  if (m_user_image_kind == ARM64_USER_IMAGE_KIND_NATIVE_ARM64_PE64)
+  user_runtime& runtime = get_kernel_user_runtime();
+
+  while (true)
   {
-    debug_log("arm64 initial user runtime ready");
+    thread* current_thread = runtime.get_current_thread();
 
-    arm64_enter_user_thread(
-      initial_thread.get_user_context().instruction_pointer,
-      initial_thread.get_user_context().stack_pointer,
-      initial_thread.get_user_context().flags);
-  }
-
-  if (m_user_image_kind == ARM64_USER_IMAGE_KIND_X64_PE64)
-  {
-    user_runtime& runtime = get_kernel_user_runtime();
-    x64_emulator_state emulated_state {};
-    emulated_state.instruction_pointer = initial_thread.get_user_context().instruction_pointer;
-    emulated_state.flags = static_cast<uint64_t>(initial_thread.get_user_context().flags);
-    emulated_state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSP)]
-      = initial_thread.get_user_context().stack_pointer;
-    const x64_emulator_memory memory {
-      X64_USER_IMAGE_VIRTUAL_ADDRESS,
-      get_user_region(m_process_storage[0]),
-      X64_USER_REGION_SIZE,
-    };
-    const x64_emulator_callbacks callbacks {
-      &runtime,
-      &arm64_initial_user_runtime_platform::dispatch_x64_syscall,
-    };
-    const x64_emulator_options options {
-      X64_EMULATOR_ENGINE_INTERPRETER,
-      X64_EMULATOR_INSTRUCTION_BUDGET,
-    };
-    x64_emulator_result result {};
-
-    debug_log("arm64 x64 emulator runtime ready");
-
-    if (!run_x64_emulator(emulated_state, memory, callbacks, options, &result))
+    if (current_thread == nullptr || !runtime.has_runnable_thread())
     {
-      panic("arm64 failed to launch the x64 emulator backend");
-    }
-
-    if (result.backend_failure != X64_EMULATOR_BACKEND_FAILURE_NONE)
-    {
-      panic(describe_x64_emulator_backend_failure(result.backend_failure));
-    }
-
-    if (is_x64_emulator_guest_fault(result))
-    {
-      const int32_t guest_fault_status = get_x64_emulator_guest_fault_status(result);
-      debug_log_x64_emulator_fault(result);
-      (void) runtime.terminate_current_thread(
-        static_cast<uint64_t>(static_cast<int64_t>(guest_fault_status)), guest_fault_status);
       arm64_user_thread_exit();
     }
 
-    if (result.guest_stop_reason != X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED)
+    process* current_process = current_thread->get_process_context();
+
+    if (current_process == nullptr)
     {
-      panic(describe_x64_emulator_guest_stop_reason(result.guest_stop_reason));
+      panic("arm64 current thread has no owning process");
     }
 
-    arm64_user_thread_exit();
+    activate_process_address_space(current_process);
+
+    switch (get_process_execution_backend(*current_process))
+    {
+    case PROCESS_EXECUTION_BACKEND_NATIVE:
+    {
+      if (!m_has_logged_native_runtime_ready)
+      {
+        debug_log("arm64 initial user runtime ready");
+        m_has_logged_native_runtime_ready = true;
+      }
+
+      arm64_syscall_frame frame {};
+      load_arm64_syscall_frame(&frame, *current_thread);
+      arm64_enter_user_thread(&frame);
+      break;
+    }
+
+    case PROCESS_EXECUTION_BACKEND_X64_EMULATOR:
+    {
+      if (!m_has_logged_x64_emulator_runtime_ready)
+      {
+        debug_log("arm64 x64 emulator runtime ready");
+        m_has_logged_x64_emulator_runtime_ready = true;
+      }
+
+      run_x64_emulator_thread(get_process_storage(*current_process), *current_thread);
+      break;
+    }
+
+    default:
+    {
+      panic("arm64 process requested an unsupported execution backend");
+    }
+    }
+  }
+}
+
+void arm64_initial_user_runtime_platform::run_x64_emulator_thread(
+  arm64_process_storage& storage, thread& current_thread)
+{
+  user_runtime& runtime = get_kernel_user_runtime();
+  load_x64_emulator_resume_state(storage.x64_guest_state, current_thread);
+  const x64_emulator_memory memory {
+    X64_USER_IMAGE_VIRTUAL_ADDRESS,
+    get_user_region(storage),
+    X64_USER_REGION_SIZE,
+  };
+  const x64_emulator_callbacks callbacks {
+    &runtime,
+    &arm64_initial_user_runtime_platform::dispatch_x64_syscall,
+  };
+  const x64_emulator_options options {
+    X64_EMULATOR_ENGINE_INTERPRETER,
+    X64_EMULATOR_INSTRUCTION_BUDGET,
+  };
+  x64_emulator_result result {};
+
+  if (!run_x64_emulator(storage.x64_guest_state, memory, callbacks, options, &result))
+  {
+    panic("arm64 failed to launch the x64 emulator backend");
   }
 
-  panic("arm64 user image kind was not initialized");
+  if (result.backend_failure != X64_EMULATOR_BACKEND_FAILURE_NONE)
+  {
+    panic(describe_x64_emulator_backend_failure(result.backend_failure));
+  }
+
+  if (is_x64_emulator_guest_fault(result))
+  {
+    const int32_t guest_fault_status = get_x64_emulator_guest_fault_status(result);
+    debug_log_x64_emulator_fault(result);
+    (void) runtime.terminate_current_thread(
+      static_cast<uint64_t>(static_cast<int64_t>(guest_fault_status)), guest_fault_status);
+    return;
+  }
+
+  if (
+    result.guest_stop_reason != X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED
+    && result.guest_stop_reason != X64_EMULATOR_GUEST_STOP_REASON_YIELDED)
+  {
+    panic(describe_x64_emulator_guest_stop_reason(result.guest_stop_reason));
+  }
 }
 
 extern "C" [[noreturn]] void arm64_unhandled_exception()
@@ -680,16 +832,6 @@ extern "C" bool arm64_handle_syscall(void* frame)
   if (frame == nullptr)
   {
     panic("arm64 syscall frame was null");
-  }
-
-  if (g_initial_user_runtime_platform.get_user_image_kind() == ARM64_USER_IMAGE_KIND_X64_PE64)
-  {
-    panic("arm64 hardware syscall path is disabled while the x64 emulator backend is active");
-  }
-
-  if (g_initial_user_runtime_platform.get_user_image_kind() != ARM64_USER_IMAGE_KIND_NATIVE_ARM64_PE64)
-  {
-    panic("arm64 syscall path was entered without a native arm64 user image");
   }
 
   arm64_syscall_frame* const syscall_frame = static_cast<arm64_syscall_frame*>(frame);
@@ -706,6 +848,25 @@ extern "C" bool arm64_handle_syscall(void* frame)
   if (current_thread == nullptr)
   {
     panic("arm64 syscall without current thread");
+  }
+
+  process* current_process = current_thread->get_process_context();
+
+  if (current_process == nullptr)
+  {
+    panic("arm64 syscall without an owning process");
+  }
+
+  const process_execution_backend current_backend = get_process_execution_backend(*current_process);
+
+  if (current_backend == PROCESS_EXECUTION_BACKEND_X64_EMULATOR)
+  {
+    panic("arm64 hardware syscall path is disabled while an emulated user thread is active");
+  }
+
+  if (current_backend != PROCESS_EXECUTION_BACKEND_NATIVE)
+  {
+    panic("arm64 syscall path was entered without a native arm64 user thread");
   }
 
   uintptr_t* const preserved_registers = current_thread->get_arch_preserved_registers();
@@ -747,9 +908,21 @@ extern "C" bool arm64_handle_syscall(void* frame)
     return false;
   }
 
+  process* resume_process = resume_thread->get_process_context();
+
+  if (resume_process == nullptr)
+  {
+    panic("arm64 scheduled thread has no owning process");
+  }
+
   if (resume_thread == current_thread)
   {
     resume_thread->prepare_syscall_resume(syscall_status);
+  }
+
+  if (get_process_execution_backend(*resume_process) != PROCESS_EXECUTION_BACKEND_NATIVE)
+  {
+    return false;
   }
 
   load_arm64_syscall_frame(syscall_frame, *resume_thread);
@@ -758,6 +931,5 @@ extern "C" bool arm64_handle_syscall(void* frame)
 
 extern "C" [[noreturn]] void arm64_user_thread_exit()
 {
-  debug_log("arm64 returned to kernel after user runtime exit");
   arm64_park_cpu();
 }

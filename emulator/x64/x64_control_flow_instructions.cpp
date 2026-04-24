@@ -3,7 +3,42 @@
 
 namespace
 {
+  constexpr uint64_t RFLAGS_CARRY = 1ULL << 0;
+  constexpr uint64_t RFLAGS_RESERVED = 1ULL << 1;
   constexpr uint64_t RFLAGS_ZERO = 1ULL << 6;
+  constexpr uint64_t RFLAGS_SIGN = 1ULL << 7;
+  constexpr uint64_t RFLAGS_OVERFLOW = 1ULL << 11;
+
+  void set_inc_dec_flags(
+    x64_execution_context& context, uint64_t lhs, uint64_t result, bool is_decrement, bool is_64_bit)
+  {
+    const uint64_t width_mask = is_64_bit ? ~0ULL : static_cast<uint64_t>(UINT32_MAX);
+    const uint64_t sign_mask = is_64_bit ? (1ULL << 63) : (1ULL << 31);
+    const uint64_t masked_lhs = lhs & width_mask;
+    const uint64_t masked_result = result & width_mask;
+    uint64_t flags = (context.get_state().flags & RFLAGS_CARRY) | RFLAGS_RESERVED;
+
+    if (masked_result == 0)
+    {
+      flags |= RFLAGS_ZERO;
+    }
+
+    if ((masked_result & sign_mask) != 0)
+    {
+      flags |= RFLAGS_SIGN;
+    }
+
+    const bool lhs_sign = (masked_lhs & sign_mask) != 0;
+    const bool result_sign = (masked_result & sign_mask) != 0;
+    const bool overflow = is_decrement ? (lhs_sign && !result_sign) : (!lhs_sign && result_sign);
+
+    if (overflow)
+    {
+      flags |= RFLAGS_OVERFLOW;
+    }
+
+    context.get_state().flags = flags;
+  }
 
   bool reject_rex_w(x64_execution_context& context, const x64_decoded_instruction& instruction)
   {
@@ -64,8 +99,7 @@ x64_instruction_outcome execute_x64_call_relative(
   return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
 }
 
-x64_instruction_outcome execute_x64_call_indirect_memory(
-  x64_execution_context& context, const x64_decoded_instruction& instruction)
+x64_instruction_outcome execute_x64_group_ff(x64_execution_context& context, const x64_decoded_instruction& instruction)
 {
   uint8_t modrm = 0;
 
@@ -78,6 +112,34 @@ x64_instruction_outcome execute_x64_call_indirect_memory(
   const uint8_t mod = static_cast<uint8_t>((modrm >> 6) & 0x3);
   const uint8_t operation = static_cast<uint8_t>((modrm >> 3) & 0x7);
   const uint8_t rm = static_cast<uint8_t>(modrm & 0x7);
+  const uint32_t rm_register_index = static_cast<uint32_t>(rm + (instruction.rex_b ? 8U : 0U));
+
+  if (operation == 0 || operation == 1)
+  {
+    if (mod != 3)
+    {
+      context.set_unsupported_instruction(instruction.opcode);
+      return X64_INSTRUCTION_OUTCOME_STOP_RUNNING;
+    }
+
+    if (instruction.rex_w)
+    {
+      const uint64_t lhs = context.get_register64(rm_register_index);
+      const uint64_t result = operation == 0 ? lhs + 1 : lhs - 1;
+      context.get_register64(rm_register_index) = result;
+      set_inc_dec_flags(context, lhs, result, operation == 1, true);
+    }
+    else
+    {
+      const uint32_t lhs = context.get_register32(rm_register_index);
+      const uint32_t result = operation == 0 ? lhs + 1 : lhs - 1;
+      context.set_register32(rm_register_index, result);
+      set_inc_dec_flags(context, lhs, result, operation == 1, false);
+    }
+
+    context.get_state().instruction_pointer = instruction.next_address + 1;
+    return X64_INSTRUCTION_OUTCOME_CONTINUE_RUNNING;
+  }
 
   if (operation != 2)
   {
@@ -90,9 +152,9 @@ x64_instruction_outcome execute_x64_call_indirect_memory(
 
   if (mod == 3)
   {
-    target_address = static_cast<uintptr_t>(context.get_register64(rm));
+    target_address = static_cast<uintptr_t>(context.get_register64(rm_register_index));
   }
-  else if (mod == 0 && rm == 5)
+  else if (mod == 0 && rm == 5 && !instruction.rex_b)
   {
     int32_t displacement = 0;
 

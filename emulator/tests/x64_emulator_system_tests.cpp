@@ -4,6 +4,27 @@
 
 namespace
 {
+  bool test_syscall_yield_reports_cleanly()
+  {
+    constexpr std::array<uint8_t, 2> program {
+      0x0F,
+      0x05,
+    };
+    x64_syscall_capture capture {
+      nullptr, 0, 0, STATUS_OK, true, nullptr, 0, X64_EMULATOR_SYSCALL_ACTION_YIELD,
+    };
+    x64_emulator_result result {};
+
+    if (!run_x64_emulator_test_program("syscall_yield", program.data(), program.size(), capture, &result))
+    {
+      return false;
+    }
+
+    return expect_x64_emulator_test(
+             did_x64_emulator_yield(result), "syscall_yield", "expected syscall-triggered yield completion")
+      && expect_x64_emulator_test(capture.call_count == 1, "syscall_yield", "expected a single syscall");
+  }
+
   bool test_unsupported_engine_reports_cleanly()
   {
     constexpr std::array<uint8_t, 2> program {
@@ -91,6 +112,7 @@ namespace
 
 void append_x64_system_tests(std::vector<x64_emulator_test_case>& tests)
 {
+  tests.push_back({ "syscall_yield", &test_syscall_yield_reports_cleanly });
   tests.push_back({ "unsupported_engine", &test_unsupported_engine_reports_cleanly });
   tests.push_back({ "invalid_memory_access", &test_invalid_memory_access_reports_guest_fault });
   tests.push_back({ "unsupported_instruction", &test_unsupported_instruction_reports_guest_fault });

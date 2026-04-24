@@ -1,11 +1,10 @@
 #pragma once
 
 #include "user_runtime.h"
+#include "x64_emulator.h"
 
 #include <stddef.h>
 #include <stdint.h>
-
-struct x64_emulator_state;
 
 constexpr size_t ARM64_USER_RUNTIME_PAGE_SIZE = 4096;
 constexpr size_t ARM64_USER_RUNTIME_LARGE_PAGE_SIZE = 0x200000;
@@ -21,15 +20,9 @@ struct arm64_process_storage
   arm64_translation_table root_table;
   arm64_translation_table lower_block_table;
   arm64_translation_table kernel_block_table;
+  x64_emulator_state x64_guest_state;
   alignas(ARM64_USER_RUNTIME_PAGE_SIZE) uint8_t
     user_region_storage[ARM64_USER_RUNTIME_USER_REGION_SIZE + ARM64_USER_RUNTIME_LARGE_PAGE_SIZE];
-};
-
-enum arm64_user_image_kind : uint32_t
-{
-  ARM64_USER_IMAGE_KIND_UNKNOWN = 0,
-  ARM64_USER_IMAGE_KIND_NATIVE_ARM64_PE64 = 1,
-  ARM64_USER_IMAGE_KIND_X64_PE64 = 2,
 };
 
 class arm64_initial_user_runtime_platform final
@@ -39,10 +32,11 @@ public:
   void prepare_thread_launch(const process& initial_process, const thread& initial_thread);
   [[noreturn]] void enter_user_thread(const process& initial_process, const thread& initial_thread);
   void activate_process_address_space(const process* process_context);
-  arm64_user_image_kind get_user_image_kind() const;
 
 private:
-  static int32_t dispatch_x64_syscall(void* context, const x64_emulator_state& state, bool* out_should_continue);
+  static x64_emulator_syscall_result dispatch_x64_syscall(void* context, const x64_emulator_state& state);
+  arm64_process_storage& get_process_storage(const process& process_context);
+  const arm64_process_storage& get_process_storage(const process& process_context) const;
   uintptr_t initialize_arm64_pe_image(const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage);
   uintptr_t initialize_x64_emulator_image(
     const uint8_t* image_bytes, size_t image_size, arm64_process_storage& storage);
@@ -61,6 +55,7 @@ private:
     const uint8_t* image_start,
     const uint8_t* image_end,
     initial_process_configuration& process_configuration);
+  void run_x64_emulator_thread(arm64_process_storage& storage, thread& current_thread);
   uint64_t read_system_control() const;
   void write_mair(uintptr_t value);
   void write_system_control(uint64_t value);
@@ -69,7 +64,8 @@ private:
   void write_vector_base(uintptr_t vector_base);
 
   arm64_process_storage m_process_storage[USER_RUNTIME_MAX_INITIAL_PROCESSES] {};
-  arm64_user_image_kind m_user_image_kind = ARM64_USER_IMAGE_KIND_UNKNOWN;
+  bool m_has_logged_native_runtime_ready = false;
+  bool m_has_logged_x64_emulator_runtime_ready = false;
   bool m_mmu_enabled = false;
 };
 

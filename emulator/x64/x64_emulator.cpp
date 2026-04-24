@@ -74,6 +74,8 @@ const char* describe_x64_emulator_completion(x64_emulator_completion completion)
   {
   case X64_EMULATOR_COMPLETION_THREAD_EXITED:
     return "x64 emulator thread exited cleanly";
+  case X64_EMULATOR_COMPLETION_YIELDED:
+    return "x64 emulator yielded to the kernel scheduler";
   case X64_EMULATOR_COMPLETION_INSTRUCTION_LIMIT_REACHED:
     return "x64 emulator hit the instruction budget";
   case X64_EMULATOR_COMPLETION_INVALID_MEMORY_ACCESS:
@@ -97,6 +99,8 @@ const char* describe_x64_emulator_guest_stop_reason(x64_emulator_guest_stop_reas
     return "x64 emulator stopped without a guest event";
   case X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED:
     return "x64 emulator thread exited cleanly";
+  case X64_EMULATOR_GUEST_STOP_REASON_YIELDED:
+    return "x64 emulator yielded to the kernel scheduler";
   case X64_EMULATOR_GUEST_STOP_REASON_INVALID_MEMORY_ACCESS:
     return "x64 emulator touched unmapped guest memory";
   case X64_EMULATOR_GUEST_STOP_REASON_UNSUPPORTED_INSTRUCTION:

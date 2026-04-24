@@ -121,6 +121,13 @@ void x64_execution_context::set_thread_exited()
   m_result.backend_failure = X64_EMULATOR_BACKEND_FAILURE_NONE;
 }
 
+void x64_execution_context::set_yielded()
+{
+  m_result.completion = X64_EMULATOR_COMPLETION_YIELDED;
+  m_result.guest_stop_reason = X64_EMULATOR_GUEST_STOP_REASON_YIELDED;
+  m_result.backend_failure = X64_EMULATOR_BACKEND_FAILURE_NONE;
+}
+
 void x64_execution_context::set_backend_failure(x64_emulator_backend_failure failure)
 {
   m_result.guest_stop_reason = X64_EMULATOR_GUEST_STOP_REASON_NONE;

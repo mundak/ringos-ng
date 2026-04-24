@@ -7,12 +7,7 @@ if [[ $# -ne 1 ]]; then
   exit 1
 fi
 
-if [[ "$1" == "arm64-x64-emulator" ]]; then
-  echo "console_service_write does not support arm64-x64-emulator yet: the arm64 x64 emulator runtime cannot bootstrap srv_terminal." >&2
-  exit 1
-fi
-
-if [[ "$1" != "x64-native" && "$1" != "arm64-native" ]]; then
+if [[ "$1" != "x64-native" && "$1" != "arm64-native" && "$1" != "arm64-x64-emulator" ]]; then
   echo "Unsupported console_service_write lane: $1" >&2
   exit 1
 fi

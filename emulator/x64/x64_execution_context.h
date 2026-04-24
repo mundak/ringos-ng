@@ -28,6 +28,7 @@ public:
   void set_invalid_memory_access(uintptr_t fault_address, uint8_t fault_opcode) const;
   void set_unsupported_instruction(uint8_t fault_opcode);
   void set_thread_exited();
+  void set_yielded();
   void set_backend_failure(x64_emulator_backend_failure failure);
 
   uint64_t& get_register64(uint32_t register_index);

@@ -106,17 +106,22 @@ x64_instruction_outcome execute_x64_unsupported(
 
 x64_instruction_outcome execute_x64_syscall(x64_execution_context& context, const x64_decoded_instruction& instruction)
 {
-  bool should_continue = false;
   context.get_state().instruction_pointer = instruction.next_address + 1;
 
-  const int32_t syscall_result
-    = context.get_callbacks().handle_syscall(context.get_callbacks().context, context.get_state(), &should_continue);
+  const x64_emulator_syscall_result syscall_result
+    = context.get_callbacks().handle_syscall(context.get_callbacks().context, context.get_state());
   context.get_register64(static_cast<uint32_t>(X64_GENERAL_REGISTER_RAX))
-    = static_cast<uint64_t>(static_cast<int64_t>(syscall_result));
+    = static_cast<uint64_t>(static_cast<int64_t>(syscall_result.status));
 
-  if (!should_continue)
+  if (syscall_result.action == X64_EMULATOR_SYSCALL_ACTION_EXIT_THREAD)
   {
     context.set_thread_exited();
+    return X64_INSTRUCTION_OUTCOME_RETIRE_AND_STOP;
+  }
+
+  if (syscall_result.action == X64_EMULATOR_SYSCALL_ACTION_YIELD)
+  {
+    context.set_yielded();
     return X64_INSTRUCTION_OUTCOME_RETIRE_AND_STOP;
   }
 

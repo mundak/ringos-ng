@@ -25,14 +25,9 @@ namespace
     return memory.bytes + offset;
   }
 
-  int32_t capture_x64_syscall(void* context, const x64_emulator_state& state, bool* out_should_continue)
+  x64_emulator_syscall_result capture_x64_syscall(void* context, const x64_emulator_state& state)
   {
     x64_syscall_capture& capture = *static_cast<x64_syscall_capture*>(context);
-
-    if (out_should_continue == nullptr)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
 
     ++capture.call_count;
     const uint64_t syscall_number = state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RAX)];
@@ -40,8 +35,10 @@ namespace
 
     if (syscall_number != capture.expected_number)
     {
-      *out_should_continue = false;
-      return STATUS_BAD_STATE;
+      return {
+        STATUS_BAD_STATE,
+        X64_EMULATOR_SYSCALL_ACTION_YIELD,
+      };
     }
 
     if (capture.expected_string != nullptr)
@@ -52,18 +49,24 @@ namespace
         string_bytes == nullptr
         || std::strcmp(reinterpret_cast<const char*>(string_bytes), capture.expected_string) != 0)
       {
-        *out_should_continue = false;
-        return STATUS_FAULT;
+        return {
+          STATUS_FAULT,
+          X64_EMULATOR_SYSCALL_ACTION_YIELD,
+        };
       }
     }
     else if (argument0 != capture.expected_argument0)
     {
-      *out_should_continue = false;
-      return STATUS_INVALID_ARGUMENT;
+      return {
+        STATUS_INVALID_ARGUMENT,
+        X64_EMULATOR_SYSCALL_ACTION_YIELD,
+      };
     }
 
-    *out_should_continue = !capture.stop_after_call;
-    return capture.return_status;
+    return {
+      capture.return_status,
+      capture.stop_after_call ? capture.stop_action : X64_EMULATOR_SYSCALL_ACTION_CONTINUE,
+    };
   }
 }
 
@@ -86,6 +89,12 @@ bool expect_x64_emulator_test(bool condition, const char* test_name, const char*
 bool did_x64_emulator_exit_cleanly(const x64_emulator_result& result)
 {
   return result.guest_stop_reason == X64_EMULATOR_GUEST_STOP_REASON_THREAD_EXITED
+    && result.backend_failure == X64_EMULATOR_BACKEND_FAILURE_NONE;
+}
+
+bool did_x64_emulator_yield(const x64_emulator_result& result)
+{
+  return result.guest_stop_reason == X64_EMULATOR_GUEST_STOP_REASON_YIELDED
     && result.backend_failure == X64_EMULATOR_BACKEND_FAILURE_NONE;
 }
 
