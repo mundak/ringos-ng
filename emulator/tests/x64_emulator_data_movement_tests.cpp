@@ -53,15 +53,7 @@ namespace
     };
     x64_emulator_result result {};
 
-    if (!run_x64_emulator_test_program(
-          "lea_rip_relative_string",
-          program.data(),
-          program.size(),
-          capture,
-          &result,
-          X64_EMULATOR_ENGINE_INTERPRETER,
-          32,
-          7))
+    if (!run_x64_emulator_test_program("lea_rip_relative_string", program.data(), program.size(), capture, &result))
     {
       return false;
     }
