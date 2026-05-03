@@ -230,6 +230,59 @@ int32_t user_runtime::write_user_bytes(
   return STATUS_OK;
 }
 
+int32_t user_runtime::copy_between_user_processes(
+  const process& source_process,
+  uintptr_t source_user_address,
+  const process& destination_process,
+  uintptr_t destination_user_address,
+  size_t size) const
+{
+  if (size == 0)
+  {
+    return STATUS_OK;
+  }
+
+  uintptr_t current_source_address = source_user_address;
+  uintptr_t current_destination_address = destination_user_address;
+  size_t remaining_size = size;
+
+  while (remaining_size != 0)
+  {
+    uintptr_t source_host_address = 0;
+    size_t source_translated_length = 0;
+
+    if (
+      !try_translate_address_space_chunk(
+        source_process.get_address_space_info(), current_source_address, remaining_size, &source_host_address,
+        &source_translated_length)
+      || source_translated_length == 0)
+    {
+      return STATUS_FAULT;
+    }
+
+    uintptr_t destination_host_address = 0;
+    size_t destination_translated_length = 0;
+
+    if (
+      !try_translate_address_space_chunk(
+        destination_process.get_address_space_info(), current_destination_address, source_translated_length,
+        &destination_host_address, &destination_translated_length)
+      || destination_translated_length == 0)
+    {
+      return STATUS_FAULT;
+    }
+
+    memcpy(
+      reinterpret_cast<void*>(destination_host_address), reinterpret_cast<const void*>(source_host_address),
+      destination_translated_length);
+    current_source_address += destination_translated_length;
+    current_destination_address += destination_translated_length;
+    remaining_size -= destination_translated_length;
+  }
+
+  return STATUS_OK;
+}
+
 int32_t user_runtime::copy_user_string(
   const thread& owner_thread, uintptr_t user_address, char* buffer, size_t buffer_size) const
 {

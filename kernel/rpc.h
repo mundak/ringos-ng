@@ -90,7 +90,8 @@ private:
     user_runtime& runtime,
     const rpc_endpoint& endpoint,
     thread& server_thread,
-    const void* request_bytes,
+    const process& client_process,
+    uintptr_t client_request_address,
     size_t request_size);
 
   rpc_endpoint m_endpoints[USER_RUNTIME_MAX_RPC_ENDPOINTS] {};

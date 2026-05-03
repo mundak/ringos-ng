@@ -51,6 +51,12 @@ private:
   int32_t copy_user_bytes(const process& owner_process, uintptr_t user_address, void* buffer, size_t buffer_size) const;
   int32_t write_user_bytes(
     const process& owner_process, uintptr_t user_address, const void* buffer, size_t buffer_size) const;
+  int32_t copy_between_user_processes(
+    const process& source_process,
+    uintptr_t source_user_address,
+    const process& destination_process,
+    uintptr_t destination_user_address,
+    size_t size) const;
   void grant_process_access(kernel_object& object);
   bool try_translate_user_address(
     const process& owner_process, uintptr_t user_address, size_t length, uintptr_t* out_host_address) const;

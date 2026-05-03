@@ -375,17 +375,9 @@ int32_t rpc_runtime::dispatch_syscall(
       return STATUS_WOULD_BLOCK;
     }
 
-    uint8_t request_bytes[RINGOS_RPC_MAX_REQUEST_SIZE];
-    const int32_t request_status = runtime.copy_user_bytes(
-      *owner_process, static_cast<uintptr_t>(syscall_context.argument1), request_bytes, request_size);
-
-    if (request_status != STATUS_OK)
-    {
-      return request_status;
-    }
-
-    const int32_t prepare_status
-      = prepare_server_thread(runtime, *endpoint, *server_thread, request_bytes, request_size);
+    const int32_t prepare_status = prepare_server_thread(
+      runtime, *endpoint, *server_thread, *owner_process, static_cast<uintptr_t>(syscall_context.argument1),
+      request_size);
 
     if (prepare_status != STATUS_OK)
     {
@@ -569,7 +561,8 @@ int32_t rpc_runtime::prepare_server_thread(
   user_runtime& runtime,
   const rpc_endpoint& endpoint,
   thread& server_thread,
-  const void* request_bytes,
+  const process& client_process,
+  uintptr_t client_request_address,
   size_t request_size)
 {
   process* server_process = endpoint.get_owner_process();
@@ -579,7 +572,7 @@ int32_t rpc_runtime::prepare_server_thread(
     return STATUS_BAD_STATE;
   }
 
-  if (request_bytes == nullptr || request_size == 0 || request_size > RINGOS_RPC_MAX_REQUEST_SIZE)
+  if (client_request_address == 0 || request_size == 0 || request_size > RINGOS_RPC_MAX_REQUEST_SIZE)
   {
     return STATUS_INVALID_ARGUMENT;
   }
@@ -616,7 +609,8 @@ int32_t rpc_runtime::prepare_server_thread(
   }
 
   const uintptr_t return_address = request_address - sizeof(uintptr_t);
-  const int32_t request_status = runtime.write_user_bytes(*server_process, request_address, request_bytes, request_size);
+  const int32_t request_status = runtime.copy_between_user_processes(
+    client_process, client_request_address, *server_process, request_address, request_size);
 
   if (request_status != STATUS_OK)
   {
@@ -640,7 +634,8 @@ int32_t rpc_runtime::prepare_server_thread(
   }
 
   const uintptr_t request_address = align_down(saved_stack_pointer - request_size, 16);
-  const int32_t request_status = runtime.write_user_bytes(*server_process, request_address, request_bytes, request_size);
+  const int32_t request_status = runtime.copy_between_user_processes(
+    client_process, client_request_address, *server_process, request_address, request_size);
 
   if (request_status != STATUS_OK)
   {
@@ -652,7 +647,8 @@ int32_t rpc_runtime::prepare_server_thread(
 #else
   (void) runtime;
   (void) server_thread;
-  (void) request_bytes;
+  (void) client_process;
+  (void) client_request_address;
   (void) request_size;
   return STATUS_NOT_SUPPORTED;
 #endif
