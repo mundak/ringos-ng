@@ -76,6 +76,7 @@ struct user_thread_resume
   uintptr_t stack_pointer;
   uintptr_t flags;
   uintptr_t argument0;
+  uintptr_t argument1;
   int32_t status_code;
   uintptr_t rpc_completion_address;
 };

@@ -30,7 +30,11 @@ public:
   void set_pending_syscall_status(int32_t status);
   void prepare_syscall_resume(int32_t status);
   void prepare_rpc_resume(
-    uintptr_t callback_address, uintptr_t completion_address, uintptr_t argument0, uintptr_t stack_pointer);
+    uintptr_t callback_address,
+    uintptr_t completion_address,
+    uintptr_t argument0,
+    uintptr_t argument1,
+    uintptr_t stack_pointer);
 
 private:
   void sync_resume_to_user_context();

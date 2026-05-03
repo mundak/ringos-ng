@@ -7,15 +7,7 @@
 #include "thread.h"
 
 inline constexpr size_t RINGOS_RPC_ENDPOINT_NAME_MAX_LENGTH = 31;
-
-struct ringos_rpc_request
-{
-  uint64_t operation;
-  uintptr_t argument0;
-  uintptr_t argument1;
-  uintptr_t argument2;
-  uintptr_t argument3;
-};
+inline constexpr size_t RINGOS_RPC_MAX_REQUEST_SIZE = 256;
 
 class process;
 class user_runtime;
@@ -95,7 +87,11 @@ private:
   int32_t complete_call(user_runtime& runtime, thread& server_thread, int32_t callback_status);
   int32_t fail_pending_call(thread& server_thread, int32_t failure_status);
   int32_t prepare_server_thread(
-    user_runtime& runtime, const rpc_endpoint& endpoint, thread& server_thread, const ringos_rpc_request& request);
+    user_runtime& runtime,
+    const rpc_endpoint& endpoint,
+    thread& server_thread,
+    const void* request_bytes,
+    size_t request_size);
 
   rpc_endpoint m_endpoints[USER_RUNTIME_MAX_RPC_ENDPOINTS] {};
   kernel_object_pool<rpc_channel, USER_RUNTIME_MAX_RPC_CHANNELS> m_channels;

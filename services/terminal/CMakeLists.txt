@@ -25,7 +25,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(terminal_service
-  main.cpp)
+  srv_terminal_main.cpp)
 
 target_include_directories(terminal_service
   PRIVATE

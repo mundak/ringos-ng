@@ -132,13 +132,18 @@ void thread::prepare_syscall_resume(int32_t status)
 }
 
 void thread::prepare_rpc_resume(
-  uintptr_t callback_address, uintptr_t completion_address, uintptr_t argument0, uintptr_t stack_pointer)
+  uintptr_t callback_address,
+  uintptr_t completion_address,
+  uintptr_t argument0,
+  uintptr_t argument1,
+  uintptr_t stack_pointer)
 {
   m_resume_state.kind = USER_THREAD_RESUME_KIND_RPC;
   m_resume_state.instruction_pointer = callback_address;
   m_resume_state.stack_pointer = stack_pointer;
   m_resume_state.flags = m_user_context.flags;
   m_resume_state.argument0 = argument0;
+  m_resume_state.argument1 = argument1;
   m_resume_state.status_code = 0;
   m_resume_state.rpc_completion_address = completion_address;
 }
@@ -150,6 +155,7 @@ void thread::sync_resume_to_user_context()
   m_resume_state.stack_pointer = m_user_context.stack_pointer;
   m_resume_state.flags = m_user_context.flags;
   m_resume_state.argument0 = m_user_context.argument0;
+  m_resume_state.argument1 = 0;
   m_resume_state.status_code = m_pending_syscall_status;
   m_resume_state.rpc_completion_address = 0;
 }

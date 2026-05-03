@@ -250,7 +250,9 @@ namespace
       = static_cast<uint64_t>(static_cast<int64_t>(resume_state.status_code));
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSP)] = resume_state.stack_pointer;
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RSI)]
-      = static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX]);
+      = resume_state.kind == USER_THREAD_RESUME_KIND_RPC
+      ? static_cast<uint64_t>(resume_state.argument1)
+      : static_cast<uint64_t>(preserved_registers[X64_PRESERVED_REGISTER_RSI_INDEX]);
     state.general_registers[static_cast<uint32_t>(X64_GENERAL_REGISTER_RDI)]
       = resume_state.kind == USER_THREAD_RESUME_KIND_RPC
       ? static_cast<uint64_t>(resume_state.argument0)
@@ -283,6 +285,9 @@ namespace
     memset(frame, 0, sizeof(*frame));
     const user_thread_resume& resume_state = current_thread.get_resume_state();
     frame->x0 = static_cast<uint64_t>(resume_state.argument0);
+    frame->x1 = resume_state.kind == USER_THREAD_RESUME_KIND_RPC
+      ? static_cast<uint64_t>(resume_state.argument1)
+      : 0;
     frame->elr = resume_state.instruction_pointer;
     frame->spsr = resume_state.flags;
     frame->sp_el0 = resume_state.stack_pointer;

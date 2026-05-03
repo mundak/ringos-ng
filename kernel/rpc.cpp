@@ -331,7 +331,14 @@ int32_t rpc_runtime::dispatch_syscall(
 
   case SYSCALL_RPC_CALL:
   {
-    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0)
+    if (syscall_context.argument0 == 0 || syscall_context.argument1 == 0 || syscall_context.argument2 == 0)
+    {
+      return STATUS_INVALID_ARGUMENT;
+    }
+
+    const size_t request_size = static_cast<size_t>(syscall_context.argument2);
+
+    if (request_size > RINGOS_RPC_MAX_REQUEST_SIZE)
     {
       return STATUS_INVALID_ARGUMENT;
     }
@@ -368,21 +375,17 @@ int32_t rpc_runtime::dispatch_syscall(
       return STATUS_WOULD_BLOCK;
     }
 
-    ringos_rpc_request request {};
+    uint8_t request_bytes[RINGOS_RPC_MAX_REQUEST_SIZE];
     const int32_t request_status = runtime.copy_user_bytes(
-      *owner_process, static_cast<uintptr_t>(syscall_context.argument1), &request, sizeof(request));
+      *owner_process, static_cast<uintptr_t>(syscall_context.argument1), request_bytes, request_size);
 
     if (request_status != STATUS_OK)
     {
       return request_status;
     }
 
-    if (request.operation == 0)
-    {
-      return STATUS_INVALID_ARGUMENT;
-    }
-
-    const int32_t prepare_status = prepare_server_thread(runtime, *endpoint, *server_thread, request);
+    const int32_t prepare_status
+      = prepare_server_thread(runtime, *endpoint, *server_thread, request_bytes, request_size);
 
     if (prepare_status != STATUS_OK)
     {
@@ -563,13 +566,22 @@ int32_t rpc_runtime::fail_pending_call(thread& server_thread, int32_t failure_st
 }
 
 int32_t rpc_runtime::prepare_server_thread(
-  user_runtime& runtime, const rpc_endpoint& endpoint, thread& server_thread, const ringos_rpc_request& request)
+  user_runtime& runtime,
+  const rpc_endpoint& endpoint,
+  thread& server_thread,
+  const void* request_bytes,
+  size_t request_size)
 {
   process* server_process = endpoint.get_owner_process();
 
   if (server_process == nullptr)
   {
     return STATUS_BAD_STATE;
+  }
+
+  if (request_bytes == nullptr || request_size == 0 || request_size > RINGOS_RPC_MAX_REQUEST_SIZE)
+  {
+    return STATUS_INVALID_ARGUMENT;
   }
 
   const uintptr_t callback_address = endpoint.get_callback_address();
@@ -591,12 +603,12 @@ int32_t rpc_runtime::prepare_server_thread(
   }
 
 #if defined(__x86_64__)
-  if (saved_stack_pointer <= sizeof(ringos_rpc_request) + sizeof(uintptr_t))
+  if (saved_stack_pointer <= request_size + sizeof(uintptr_t))
   {
     return STATUS_FAULT;
   }
 
-  const uintptr_t request_address = align_down(saved_stack_pointer - sizeof(ringos_rpc_request), 16);
+  const uintptr_t request_address = align_down(saved_stack_pointer - request_size, 16);
 
   if (request_address <= sizeof(uintptr_t))
   {
@@ -604,7 +616,7 @@ int32_t rpc_runtime::prepare_server_thread(
   }
 
   const uintptr_t return_address = request_address - sizeof(uintptr_t);
-  const int32_t request_status = runtime.write_user_bytes(*server_process, request_address, &request, sizeof(request));
+  const int32_t request_status = runtime.write_user_bytes(*server_process, request_address, request_bytes, request_size);
 
   if (request_status != STATUS_OK)
   {
@@ -619,28 +631,29 @@ int32_t rpc_runtime::prepare_server_thread(
     return return_status;
   }
 
-  server_thread.prepare_rpc_resume(callback_address, completion_address, request_address, return_address);
+  server_thread.prepare_rpc_resume(callback_address, completion_address, request_address, request_size, return_address);
   return STATUS_OK;
 #elif defined(__aarch64__)
-  if (saved_stack_pointer <= sizeof(ringos_rpc_request))
+  if (saved_stack_pointer <= request_size)
   {
     return STATUS_FAULT;
   }
 
-  const uintptr_t request_address = align_down(saved_stack_pointer - sizeof(ringos_rpc_request), 16);
-  const int32_t request_status = runtime.write_user_bytes(*server_process, request_address, &request, sizeof(request));
+  const uintptr_t request_address = align_down(saved_stack_pointer - request_size, 16);
+  const int32_t request_status = runtime.write_user_bytes(*server_process, request_address, request_bytes, request_size);
 
   if (request_status != STATUS_OK)
   {
     return request_status;
   }
 
-  server_thread.prepare_rpc_resume(callback_address, completion_address, request_address, request_address);
+  server_thread.prepare_rpc_resume(callback_address, completion_address, request_address, request_size, request_address);
   return STATUS_OK;
 #else
   (void) runtime;
   (void) server_thread;
-  (void) request;
+  (void) request_bytes;
+  (void) request_size;
   return STATUS_NOT_SUPPORTED;
 #endif
 }
